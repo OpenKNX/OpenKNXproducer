@@ -1,4 +1,4 @@
-multiply-channels
+OpenKNXproducer
 ===
 
 This project provides a commandline tool to create knxprod files for ETS.
@@ -19,8 +19,8 @@ The current version provides the following verbs:
 
 - **version**    Display version information.
 
-This tool also creates a header file with defines for all parameter and com object definitions in the xml. An ETS must be installed on the PC. Currently ETS 4, ETS 5.5, ETS 5.6 and ETS 5.7 are supported. The correct ETS converter version is automatically found dependent on xmlns of provided xml document.
-This project uses dotnet core 3.0.
+This tool also creates a header file with defines for all parameter and com object definitions in the xml. An ETS must be installed on the PC. Currently ETS 4, ETS 5.5, ETS 5.6, ETS 5.7 and ETS 6.0 are supported. The correct ETS converter version is automatically found dependent on xmlns of provided xml document.
+This project uses dotnet 6.0.
 
 ### Examples:
 
@@ -46,7 +46,7 @@ If all sanity checks were OK and the knxprod file was created, there might be st
 
 As a general hint:
 
-- if there is a problem importing the knxprod file into the product catalog (import function in ETS), there is usually a problem with Parameters-, ParameterTypes-, ComObjects-Section or the document structure itself. I.e. a dash in SerialNumber prevented an import, even though the creation of knxprod worked fine (in the meantime there is a check for SerialNumber).
+- if there is a problem importing the knxprod file into the product catalog (import function in ETS), there is usually a problem with Parameters-, ParameterTypes-, ComObjects-Section or the document structure itself.
 
 - if import was successful, but you cannot add the device to your project, usually there is a problem in Dynamic-, ParameterRef-, ComObjectRef-Section.
 
