@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- <ItemGroup>
+    <Reference Include="Knx.Ets.Xml.ObjectModel">
+      <HintPath>C:\Program Files (x86)\ETS5\Knx.Ets.Xml.ObjectModel.dll</HintPath>
+    </Reference>
+  </ItemGroup> -->
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.6.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <!-- <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" /> -->
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="NewDevice.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="NewDevice.xml" />
+  </ItemGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- <Nullable>enable</Nullable> -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- <PublishTrimmed>false</PublishTrimmed> -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- <RuntimeIdentifier>win-x64</RuntimeIdentifier> -->
+  </PropertyGroup>
+</Project>

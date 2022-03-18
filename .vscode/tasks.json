@@ -1,0 +1,67 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "group": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/OpenKNXproducer.csproj"
+            ],
+            "problemMatcher": "$tsc"
+        },
+        {
+            "label": "publish",
+            "command": "dotnet",
+            "group": "build",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/OpenKNXproducer.csproj",
+                "-c",
+                "Debug",
+                "-r",
+                "win-x64",
+                "--self-contained",
+                "true",
+                "/p:PublishSingleFile=true"
+            ],
+            "problemMatcher": "$tsc"
+        },
+        {
+            "label": "copy to bin",
+            "command": "copy",
+            "group": "build",
+            "type": "shell",
+            "args": [
+                "${workspaceFolder}/bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe",
+                "${env:USERPROFILE}/bin"
+            ],
+            "problemMatcher": "$tsc"
+        },
+        {
+            "label": "build, publish and copy to bin",
+            "dependsOn": [
+                "build",
+                "publish",
+                "copy to bin"
+            ],
+            "group": "build",
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "watch",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "watch",
+                "run",
+                "${workspaceFolder}/OpenKNXproducer.csproj"
+            ],
+            "problemMatcher": "$tsc"
+        }
+    ]
+}
