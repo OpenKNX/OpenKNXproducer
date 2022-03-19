@@ -3,7 +3,9 @@ OpenKNXproducer
 
 This project provides a commandline tool to create knxprod files for ETS.
 
-It is motivated by this [knx](https://github.com/thelsing/knx) stack and the according [CreateKnxProd](https://github.com/thelsing/CreateKnxProd) tool.
+This is the successor of [multiply-channels](https://github.com/mumpf/multiply-channels), which will be discontinued. multiply-channels and OpenKNXproducer are compatible, as long as you want to convert simple xml-sources using ETS 5.x. As soon as you use the include-functionality of these tools, there is no compatibility anymore.
+
+For [OpenKNX_Projects](https://github.com/OpenKNX) or for knxprod-creation with ETS 6 you should use OpenKNXproducer.
 
 The current version provides the following verbs:
 
