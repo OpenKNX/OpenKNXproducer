@@ -482,6 +482,20 @@ namespace OpenKNXproducer {
             if (!lFailPart) Console.WriteLine(" OK");
             lFail = lFail || lFailPart;
 
+            lFailPart = false;
+            Console.Write("- Memory size...");
+            lNodes = iTargetNode.SelectNodes("//*[self::RelativeSegment or self::LdCtrlRelSegment or self::LdCtrlWriteRelMem][@Size]");
+            foreach (XmlNode lNode in lNodes) {
+                int lNumber = -1;
+                string lValue = lNode.Attributes.GetNamedItem("Size").Value;
+                bool lIsInt = int.TryParse(lValue, out lNumber);
+                if (!lIsInt || lNumber <= 0) {
+                    WriteFail(ref lFailPart, "Size-Attribute of {0} is incorrect ({1}), are you missing %MemorySize% replacement?", lNode.Name, lValue);
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
             return !lFail;
         }
 
@@ -626,8 +640,8 @@ namespace OpenKNXproducer {
         //     }
         // }
 
-        private static void ExportKnxprod(string iPathETS, string iXml, string iKnxprodFileName, bool iIsDebug) {
-            if (iPathETS == "") return;
+        private static int ExportKnxprod(string iPathETS, string iXml, string iKnxprodFileName, bool iIsDebug) {
+            if (iPathETS == "") return 1;
             try {
 
                 XDocument xdoc = XDocument.Parse(iXml);
@@ -708,10 +722,12 @@ namespace OpenKNXproducer {
                     System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
 
                 Console.WriteLine("Output of {0} successful", iKnxprodFileName);
+                return 0;
             }
             catch (Exception ex) {
-                Console.WriteLine("Error during knxprod creation:");
+                Console.WriteLine("ETS-Error during knxprod creation:");
                 Console.WriteLine(ex.ToString());
+                return 1;
             }
         }
 
@@ -786,7 +802,8 @@ namespace OpenKNXproducer {
         }
 
         static int Main(string[] args) {
-            return CommandLine.Parser.Default.ParseArguments<CreateOptions, CheckOptions, KnxprodOptions, NewOptions>(args)
+            return new CommandLine.Parser(settings => settings.HelpWriter = Console.Out)
+              .ParseArguments<CreateOptions, CheckOptions, KnxprodOptions, NewOptions>(args)
               .MapResult(
                 (NewOptions opts) => VerbNew(opts),
                 (CreateOptions opts) => VerbCreate(opts),
@@ -799,7 +816,7 @@ namespace OpenKNXproducer {
             Console.WriteLine("{0} {1}", typeof(Program).Assembly.GetName().Name, typeof(Program).Assembly.GetName().Version);
         }
 
-        static private string GetEncoded(string iInput)
+        static public string GetEncoded(string iInput)
         {
             char[] lExtraChars = new char[] { '.', '%', ' ', '!', '\"', '#', '$', '&', '(', ')', '+', '-', '/', ':', ';', '<', '>', '=', '?', '@', '[', '\\', ']', '^', '_', '{', '|', '}' };
 
@@ -839,11 +856,11 @@ namespace OpenKNXproducer {
             lXmlFile = lXmlFile.Replace("%ApplicationVersion%", opts.ApplicationVersion.ToString());
             lXmlFile = lXmlFile.Replace("%HardwareName%", opts.HardwareName);
             lXmlFile = lXmlFile.Replace("%HardwareVersion%", opts.HardwareVersion.ToString());
-            lXmlFile = lXmlFile.Replace("%HardwareVersionEncoded%", GetEncoded(opts.HardwareVersion.ToString()));
+            // lXmlFile = lXmlFile.Replace("%HardwareVersionEncoded%", GetEncoded(opts.HardwareVersion.ToString()));
             lXmlFile = lXmlFile.Replace("%SerialNumber%", opts.SerialNumber);
-            lXmlFile = lXmlFile.Replace("%SerialNumberEncoded%", GetEncoded(opts.SerialNumber));
+            // lXmlFile = lXmlFile.Replace("%SerialNumberEncoded%", GetEncoded(opts.SerialNumber));
             lXmlFile = lXmlFile.Replace("%OrderNumber%", opts.OrderNumber);
-            lXmlFile = lXmlFile.Replace("%OrderNumberEncoded%", GetEncoded(opts.OrderNumber));
+            // lXmlFile = lXmlFile.Replace("%OrderNumberEncoded%", GetEncoded(opts.OrderNumber));
             lXmlFile = lXmlFile.Replace("%ProductName%", opts.ProductName);
             lXmlFile = lXmlFile.Replace("%MaskVersion%", opts.MaskVersion);
             lXmlFile = lXmlFile.Replace("%MediumTypes%", opts.MediumTypes);
@@ -875,11 +892,11 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lResult.GetNamespace());
-                ExportKnxprod(lEtsPath, lXml.OuterXml, lOutputFileName, opts.Debug);
+                return ExportKnxprod(lEtsPath, lXml.OuterXml, lOutputFileName, opts.Debug);
             } else {
                 Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
+                return 1;
             }
-            return 0;
         }
 
         static private int VerbCheck(CheckOptions opts) {
@@ -901,8 +918,7 @@ namespace OpenKNXproducer {
             System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            ExportKnxprod(lEtsPath, xml, lOutputFileName, false);
-            return 0;
+            return ExportKnxprod(lEtsPath, xml, lOutputFileName, false);
         }
     }
 }

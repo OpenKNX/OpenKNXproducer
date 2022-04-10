@@ -28,7 +28,7 @@
             "args": [
                 "create",
                 "--Debug",
-                "../OpenKNX/OAM-SensorModule/src/Sensormodul"
+                "../OAM-SensorModule/src/Sensormodul"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -43,7 +43,7 @@
             "args": [
                 "create",
                 "--Debug",
-                "../OpenKNX/OAM-OneWireModule/src/WireGateway"
+                "../OAM-OneWireModule/src/WireGateway"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -58,7 +58,7 @@
             "args": [
                 "create",
                 "--Debug",
-                "../OpenKNX/OAM-LogicModule/src/Logikmodul"
+                "../OAM-LogicModule/src/Logikmodul"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

@@ -354,11 +354,13 @@ namespace OpenKNXproducer {
         }
 
         bool ProcessFinish(XmlNode iTargetNode) {
+            Console.WriteLine("Processing merged file...");
             bool lWithVersions = false;
             XmlNode lApplicationProgramNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
             // evaluate oknxp:version, if available
             XmlNode lMcVersionNode = iTargetNode.SelectSingleNode("//oknxp:version", nsmgr);
             string lInlineData = "";
+            string lVersionMessage = "";
             if (lMcVersionNode != null) {
                 // found oknxp:version, we apply its attributes to knxprod-xml
                 int lOpenKnxId = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("OpenKnxId").Value, 16);
@@ -371,11 +373,13 @@ namespace OpenKNXproducer {
                 lApplicationProgramNode.Attributes.GetNamedItem("ReplacesVersions").Value = lReplVersions;;
                 int lAppRevision = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value, 10);
                 // now we calculate according versioning verification string
-                lInlineData = string.Format("0000{0:X4}{1:X2}00", lCalcAppNumber, lAppVersion-lAppRevision);
-                XmlNode lLdCtrlCompareProp = iTargetNode.SelectSingleNode("//LdCtrlCompareProp");
-                if (lLdCtrlCompareProp != null) {
-                    lLdCtrlCompareProp.Attributes.GetNamedItem("InlineData").Value = lInlineData;
-                }
+                int lDerivedVersion = lAppVersion - lAppRevision;
+                lInlineData = string.Format("0000{0:X4}{1:X2}00", lCalcAppNumber, lDerivedVersion);
+                lVersionMessage = string.Format("{0}.{1}", (lDerivedVersion >> 4), (lDerivedVersion & 0x0F));
+                // XmlNode lLdCtrlCompareProp = iTargetNode.SelectSingleNode("//LdCtrlCompareProp");
+                // if (lLdCtrlCompareProp != null) {
+                //     lLdCtrlCompareProp.Attributes.GetNamedItem("InlineData").Value = lInlineData;
+                // }
                 // we create a comment from versio node
                 string lVersion = " " + string.Join(" ", lMcVersionNode.OuterXml.Split().Skip(1).SkipLast(2)) + " ";
                 XmlNode lVersionComment = ((XmlDocument)iTargetNode).CreateComment(lVersion);
@@ -389,14 +393,7 @@ namespace OpenKNXproducer {
                 mHeaderGenerated.AppendFormat("#define MAIN_ApplicationVersion {0}", lAppVersion-lAppRevision);
                 mHeaderGenerated.AppendLine();
             }
-            // set the right Size attributes
-            XmlNodeList lNodes = iTargetNode.SelectNodes("(//RelativeSegment | //LdCtrlRelSegment | //LdCtrlWriteRelMem)[@Size]");
-            // string lSize = (mChannelCount * mParameterBlockSize + mParameterBlockOffset).ToString();
-            string lSize = mParameterBlockSize.ToString();
-            foreach (XmlNode lNode in lNodes) {
-                lNode.Attributes.GetNamedItem("Size").Value = lSize;
-            }
-            Console.WriteLine("- Final parameter size is {0}", lSize);
+
             // change all Id-Attributes / renumber ParameterSeparator and ParameterBlock
             string lApplicationId = lApplicationProgramNode.Attributes.GetNamedItem("Id").Value;
             int lApplicationNumber = -1;
@@ -428,9 +425,10 @@ namespace OpenKNXproducer {
             if (lInlineData != "") Console.WriteLine("- Calculated InlineData for Versioning: {0}", lInlineData);
 
             // create registration entry
-            XmlNode lHardwareVersionAttribute = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware/@VersionNumber");
+            XmlNode lHardwareNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware");
             int lHardwareVersion = 1;
-            int.TryParse(lHardwareVersionAttribute.Value, out lHardwareVersion);
+            int.TryParse(lHardwareNode.Attributes.GetNamedItem("VersionNumber").Value, out lHardwareVersion);
+            string lSerialNumber = lHardwareNode.Attributes.GetNamedItem("SerialNumber").Value;
             XmlNode lRegistrationNumber = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware/Hardware2Programs/Hardware2Program/RegistrationInfo/@RegistrationNumber");
             if (lRegistrationNumber == null) {
                 Console.WriteLine("- Missing 'RegistrationVersion', no updates via 'ReplacesVersion' in ETS possible!");
@@ -444,6 +442,36 @@ namespace OpenKNXproducer {
                 Console.WriteLine("- ReplacesVersions entry is: {0}", lReplacesVersions);
                 // string lOldVerion = string.Format(" {0}", lApplicationVersion - 1);
                 // if (!lReplacesVersions.Contains(lOldVerion) && lReplacesVersions != (lApplicationVersion - 1).ToString()) lReplacesVersionsAttribute.Value += lOldVerion;
+            }
+            // set the right Size attributes
+            // XmlNodeList lNodes = iTargetNode.SelectNodes("(//RelativeSegment | //LdCtrlRelSegment | //LdCtrlWriteRelMem)[@Size]");
+            string lSize = mParameterBlockSize.ToString();
+            // foreach (XmlNode lNode in lNodes) {
+            //     lNode.Attributes.GetNamedItem("Size").Value = lSize;
+            // }
+            // Console.WriteLine("- Final parameter size is {0}", lSize);
+
+            string lHardwareVersionEncoded = Program.GetEncoded(lHardwareVersion.ToString());
+            string lSerialNumberEncoded = Program.GetEncoded(lSerialNumber);
+            XmlNode lOrderNumberAttribute = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware/Products/Product/@OrderNumber");
+            string lOrderNumberEncoded = Program.GetEncoded(lOrderNumberAttribute.Value);
+            // XmlNodeList lCatalog = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Catalog/descendant::*/@*");
+            // XmlNodeList lHardware = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Hardware/descendant::*/@*");
+            // XmlNodeList lStatic = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram/Static/descendant::*/@*");
+            // var lNodes = lCatalog.Cast<XmlNode>().Concat(lHardware.Cast<XmlNode>().Concat<XmlNode>(lStatic.Cast<XmlNode>())).ToList();
+            var lNodes = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/*[self::Catalog or self::Hardware or self::ApplicationPrograms/ApplicationProgram/Static]/descendant::*/@*");
+            foreach (XmlNode lNode in lNodes)
+            {
+                if (lNode.Value != null) {
+                    string lValue = lNode.Value;
+                    lValue = lValue.Replace("%MemorySize%", lSize);
+                    lValue = lValue.Replace("%HardwareVersionEncoded%", lHardwareVersionEncoded);
+                    lValue = lValue.Replace("%OrderNumberEncoded%", lOrderNumberEncoded);
+                    lValue = lValue.Replace("%SerialNumberEncoded%", lSerialNumberEncoded);
+                    lValue = lValue.Replace("%VersionCheck%", lInlineData);
+                    lValue = lValue.Replace("%VersionMessage%", lVersionMessage);
+                    lNode.Value = lValue;
+                }
             }
             return lWithVersions;
         }

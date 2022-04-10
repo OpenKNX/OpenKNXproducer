@@ -53,6 +53,14 @@
             "problemMatcher": []
         },
         {
+            "label": "Build-Release",
+            "group": "test",
+            "type": "shell",
+            "command": "scripts/Build-Release.ps1",
+            "args": [],
+            "problemMatcher": "$tsc"
+        },
+        {
             "label": "watch",
             "command": "dotnet",
             "type": "process",
