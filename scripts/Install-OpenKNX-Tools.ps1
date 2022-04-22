@@ -17,8 +17,8 @@ $version = ~/bin/OpenKNXproducer version
 
 Write-Host "
     Die folgenden OpenKNX-Tools wurden im Verzeichnis ~/bin verfuegbar gemacht:
-        bossac          1.7.0 - Firmware-Upload für SAMD-Prozessoren
-        $version - Erzeugung einer knxprod-Datei für die ETS
+        bossac          1.7.0 - Firmware-Upload fuer SAMD-Prozessoren
+        $version - Erzeugung einer knxprod-Datei fuer die ETS
 "
 
 timeout /T 20
