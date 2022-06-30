@@ -641,7 +641,7 @@ namespace OpenKNXproducer {
         //     }
         // }
 
-        private static int ExportKnxprod(string iPathETS, string iXml, string iKnxprodFileName, string lTempXmlFileName, bool iIsDebug) {
+        private static int ExportKnxprod(string iPathETS, string iKnxprodFileName, string lTempXmlFileName, bool iIsDebug) {
             if (iPathETS == "") return 1;
             try {
 
@@ -650,14 +650,18 @@ namespace OpenKNXproducer {
                 string xsdFile = @"C:\Users\u6\Documents\repos\Kaenx.Creator\Kaenx.Creator\bin\Debug\net6.0-windows\Data\knx_project_14.xsd";
 
                 string ns = xdoc.Root.Name.NamespaceName;
-                XmlSchemaSet schemas = new XmlSchemaSet();
-                schemas.Add(null, xsdFile);
 
                 xdoc.Root.Attribute("oldxmlns")?.Remove();
 
-                xdoc.Validate(schemas, (o, e) => {
-                    Console.WriteLine($"{e.Severity} XML Line {e.Exception.LineNumber}:{e.Exception.LinePosition} -> {e.Message}");
-                });
+                if(!string.IsNullOrEmpty(xsdFile))
+                {
+                    XmlSchemaSet schemas = new XmlSchemaSet();
+                    schemas.Add(null, xsdFile);
+
+                    xdoc.Validate(schemas, (o, e) => {
+                        Console.WriteLine($"{e.Severity} XML Line {e.Exception.LineNumber}:{e.Exception.LinePosition} -> {e.Message}");
+                    });
+                }
 
                 XElement xmanu = xdoc.Root.Element(XName.Get("ManufacturerData", ns)).Element(XName.Get("Manufacturer", ns));
 
@@ -970,7 +974,7 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lResult.GetNamespace());
-                return ExportKnxprod(lEtsPath, lXml.OuterXml, lOutputFileName, lTempXmlFileName, opts.Debug);
+                return ExportKnxprod(lEtsPath, lOutputFileName, lTempXmlFileName, opts.Debug);
             } else {
                 Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
                 return 1;
@@ -996,7 +1000,7 @@ namespace OpenKNXproducer {
             System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            return ExportKnxprod(lEtsPath, xml, lOutputFileName, opts.XmlFileName, false);
+            return ExportKnxprod(lEtsPath, lOutputFileName, opts.XmlFileName, false);
         }
     }
 }
