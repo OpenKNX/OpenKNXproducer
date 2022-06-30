@@ -644,14 +644,21 @@ namespace OpenKNXproducer {
         private static int ExportKnxprod(string iPathETS, string iKnxprodFileName, string lTempXmlFileName, bool iIsDebug) {
             if (iPathETS == "") return 1;
             try {
-                string xmlContent = File.ReadAllText(lTempXmlFileName);
-                if(xmlContent.Contains("<?xml-model"))
+                XDocument xdoc = null;
                 {
-                    Regex regx = new Regex(@"<\?xml-model (.+)\?>");
-                    xmlContent = regx.Replace(xmlContent, "");
-                }
+                    string xmlContent = File.ReadAllText(lTempXmlFileName);
 
-                XDocument xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
+                    if(xmlContent.Contains("<?xml-model"))
+                    {
+                        Regex regx = new Regex(@"<\?xml-model (.+)\?>");
+                        xmlContent = regx.Replace(xmlContent, "");
+                    }
+
+                    xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
+                }
+                
+
+                
 
                 string xsdFile = @"C:\Users\u6\Documents\repos\Kaenx.Creator\Kaenx.Creator\bin\Debug\net6.0-windows\Data\knx_project_14.xsd";
 
