@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Xml;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Schema;
 using OpenKNXproducer.Signing;
 // using Knx.Ets.Xml.ObjectModel;
 
@@ -640,12 +641,24 @@ namespace OpenKNXproducer {
         //     }
         // }
 
-        private static int ExportKnxprod(string iPathETS, string iXml, string iKnxprodFileName, bool iIsDebug) {
+        private static int ExportKnxprod(string iPathETS, string iXml, string iKnxprodFileName, string lTempXmlFileName, bool iIsDebug) {
             if (iPathETS == "") return 1;
             try {
 
-                XDocument xdoc = XDocument.Parse(iXml);
+                XDocument xdoc = XDocument.Load(lTempXmlFileName, LoadOptions.SetLineInfo);
+
+                string xsdFile = @"C:\Users\u6\Documents\repos\Kaenx.Creator\Kaenx.Creator\bin\Debug\net6.0-windows\Data\knx_project_14.xsd";
+
                 string ns = xdoc.Root.Name.NamespaceName;
+                XmlSchemaSet schemas = new XmlSchemaSet();
+                schemas.Add(null, xsdFile);
+
+                xdoc.Root.Attribute("oldxmlns")?.Remove();
+
+                xdoc.Validate(schemas, (o, e) => {
+                    Console.WriteLine($"{e.Severity} XML Line {e.Exception.LineNumber}:{e.Exception.LinePosition} -> {e.Message}");
+                });
+
                 XElement xmanu = xdoc.Root.Element(XName.Get("ManufacturerData", ns)).Element(XName.Get("Manufacturer", ns));
 
                 string manuId = xmanu.Attribute("RefId").Value;
@@ -661,19 +674,84 @@ namespace OpenKNXproducer {
                 XElement xhard = xmanu.Element(XName.Get("Hardware", ns));
                 XElement xappl = xmanu.Element(XName.Get("ApplicationPrograms", ns));
 
+                List<XElement> xcataL = new List<XElement>();
+                List<XElement> xhardL = new List<XElement>();
+                List<XElement> xapplL = new List<XElement>();
+                XElement xlangs = xmanu.Element(XName.Get("Languages", ns));
+
+                if(xlangs != null)
+                {
+                    xlangs.Remove();
+                    foreach(XElement xlang in xlangs.Descendants(XName.Get("Language", ns)).ToList())
+                    {
+                        XComment xcomm = xlang.FirstNode as XComment;
+
+                        if(xcomm.NodeType != XmlNodeType.Comment)
+                        {
+                            Console.WriteLine("Language has no assignment Comment and will be skipped");
+                            continue;
+                        }
+
+                        switch(xcomm.Value)
+                        {
+                            case "Catalog":
+                                xcataL.Add(xlang);
+                                break;
+
+                            case "Application":
+                                xapplL.Add(xlang);
+                                break;
+
+                            case "Hardware":
+                                xhardL.Add(xlang);
+                                break;
+
+                            default:
+                                throw new Exception("Unknown Translation Type: " + xcomm.Value);
+                        }
+
+                        xcomm.Remove();
+                    }
+                }
+
                 //Save Catalog
                 xhard.Remove();
                 xappl.Remove();
+                if(xcataL.Count > 0)
+                {
+                    xlangs.Elements().Remove();
+                    foreach(XElement xlang in xcataL)
+                        xlangs.Add(xlang);
+                    xmanu.Add(xlangs);
+                }
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
+                if(xcataL.Count > 0) xlangs.Remove();
 
                 xcata.Remove();
                 xmanu.Add(xhard);
+                if(xhardL.Count > 0)
+                {
+                    xlangs.Elements().Remove();
+                    foreach(XElement xlang in xhardL)
+                        xlangs.Add(xlang);
+                    xmanu.Add(xlangs);
+                }
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
+                if(xhardL.Count > 0) xlangs.Remove();
 
                 xhard.Remove();
                 xmanu.Add(xappl);
+                if(xapplL.Count > 0)
+                {
+                    xlangs.Elements().Remove();
+                    foreach(XElement xlang in xapplL)
+                        xlangs.Add(xlang);
+                    xmanu.Add(xlangs);
+                }
                 string appId = xappl.Elements(XName.Get("ApplicationProgram", ns)).First().Attribute("Id").Value;
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
+                if(xapplL.Count > 0) xlangs.Remove();
+
 
 
                 IDictionary<string, string> applProgIdMappings = new Dictionary<string, string>();
@@ -686,7 +764,7 @@ namespace OpenKNXproducer {
 
                 int nsVersion = int.Parse(ns.Substring(ns.LastIndexOf('/')+1));
                 ApplicationProgramHasher aph = new ApplicationProgramHasher(appInfo, mapBaggageIdToFileIntegrity, iPathETS, nsVersion, true);
-                aph.Hash(); //ETS6 benutzt ApplicationProgramStoreHasher und die Funktion HashStore!
+                aph.Hash();
 
                 applProgIdMappings.Add(aph.OldApplProgId, aph.NewApplProgId);
                 if (!applProgHashes.ContainsKey(aph.NewApplProgId))
@@ -892,7 +970,7 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lResult.GetNamespace());
-                return ExportKnxprod(lEtsPath, lXml.OuterXml, lOutputFileName, opts.Debug);
+                return ExportKnxprod(lEtsPath, lXml.OuterXml, lOutputFileName, lTempXmlFileName, opts.Debug);
             } else {
                 Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
                 return 1;
@@ -918,7 +996,7 @@ namespace OpenKNXproducer {
             System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            return ExportKnxprod(lEtsPath, xml, lOutputFileName, false);
+            return ExportKnxprod(lEtsPath, xml, lOutputFileName, opts.XmlFileName, false);
         }
     }
 }
