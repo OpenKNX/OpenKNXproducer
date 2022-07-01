@@ -13,7 +13,7 @@
             "args": [
                 "create",
                 "--Debug",
-                "../OpenKNX/OAM-PresenceModule/src/PMmodul"
+                "../OAM-PresenceModule/src/PMmodul"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

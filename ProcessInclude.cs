@@ -404,9 +404,13 @@ namespace OpenKNXproducer {
             string lOldId = lApplicationId;//.Replace("M-00FA_A", ""); // CalculateId(1, 1);
             if(lOldId.StartsWith("M-")) lOldId = lOldId.Substring(8);
             string lNewId = CalculateId(lApplicationNumber, lApplicationVersion);
+            if (lOldId == "%AID%") lNewId = "M-00FA_A" + lNewId;
             int lParameterSeparatorCount = 1;
             int lParameterBlockCount = 1;
-            XmlNodeList lAttrs = iTargetNode.SelectNodes("//*/@*[string-length() > '13']");
+            XmlNodeList lAttrs;
+            lAttrs = iTargetNode.SelectNodes("//*/@*[starts-with(.,'%AID%')]");
+            if (lAttrs.Count == 0) 
+                lAttrs = iTargetNode.SelectNodes("//*/@*[string-length() > '13']");
             foreach (XmlNode lAttr in lAttrs) {
                 if (lAttr.Value != null) {
                     lAttr.Value = lAttr.Value.Replace(lOldId, lNewId);
@@ -450,11 +454,20 @@ namespace OpenKNXproducer {
             //     lNode.Attributes.GetNamedItem("Size").Value = lSize;
             // }
             // Console.WriteLine("- Final parameter size is {0}", lSize);
+            string lPartId = CalculateId(lApplicationNumber, lApplicationVersion);
+            string lHardwareId = "M-00FA_H-%SerialNumberEncoded%-%HardwareVersionEncoded%";
+            string lHardware2ProgramId = lHardwareId + "_HP" + lPartId;
+            string lCatalogItemId = lHardware2ProgramId + "_CI-%OrderNumberEncoded%-1";
+            string lProductId = lHardwareId + "_P-%OrderNumberEncoded%";
 
             string lHardwareVersionEncoded = Program.GetEncoded(lHardwareVersion.ToString());
             string lSerialNumberEncoded = Program.GetEncoded(lSerialNumber);
             XmlNode lOrderNumberAttribute = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware/Products/Product/@OrderNumber");
             string lOrderNumberEncoded = Program.GetEncoded(lOrderNumberAttribute.Value);
+            if (lMcVersionNode != null) {
+                mHeaderGenerated.AppendFormat("#define MAIN_OrderNumber \"{0}\"", lOrderNumberAttribute.Value);
+                mHeaderGenerated.AppendLine();
+            }
             // XmlNodeList lCatalog = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Catalog/descendant::*/@*");
             // XmlNodeList lHardware = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Hardware/descendant::*/@*");
             // XmlNodeList lStatic = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram/Static/descendant::*/@*");
@@ -464,7 +477,13 @@ namespace OpenKNXproducer {
             {
                 if (lNode.Value != null) {
                     string lValue = lNode.Value;
+                    // these need to be replaced first
+                    lValue = lValue.Replace("%CatalogItemId%", lCatalogItemId);
+                    lValue = lValue.Replace("%ProductId%", lProductId);
+                    lValue = lValue.Replace("%HardwareId%", lHardwareId);
+                    lValue = lValue.Replace("%Hardware2ProgramId%", lHardware2ProgramId);
                     lValue = lValue.Replace("%MemorySize%", lSize);
+                    // now we replace encoded values
                     lValue = lValue.Replace("%HardwareVersionEncoded%", lHardwareVersionEncoded);
                     lValue = lValue.Replace("%OrderNumberEncoded%", lOrderNumberEncoded);
                     lValue = lValue.Replace("%SerialNumberEncoded%", lSerialNumberEncoded);
@@ -810,7 +829,7 @@ namespace OpenKNXproducer {
                 }
                 lParent.RemoveChild(lIncludeNode);
                 if (lInclude.ChannelCount > 1) ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
-                // we replace also all additional replace key value paris
+                // we replace also all additional replace key value pairs
                 for (int lCount = 0; lCount < lInclude.ReplaceKeys.Length; lCount++)
                 {
                     ReplaceDocumentStrings(mDocument, lInclude.ReplaceKeys[lCount], lInclude.ReplaceValues[lCount]);
