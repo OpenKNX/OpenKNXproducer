@@ -404,12 +404,12 @@ namespace OpenKNXproducer {
                             lIdPart = "_P-";
                         }
                         lIdMatch = lIdPart + @"[1-3]?\d\d{6}";
-                        lIdMatchReadable = lIdPart + "tcccnnn";
+                        lIdMatchReadable = lIdPart + "tcccnnn$";
                         break;
                     case "ComObject":
                         lIdPart = "_O-";
                         lIdMatch = lIdPart + @"[1-3]?\d\d{6}";
-                        lIdMatchReadable = lIdPart + "tcccnnn";
+                        lIdMatchReadable = lIdPart + "tcccnnn$";
                         break;
                     case "ParameterType":
                     case "Enumeration":
@@ -419,7 +419,7 @@ namespace OpenKNXproducer {
                     case "ComObjectRef":
                         lIdPart = "_R-";
                         if (lId.Contains(lIdPart)) lIdPart = "";
-                        lIdMatch = @"([1-3]?\d\d{6})_R-\1\d\d";
+                        lIdMatch = @"([1-3]?\d\d{6})_R-\1\d\d$";
                         lIdMatchReadable = "tcccnnn_R-tcccnnnrr";
                         break;
                     case "ParameterBlock":
@@ -641,41 +641,99 @@ namespace OpenKNXproducer {
         //     }
         // }
 
-        private static int ExportKnxprod(string iPathETS, string iKnxprodFileName, string lTempXmlFileName, bool iIsDebug) {
+        private enum DocumentCategory {
+            None,
+            Catalog, 
+            Hardware,
+            Application
+        }
+
+        private static DocumentCategory GetDocumentCategory(XElement iTranslationUnit) {
+            DocumentCategory lCategory = DocumentCategory.None;
+            string lId = iTranslationUnit.Attribute("RefId").Value;
+
+            lId = lId.Substring(6);
+            if (lId.StartsWith("_A-"))
+                lCategory = DocumentCategory.Application;
+            else if (lId.StartsWith("_CS-"))
+                lCategory = DocumentCategory.Catalog;
+            else if (lId.StartsWith("_H-") && lId.Contains("_CI-"))
+                lCategory = DocumentCategory.Catalog;
+            else if (lId.StartsWith("_H-") && lId.Contains("_P-"))
+                lCategory = DocumentCategory.Hardware;
+            else if (lId.StartsWith("_H-"))
+                lCategory = DocumentCategory.Hardware;
+
+            return lCategory;
+        }
+
+        private static void AddTranslationUnit(XElement iTranslationUnit, List<XElement> iLanguageList, string iNamespaceName) {
+            // we assume, that here are adding just few TranslationUnits
+            // get parent element (Language)
+            XElement lSourceLanguage = iTranslationUnit.Parent;
+            string lSourceLanguageId = lSourceLanguage.Attribute("Identifier").Value;
+            XElement lTargetLanguage = iLanguageList.Elements("Child").FirstOrDefault(child => child.Attribute("Name").Value == lSourceLanguageId);
+            if (lTargetLanguage == null) {
+                // we create language element
+                lTargetLanguage = new XElement(XName.Get("Language", iNamespaceName), new XAttribute("Identifier", lSourceLanguageId));
+                iLanguageList.Add(lTargetLanguage);
+            }
+            iTranslationUnit.Remove();
+            lTargetLanguage.Add(iTranslationUnit);
+        }
+
+        private static bool ValidateXsd(string iTempFileName, string iXmlFileName, string iXsdFileName, bool iAutoXsd) {
+            // iDocument.Save("validationTest.xml");
+            string lContent = File.ReadAllText(iTempFileName);
+            XDocument lDocument = XDocument.Parse(lContent, LoadOptions.SetLineInfo);
+            lDocument.Root.Attribute("oldxmlns")?.Remove();
+
+            string lXmlFileName = Path.GetFullPath(iXmlFileName);
+            bool lError = false;
+            if(string.IsNullOrEmpty(iXsdFileName) && iAutoXsd)
+            {
+                // we try to find a schema in the xml document
+                Regex lRegex = new Regex("<\\?xml-model.* href=\"(.*.xsd)\" ");
+                Match lMatch = lRegex.Match(lContent);
+                iXsdFileName = lMatch.Groups[1].Value;
+            }
+            if(!string.IsNullOrEmpty(iXsdFileName))
+            {
+                Console.Write("Validation against {0}... ", iXsdFileName);
+                if (File.Exists(iXsdFileName)) {
+                    XmlSchemaSet schemas = new XmlSchemaSet();
+                    schemas.Add(null, iXsdFileName);
+
+                    lDocument.Validate(schemas, (o, e) => {
+                        if (!lError) Console.WriteLine();
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write($"XML {e.Severity} in {lXmlFileName}({e.Exception.LineNumber},{e.Exception.LinePosition}): ");
+                        Console.ResetColor();
+                        Console.WriteLine($"{e.Message}");
+                        lError = true;
+                    });
+                    Console.WriteLine(lError ? "" : "OK");
+                } else {
+                    Console.WriteLine("Xsd-File not found!");
+                }
+            }
+            return lError;
+        }
+
+        private static int ExportKnxprod(string iPathETS, string iKnxprodFileName, string lTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd) {
             if (iPathETS == "") return 1;
             try {
+                if (ValidateXsd(lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
+
                 XDocument xdoc = null;
-                {
-                    string xmlContent = File.ReadAllText(lTempXmlFileName);
-
-                    if(xmlContent.Contains("<?xml-model"))
-                    {
-                        Regex regx = new Regex(@"<\?xml-model (.+)\?>");
-                        xmlContent = regx.Replace(xmlContent, "");
-                    }
-
-                    xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
-                }
+                string xmlContent = File.ReadAllText(lTempXmlFileName);
+                xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
                 
-
-                
-
-                string xsdFile = @"C:\Users\u6\Documents\repos\Kaenx.Creator\Kaenx.Creator\bin\Debug\net6.0-windows\Data\knx_project_14.xsd";
+                XNode lXmlModel = xdoc.FirstNode;
+                if(lXmlModel.NodeType==XmlNodeType.ProcessingInstruction)
+                    lXmlModel.Remove();
 
                 string ns = xdoc.Root.Name.NamespaceName;
-
-                xdoc.Root.Attribute("oldxmlns")?.Remove();
-
-                if(!string.IsNullOrEmpty(xsdFile))
-                {
-                    XmlSchemaSet schemas = new XmlSchemaSet();
-                    schemas.Add(null, xsdFile);
-
-                    xdoc.Validate(schemas, (o, e) => {
-                        Console.WriteLine($"{e.Severity} XML Line {e.Exception.LineNumber}:{e.Exception.LinePosition} -> {e.Message}");
-                    });
-                }
-
                 XElement xmanu = xdoc.Root.Element(XName.Get("ManufacturerData", ns)).Element(XName.Get("Manufacturer", ns));
 
                 string manuId = xmanu.Attribute("RefId").Value;
@@ -699,35 +757,24 @@ namespace OpenKNXproducer {
                 if(xlangs != null)
                 {
                     xlangs.Remove();
-                    foreach(XElement xlang in xlangs.Descendants(XName.Get("Language", ns)).ToList())
+                    foreach(XElement xTrans in xlangs.Descendants(XName.Get("TranslationUnit", ns)).ToList())
                     {
-                        XComment xcomm = xlang.FirstNode as XComment;
-
-                        if(xcomm.NodeType != XmlNodeType.Comment)
+                        DocumentCategory lCategory = GetDocumentCategory(xTrans);
+                        switch (lCategory)
                         {
-                            Console.WriteLine("Language has no assignment Comment and will be skipped");
-                            continue;
-                        }
-
-                        switch(xcomm.Value)
-                        {
-                            case "Catalog":
-                                xcataL.Add(xlang);
+                            case DocumentCategory.Catalog:
+                                AddTranslationUnit(xTrans, xcataL, ns);
                                 break;
-
-                            case "Application":
-                                xapplL.Add(xlang);
+                            case DocumentCategory.Hardware:
+                                AddTranslationUnit(xTrans, xhardL, ns);
                                 break;
-
-                            case "Hardware":
-                                xhardL.Add(xlang);
+                            case DocumentCategory.Application:
+                                AddTranslationUnit(xTrans, xapplL, ns);
                                 break;
-
                             default:
-                                throw new Exception("Unknown Translation Type: " + xcomm.Value);
+                                throw new Exception("Unknown Translation Type: " + lCategory.ToString());
                         }
 
-                        xcomm.Remove();
                     }
                 }
 
@@ -833,6 +880,10 @@ namespace OpenKNXproducer {
                 get { return mXmlFileName; }
                 set { mXmlFileName = Path.ChangeExtension(value, "xml"); }
             }
+            [Option('V', "Xsd", Required = false, HelpText = "Validation file name (xsd)", MetaValue = "FILE")]
+            public string XsdFileName { get; set; } = "";
+            [Option('N', "NoXsd", Required = false, HelpText = "Prevent automatic search for validation file (xsd) ")]
+            public bool NoXsd { get; set; } = false;
         }
 
         [Verb("new", HelpText = "Create new xml file with a fully commented and working mini exaple")]
@@ -890,10 +941,14 @@ namespace OpenKNXproducer {
             public string Prefix { get; set; } = "";
             [Option('d', "Debug", Required = false, HelpText = "Additional output of <xmlfile>.debug.xml, this file is the input file for knxprod converter")]
             public bool Debug { get; set; } = false;
+            [Option('R', "NoRenumber", Required = false, HelpText = "Don't renumber ParameterSeparator- and ParameterBlock-Id's")]
+            public bool NoRenumber { get; set; } = false;
         }
 
         [Verb("check", HelpText = "execute sanity checks on given xml file")]
         class CheckOptions : EtsOptions {
+            [Option('d', "Debug", Required = false, HelpText = "Additional output of <xmlfile>.debug.xml, this file is the input file for knxprod converter")]
+            public bool Debug { get; set; } = false;
         }
 
         static int Main(string[] args) {
@@ -937,6 +992,10 @@ namespace OpenKNXproducer {
                 Console.WriteLine("ApplicationNumber has to be less than 65536!");
                 lFail = true;
             }
+            if (opts.ApplicationNumber >= 0xA000 && opts.ApplicationNumber < 0xB000) {
+                Console.WriteLine("ApplicationNumber {0} is reserved for OpenKNX applications!", opts.ApplicationNumber);
+                lFail = true;
+            }
             if (lFail) return 1;
 
             // create initial xml file
@@ -965,15 +1024,17 @@ namespace OpenKNXproducer {
         }
 
         static private int VerbCreate(CreateOptions opts) {
+            int lResult = 0;
             WriteVersion();
             string lHeaderFileName = Path.ChangeExtension(opts.XmlFileName, "h");
             if (opts.HeaderFileName != "") lHeaderFileName = opts.HeaderFileName;
             Console.WriteLine("Processing xml file {0}", opts.XmlFileName);
-            ProcessInclude lResult = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
-            bool lWithVersions = lResult.Expand();
+            ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
+            ProcessInclude.Renumber = !opts.NoRenumber;
+            bool lWithVersions = lInclude.Expand();
             // We restore the original namespace in File
-            lResult.SetNamespace();
-            XmlDocument lXml = lResult.GetDocument();
+            lInclude.SetNamespace();
+            XmlDocument lXml = lInclude.GetDocument();
             bool lSuccess = ProcessSanityChecks(lXml, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
@@ -982,25 +1043,36 @@ namespace OpenKNXproducer {
             if (opts.Debug) Console.WriteLine("Writing debug file to {0}", lTempXmlFileName);
             lXml.Save(lTempXmlFileName);
             Console.WriteLine("Writing header file to {0}", lHeaderFileName);
-            File.WriteAllText(lHeaderFileName, lResult.HeaderGenerated);
+            File.WriteAllText(lHeaderFileName, lInclude.HeaderGenerated);
             string lOutputFileName = Path.ChangeExtension(opts.OutputFile, "knxprod");
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
-                string lEtsPath = FindEtsPath(lResult.GetNamespace());
-                return ExportKnxprod(lEtsPath, lOutputFileName, lTempXmlFileName, opts.Debug);
-            } else {
-                Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
-                return 1;
+                string lEtsPath = FindEtsPath(lInclude.GetNamespace());
+                lResult = ExportKnxprod(lEtsPath, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
             }
+            if (lResult > 0) 
+                Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
+            return lResult;
         }
 
         static private int VerbCheck(CheckOptions opts) {
             WriteVersion();
             string lFileName = Path.ChangeExtension(opts.XmlFileName, "xml");
             Console.WriteLine("Reading and resolving xml file {0}", lFileName);
-            ProcessInclude lResult = ProcessInclude.Factory(opts.XmlFileName, "", "");
-            lResult.LoadAdvanced(lFileName);
-            return ProcessSanityChecks(lResult.GetDocument(), false) ? 0 : 1;
+            ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, "", "");
+            // ProcessInclude.Renumber = !opts.NoRenumber;
+            lInclude.LoadAdvanced(lFileName);
+            lInclude.SetNamespace();
+            XmlDocument lXml = lInclude.GetDocument();
+            bool lSuccess = ProcessSanityChecks(lXml, false);
+            string lTempXmlFileName = Path.GetTempFileName();
+            File.Delete(lTempXmlFileName);
+            if (opts.Debug) lTempXmlFileName = opts.XmlFileName;
+            lTempXmlFileName = Path.ChangeExtension(lTempXmlFileName, "debug.xml");
+            if (opts.Debug) Console.WriteLine("Writing debug file to {0}", lTempXmlFileName);
+            lXml.Save(lTempXmlFileName);
+            lSuccess = ValidateXsd(lTempXmlFileName, opts.XmlFileName, opts.XsdFileName, !opts.NoXsd) || lSuccess;
+            return lSuccess ? 1 : 0;
         }
 
         static private int VerbKnxprod(KnxprodOptions opts) {
@@ -1013,7 +1085,7 @@ namespace OpenKNXproducer {
             System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            return ExportKnxprod(lEtsPath, lOutputFileName, opts.XmlFileName, false);
+            return ExportKnxprod(lEtsPath, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
         }
     }
 }

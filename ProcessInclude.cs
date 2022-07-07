@@ -95,6 +95,12 @@ namespace OpenKNXproducer {
         private string[] mReplaceKeys = {};
         private string[] mReplaceValues = {};
         private int mKoBlockSize = 0;
+        private static bool mRenumber = false;
+
+        public static bool Renumber {
+            get { return mRenumber; }
+            set { mRenumber = value; }
+        }
 
         public int ParameterBlockOffset {
             get { return mParameterBlockOffset; }
@@ -266,6 +272,11 @@ namespace OpenKNXproducer {
 
         void ProcessAttributes(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
             foreach (XmlAttribute lAttr in iTargetNode.Attributes) {
+                // we have to mark ParameterBlock and ParameterSeparator for renumber processing
+                if (lAttr.Value.Contains("%T%")) {
+                    lAttr.Value = lAttr.Value.Replace("_PS-", "_PST-");
+                    lAttr.Value = lAttr.Value.Replace("_PB-", "_PBT-");
+                }
                 lAttr.Value = lAttr.Value.Replace("%T%", iInclude.ModuleType.ToString());
                 lAttr.Value = ReplaceChannelTemplate(lAttr.Value, iChannel);
                 lAttr.Value = ReplaceKoTemplate(lAttr.Value, iChannel, iInclude);
@@ -279,7 +290,7 @@ namespace OpenKNXproducer {
             if (lMemory != null) {
                 XmlNode lAttr = lMemory.Attributes.GetNamedItem("Offset");
                 int lOffset = int.Parse(lAttr.Value);
-                if (iInclude.ChannelCount > 1)   // parameters with single occurence are not used for template size processing // TODO: Relative single occuance parameters
+                if (iInclude.ChannelCount > 1)   // parameters with single occurrence are not used for template size processing // TODO: Relative single occurrence parameters
                     lOffset += iInclude.ParameterBlockOffset + (iChannel - 1) * iInclude.ParameterBlockSize;
                 lAttr.Value = lOffset.ToString();
             }
@@ -370,7 +381,8 @@ namespace OpenKNXproducer {
                 int lAppVersion = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("ApplicationVersion").Value, 10);
                 lApplicationProgramNode.Attributes.GetNamedItem("ApplicationVersion").Value = lAppVersion.ToString();
                 string lReplVersions = lMcVersionNode.Attributes.GetNamedItem("ReplacesVersions").Value;
-                lApplicationProgramNode.Attributes.GetNamedItem("ReplacesVersions").Value = lReplVersions;;
+                if (lReplVersions == "") lReplVersions = "0";
+                lApplicationProgramNode.Attributes.GetNamedItem("ReplacesVersions").Value = lReplVersions;
                 int lAppRevision = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value, 10);
                 // now we calculate according versioning verification string
                 int lDerivedVersion = lAppVersion - lAppRevision;
@@ -414,15 +426,19 @@ namespace OpenKNXproducer {
             foreach (XmlNode lAttr in lAttrs) {
                 if (lAttr.Value != null) {
                     lAttr.Value = lAttr.Value.Replace(lOldId, lNewId);
-                    // ParameterSeparator is renumbered
-                    if (lAttr.Value.Contains("_PS-")) {
-                        lAttr.Value = string.Format("{0}-{1}", lAttr.Value.Substring(0, lAttr.Value.LastIndexOf('-')), lParameterSeparatorCount);
-                        lParameterSeparatorCount += 1;
+                    if (ProcessInclude.Renumber) {
+                        // ParameterSeparator is renumbered
+                        if (lAttr.Value.Contains("_PS-")) {
+                            lAttr.Value = string.Format("{0}-{1}", lAttr.Value.Substring(0, lAttr.Value.LastIndexOf('-')), lParameterSeparatorCount);
+                            lParameterSeparatorCount += 1;
+                        }
+                        // ParameterBlock is renumbered
+                        if (lAttr.Value.Contains("_PB-")) {
+                            lParameterBlockCount = RenumberParameterBlock(lParameterBlockCount, lAttr);
+                        }
                     }
-                    // ParameterBlock is renumbered
-                    if (lAttr.Value.Contains("_PB-")) {
-                        lParameterBlockCount = RenumberParameterBlock(lParameterBlockCount, lAttr);
-                    }
+                    lAttr.Value = lAttr.Value.Replace("_PST-", "_PS-");
+                    lAttr.Value = lAttr.Value.Replace("_PBT-", "_PB-");
                 }
             }
             Console.WriteLine("- ApplicationNumber: {0}, ApplicationVersion: {1}, old ID is: {3}, new (calculated) ID is: {2}", lApplicationNumber, lApplicationVersion, lNewId, lOldId);
@@ -472,7 +488,7 @@ namespace OpenKNXproducer {
             // XmlNodeList lHardware = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Hardware/descendant::*/@*");
             // XmlNodeList lStatic = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram/Static/descendant::*/@*");
             // var lNodes = lCatalog.Cast<XmlNode>().Concat(lHardware.Cast<XmlNode>().Concat<XmlNode>(lStatic.Cast<XmlNode>())).ToList();
-            var lNodes = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/*[self::Catalog or self::Hardware or self::ApplicationPrograms/ApplicationProgram/Static]/descendant::*/@*");
+            var lNodes = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/*[self::Catalog or self::Hardware or self::Languages or self::ApplicationPrograms/ApplicationProgram/Static]/descendant::*/@*");
             foreach (XmlNode lNode in lNodes)
             {
                 if (lNode.Value != null) {
@@ -821,7 +837,7 @@ namespace OpenKNXproducer {
                             //necessary for move between XmlDocument contexts
                             XmlNode lImportNode = lParent.OwnerDocument.ImportNode(lChild, true);
                             // for any Parameter node we do offset recalculation
-                            // if there is no prefixname, we do no template replacement
+                            // if there is no prefix name, we do no template replacement
                             if (lHeaderPrefixName != "") ProcessTemplate(lChannel, lImportNode, lInclude);
                             lParent.InsertBefore(lImportNode, lIncludeNode);
                         }

@@ -13,6 +13,7 @@
             "args": [
                 "create",
                 "--Debug",
+                "--Xsd=../../knx_20.xsd",
                 "../OAM-PresenceModule/src/PMmodul"
             ],
             "cwd": "${workspaceFolder}",
@@ -95,7 +96,22 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug Check",
+            "name": "Debug LanguageTest",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "tests/LanguageTest"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug New",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -111,6 +127,21 @@
                 "--HardwareVersion=12",
                 "--Debug",
                 "Check.xml"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug Check",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "check",
+                "--Xsd=../../knx_20.xsd",
+                "xxx.xml"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

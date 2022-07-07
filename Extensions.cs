@@ -1,4 +1,5 @@
 using System.Xml;
+using System.Xml.Linq;
 using System.IO;
 
 namespace OpenKNXproducer {
@@ -16,6 +17,26 @@ namespace OpenKNXproducer {
             if (lAttribute != null) lResult = lAttribute.Value.ToString();
             return lResult;
         }
+
+        public static XmlDocument ToXmlDocument(this XDocument xDocument)
+        {
+            var xmlDocument = new XmlDocument();
+            using(var xmlReader = xDocument.CreateReader())
+            {
+                xmlDocument.Load(xmlReader);
+            }
+            return xmlDocument;
+        }
+
+        public static XDocument ToXDocument(this XmlDocument xmlDocument)
+        {
+            using (var nodeReader = new XmlNodeReader(xmlDocument))
+            {
+                // nodeReader.MoveToContent();
+                return XDocument.Load(nodeReader);
+            }
+        }
     }
+
 }
 

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<?xml-model href="C:\Users\D019748\PlatformIO\OpenKNX\Organization\knxprod-support\knx_project_14\knx.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<KNX xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" CreatedBy="KNX MT" ToolVersion="5.1.255.16695" xmlns="http://knx.org/xml/project/14">
+  <ManufacturerData>
+    <Manufacturer RefId="M-00FA">
+      <Catalog>
+        <CatalogSection Id="M-00FA_CS-1" Name="Geräte" Number="1" DefaultLanguage="de">
+          <CatalogItem Id="M-00FA_H-567-1_HP-0000-00-0000_CI-567-1" Name="TempSensor" Number="1" ProductRefId="M-00FA_H-567-1_P-567" Hardware2ProgramRefId="M-00FA_H-567-1_HP-0000-00-0000" DefaultLanguage="de" />
+        </CatalogSection>
+      </Catalog>
+      <ApplicationPrograms>
+        <ApplicationProgram Id="M-00FA_A-0000-00-0000" ApplicationNumber="567" ApplicationVersion="1" ProgramType="ApplicationProgram" MaskVersion="MV-07B0" Name="TempSensor" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="4.0">
+          <Static>
+            <Code>
+              <RelativeSegment Id="M-00FA_A-0000-00-0000_RS-04-00000" Name="Parameters" Offset="0" Size="%MemorySize%" LoadStateMachine="4" />
+            </Code>
+            <ParameterTypes>
+              <!-- the following ParameterTypes are from a productive example -->
+              <!-- simple integer type -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-DelaySeconds" Name="DelaySeconds">
+                <TypeNumber SizeInBit="32" Type="signedInt" minInclusive="0" maxInclusive="86400" />
+              </ParameterType>
+              <!-- enumeration with 16-bit (word) values -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-DelaySelection" Name="DelaySelection">
+                <TypeRestriction Base="Value" SizeInBit="16">
+                  <Enumeration Text="1 Sekunde" Value="1" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-0" />
+                  <Enumeration Text="2 Sekunden" Value="2" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-1" />
+                  <Enumeration Text="5 Sekunden" Value="5" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-2" />
+                  <Enumeration Text="10 Sekunden" Value="10" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-3" />
+                  <Enumeration Text="30 Sekunden" Value="30" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-4" />
+                  <Enumeration Text="1 Minute" Value="60" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-5" />
+                  <Enumeration Text="2 Minuten" Value="120" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-6" />
+                  <Enumeration Text="5 Minuten" Value="300" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-7" />
+                  <Enumeration Text="10 Minuten" Value="600" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-8" />
+                  <Enumeration Text="30 Minuten" Value="1800" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-9" />
+                  <Enumeration Text="manuelle Eingabe (Sekundengenau)" Value="0" Id="M-00FA_A-0000-00-0000_PT-DelaySelection_EN-10" />
+                </TypeRestriction>
+              </ParameterType>
+              <!-- Demo ParameterTypes to show available possibilities  -->
+              <!-- Parameter type for text parameter, just for descriptions in ETS, is not transferred to device -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-Text40Byte" Name="Text40Byte">
+                <TypeText SizeInBit="320" />
+              </ParameterType>
+              <!-- Parameter type for 1 bit parameter, presented as checkbox -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-CheckBox" Name="CheckBox">
+                <TypeNumber SizeInBit="1" Type="unsignedInt" minInclusive="0" maxInclusive="1" UIHint="CheckBox" />
+              </ParameterType>
+              <!-- Parameter type for 1 bit parameter, presented as radio button -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-YesNo" Name="YesNo">
+                <TypeRestriction Base="Value" SizeInBit="1">
+                  <Enumeration Text="Nein" Value="0" Id="M-00FA_A-0000-00-0000_PT-YesNo_EN-0" />
+                  <Enumeration Text="Ja" Value="1" Id="M-00FA_A-0000-00-0000_PT-YesNo_EN-1" />
+                </TypeRestriction>
+              </ParameterType>
+              <!-- Parameter type for an 8 bit percent parameter -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-Percentage" Name="Percentage">
+                <TypeNumber SizeInBit="8" Type="signedInt" minInclusive="0" maxInclusive="100" />
+              </ParameterType>
+              <!-- Parameter type for an 16 bit float value like temperature -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-ValueDpt9" Name="ValueDpt9">
+                <TypeFloat Encoding="IEEE-754 Single" minInclusive="-671088" maxInclusive="670760" />
+              </ParameterType>
+              <!-- Parameter type for an 8 bit enumeration -->
+              <ParameterType Id="M-00FA_A-0000-00-0000_PT-DptSelect" Name="DptSelect">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="DPT 5.001 (1 Byte, Prozentwert)" Value="5" Id="M-00FA_A-0000-00-0000_PT-DptSelect_EN-0" />
+                  <Enumeration Text="DPT 9.007 (2 Byte, Fließkommawert)" Value="9" Id="M-00FA_A-0000-00-0000_PT-DptSelect_EN-1" />
+                </TypeRestriction>
+              </ParameterType>
+            </ParameterTypes>
+            <Parameters>
+              <!-- the follwoing 3 parameters represent a productive example -->
+              <!-- A parameter to enter manually a number of seconds -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-1" Name="StartupDelay" ParameterType="M-00FA_A-0000-00-0000_PT-DelaySeconds" Text="        Zeit (Sekundengenau)" SuffixText="Sekunden" Value="10">
+                <!-- offset has always to start with 0 -->
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="0" BitOffset="0" />
+              </Parameter>
+              <!-- A parameter to choose predefined seconds from a dropdown -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-2" Name="StartupDelaySelection" ParameterType="M-00FA_A-0000-00-0000_PT-DelaySelection" Text="Zeit bis das Gerät nach einem Neustart aktiv wird" Value="10">
+                <!-- you have to calculate the right offset according to size of the used type -->
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="4" BitOffset="0" />
+              </Parameter>
+              <!-- A parameter to enter manually a number of seconds -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-3" Name="Heartbeat" ParameterType="M-00FA_A-0000-00-0000_PT-DelaySeconds" Text="'In Betrieb'-Telegramm senden alle" SuffixText="Sekunden" Value="300">
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="6" BitOffset="0" />
+              </Parameter>
+              <!-- additional demo parametes to show available possibilities -->
+              <!-- 1-Bit parameter usage, to choose, which sensors are attached -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-4" Name="TemperatureSensor" ParameterType="M-00FA_A-0000-00-0000_PT-CheckBox" Text="Temperatursensor" Value="0">
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="10" BitOffset="0" />
+              </Parameter>
+              <!-- Both parameters write into the same parameter byte, but at different BitOffsets!!! -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-5" Name="HumiditySensor" ParameterType="M-00FA_A-0000-00-0000_PT-CheckBox" Text="Luftfeuchtesensor" Value="0">
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="10" BitOffset="1" />
+              </Parameter>
+              <!-- A parameter to enter (informational) text, this parameter is not transferred to the device (no memory block reference) -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-6" Name="TemperatureText" ParameterType="M-00FA_A-0000-00-0000_PT-Text40Byte" Text="Bezeichnung des Temperatursensors" Value="Temperatur" />
+              <!-- A parameter for a float value -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-7" Name="TemperatureAlign" ParameterType="M-00FA_A-0000-00-0000_PT-ValueDpt9" Text="Temperaturwert anpassen" Value="0">
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="11" BitOffset="0" />
+              </Parameter>
+              <Parameter Id="M-00FA_A-0000-00-0000_P-8" Name="HumidityText" ParameterType="M-00FA_A-0000-00-0000_PT-Text40Byte" Text="Bezeichnung des Luftfeuchtesensors" Value="Luftfeuchte" />
+              <Parameter Id="M-00FA_A-0000-00-0000_P-9" Name="HumidityAlign" ParameterType="M-00FA_A-0000-00-0000_PT-ValueDpt9" Text="Luftfeuchte anpassen" Value="0">
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="13" BitOffset="0" />
+              </Parameter>
+              <!-- A parameter with a 8 bit dropdown, allows selection of a dpt for output -->
+              <Parameter Id="M-00FA_A-0000-00-0000_P-10" Name="HumiditySend" ParameterType="M-00FA_A-0000-00-0000_PT-DptSelect" Text="Wert senden als" Value="9">
+                <Memory CodeSegment="M-00FA_A-0000-00-0000_RS-04-00000" Offset="15" BitOffset="0" />
+              </Parameter>
+            </Parameters>
+            <ParameterRefs>
+              <!-- ParameterRef have to be defined for each parameter, pay attention, that the ID-part (number) after R- is unique! -->
+              <!-- ParameterRef are used in the ETS UI -->
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-1_R-1" RefId="M-00FA_A-0000-00-0000_P-1" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-2_R-2" RefId="M-00FA_A-0000-00-0000_P-2" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-3_R-3" RefId="M-00FA_A-0000-00-0000_P-3" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-4_R-4" RefId="M-00FA_A-0000-00-0000_P-4" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-5_R-5" RefId="M-00FA_A-0000-00-0000_P-5" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-6_R-6" RefId="M-00FA_A-0000-00-0000_P-6" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-7_R-7" RefId="M-00FA_A-0000-00-0000_P-7" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-8_R-8" RefId="M-00FA_A-0000-00-0000_P-8" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-9_R-9" RefId="M-00FA_A-0000-00-0000_P-9" />
+              <ParameterRef Id="M-00FA_A-0000-00-0000_P-10_R-10" RefId="M-00FA_A-0000-00-0000_P-10" />
+            </ParameterRefs>
+            <ComObjectTable>
+              <!-- ComObject sending a 'still alive' signal, DPT 1 (1 bit) -->
+              <ComObject Id="M-00FA_A-0000-00-0000_O-1" Name="Heartbeat" Text="In Betieb" Number="1" FunctionText="Ausgang (zyklisch)" ObjectSize="1 Bit" ReadFlag="Enabled" WriteFlag="Disabled" CommunicationFlag="Enabled" TransmitFlag="Enabled" UpdateFlag="Disabled" ReadOnInitFlag="Disabled" DatapointType="DPST-1-2" />
+              <!-- ComOject sending a temperature (float) value, DPT 9.001 (2 Bytes) -->
+              <ComObject Id="M-00FA_A-0000-00-0000_O-2" Name="Temperature" Text="Temperaturmesswert" Number="2" FunctionText="Ausgang" ObjectSize="2 Bytes" ReadFlag="Enabled" WriteFlag="Disabled" CommunicationFlag="Enabled" TransmitFlag="Enabled" UpdateFlag="Disabled" ReadOnInitFlag="Disabled" DatapointType="DPST-9-1" />
+              <!-- ComObject sending a humidity value, DPT and Size are taken from according ComObjectRef, see comment there -->
+              <ComObject Id="M-00FA_A-0000-00-0000_O-3" Name="Humidity" Text="Luftfeuchtemesswert" ObjectSize="2 Bytes" Number="3" FunctionText="Ausgang" ReadFlag="Enabled" WriteFlag="Disabled" CommunicationFlag="Enabled" TransmitFlag="Enabled" UpdateFlag="Disabled" ReadOnInitFlag="Disabled" />
+              <!-- ComObject as an input example, alows the requert of all measured values at once -->
+              <ComObject Id="M-00FA_A-0000-00-0000_O-4" Name="Request" Text="Alle Messwerte anfordern" Number="4" FunctionText="Eingang" ObjectSize="1 Bit" ReadFlag="Disabled" WriteFlag="Enabled" CommunicationFlag="Enabled" TransmitFlag="Disabled" UpdateFlag="Enabled" ReadOnInitFlag="Disabled" DatapointType="DPST-1-16" />
+            </ComObjectTable>
+            <ComObjectRefs>
+              <!-- A ComObjecdtRef is necessary for each ComObject, ComObjectRef are used in the ETS UI -->
+              <ComObjectRef Id="M-00FA_A-0000-00-0000_O-1_R-1" RefId="M-00FA_A-0000-00-0000_O-1" />
+              <ComObjectRef Id="M-00FA_A-0000-00-0000_O-2_R-2" RefId="M-00FA_A-0000-00-0000_O-2" />
+              <!-- There mitght be more that one ComObjectRef for a ComObject, like here, the two different ComObjectRef define different Size and DPT for ComObject 3 -->
+              <!-- If there is more than one ComObjectRef for a specific ComObject, you have to ensure, that exactly one of them is visible in the UI -->
+              <ComObjectRef Id="M-00FA_A-0000-00-0000_O-3_R-31" RefId="M-00FA_A-0000-00-0000_O-3" ObjectSize="1 Byte" DatapointType="DPST-5-1" />
+              <ComObjectRef Id="M-00FA_A-0000-00-0000_O-3_R-32" RefId="M-00FA_A-0000-00-0000_O-3" ObjectSize="2 Bytes" DatapointType="DPST-9-7" />
+              <ComObjectRef Id="M-00FA_A-0000-00-0000_O-4_R-4" RefId="M-00FA_A-0000-00-0000_O-4" />
+            </ComObjectRefs>
+            <AddressTable MaxEntries="65535" />
+            <AssociationTable MaxEntries="65535" />
+            <LoadProcedures>
+              <LoadProcedure MergeId="2">
+                <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="0" Fill="0" AppliesTo="full" />
+              </LoadProcedure>
+              <LoadProcedure MergeId="4">
+                <LdCtrlWriteRelMem ObjIdx="4" Offset="0" Size="%MemorySize%" Verify="true" />
+              </LoadProcedure>
+            </LoadProcedures>
+            <Options />
+          </Static>
+          <!-- Here statrs the UI definition -->
+          <Dynamic>
+            <!-- The following block is always there -->
+            <ChannelIndependentBlock>
+              <!-- A parameter block represents a tab on the left side, showing a page full of parameters -->
+              <ParameterBlock Id="M-00FA_A-0000-00-0000_PB-1" Name="Docu" Text="Documentation">
+                <!-- In this example the first Tab shows some documentation -->
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-1" Text="Kurze Einführung:" />
+                <!-- A parameter seperator shows just some text -->
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-2" Text="Das Gerät kann ein 'In Betrieb'-Telegramm in einstellbarer Zeit senden." />
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-3" Text="Die Zeit, bis das Gerät nach einem Neustart erstmals meldet, ist einstellbar." />
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-4" Text="Es erlaubt die Auswahl der installierten Sensoren." />
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-5" Text="Pro Sensor können weitere Einstellugnen auf den dann erscheinenden Tabs gemacht werden." />
+              </ParameterBlock>
+              <!-- A tab page with general settings -->
+              <ParameterBlock Id="M-00FA_A-0000-00-0000_PB-2" Name="General" Text="Allgemeine Parameter">
+                <!-- The first Parameter allows the entry of heartbeat cycle -->
+                <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-3_R-3" />
+                <!-- conditional element referencing the content of above parameter -->
+                <choose ParamRefId="M-00FA_A-0000-00-0000_P-3_R-3">
+                  <!-- if the content of the parameter is not equal zero, the following block is shown -->
+                  <when test="!=0">
+                    <!-- this means: ComObject 'Heartbeat' is just shown, if the user entered a valid cycle time -->
+                    <ComObjectRefRef RefId="M-00FA_A-0000-00-0000_O-1_R-1" />
+                  </when>
+                </choose>
+                <!-- Parameter to choose startup delay -->
+                <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-2_R-2" />
+                <choose ParamRefId="M-00FA_A-0000-00-0000_P-2_R-2">
+                  <when test="0">
+                    <!-- This means: If the user cooses manual entry in the dropdown, we display the 'manual entry' parameter -->
+                    <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-1_R-1" />
+                  </when>
+                </choose>
+                <!-- A ParameterSeparator with an empty text is presented as a line -->
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-11" Text=" " />
+                <ParameterSeparator Id="M-00FA_A-0000-00-0000_PS-12" Text="Angeschlossene Sensoren:" />
+                <!-- Checkboxes for sensor selection -->
+                <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-4_R-4" />
+                <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-5_R-5" />
+              </ParameterBlock>
+            </ChannelIndependentBlock>
+            <choose ParamRefId="M-00FA_A-0000-00-0000_P-4_R-4">
+              <when test="1">
+                <!-- Channels are used to present group of tabs, here just as an example with one tab -->
+                <!-- this channel is within a choose block, it is displayed just in case the temperaturesensor is installed -->
+                <Channel Id="M-00FA_A-0000-00-0000_CH-1" Name="Temperature" Number="1" Text="Temperatursensor">
+                  <!-- This is a tab within a channel -->
+                  <ParameterBlock Id="M-00FA_A-0000-00-0000_PB-3" Name="Temp" Text="Einstellungen">
+                    <!-- Display temperature settings -->
+                    <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-6_R-6" />
+                    <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-7_R-7" />
+                    <!-- ...and according ComObjects -->
+                    <ComObjectRefRef RefId="M-00FA_A-0000-00-0000_O-2_R-2" />
+                    <ComObjectRefRef RefId="M-00FA_A-0000-00-0000_O-4_R-4" />
+                  </ParameterBlock>
+                </Channel>
+              </when>
+            </choose>
+            <!-- same as above for humidity -->
+            <choose ParamRefId="M-00FA_A-0000-00-0000_P-5_R-5">
+              <when test="1">
+                <Channel Id="M-00FA_A-0000-00-0000_CH-2" Name="Humidity" Number="2" Text="Luftfeuchtesensor">
+                  <ParameterBlock Id="M-00FA_A-0000-00-0000_PB-4" Name="Hum" Text="Einstellungen">
+                    <!-- display humidity settings -->
+                    <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-8_R-8" />
+                    <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-9_R-9" />
+                    <ParameterRefRef RefId="M-00FA_A-0000-00-0000_P-10_R-10" />
+                    <!-- The output DPT depends on the chosen value in the dropdown -->
+                    <choose ParamRefId="M-00FA_A-0000-00-0000_P-10_R-10">
+                      <when test="5">
+                        <!-- Use DPT 5 ComOjbect -->
+                        <ComObjectRefRef RefId="M-00FA_A-0000-00-0000_O-3_R-31" />
+                      </when>
+                      <when test="9">
+                        <!-- Use DPT 9 ComObject -->
+                        <ComObjectRefRef RefId="M-00FA_A-0000-00-0000_O-3_R-32" />
+                      </when>
+                    </choose>
+                    <!-- ComObjects might be enabled more than once, they appear of course just once -->
+                    <ComObjectRefRef RefId="M-00FA_A-0000-00-0000_O-4_R-4" />
+                  </ParameterBlock>
+                </Channel>
+              </when>
+            </choose>
+          </Dynamic>
+        </ApplicationProgram>
+      </ApplicationPrograms>
+      <Hardware>
+        <Hardware Id="M-00FA_H-567-1" Name="TempSensor" SerialNumber="567" VersionNumber="1" BusCurrent="10" HasIndividualAddress="true" HasApplicationProgram="true">
+          <Products>
+            <Product Id="M-00FA_H-567-1_P-567" Text="TempSensor" OrderNumber="567" IsRailMounted="false" DefaultLanguage="de">
+              <RegistrationInfo RegistrationStatus="Registered" />
+            </Product>
+          </Products>
+          <Hardware2Programs>
+            <Hardware2Program Id="M-00FA_H-567-1_HP-0000-00-0000" MediumTypes="MT-0">
+              <ApplicationProgramRef RefId="M-00FA_A-0000-00-0000" />
+              <RegistrationInfo RegistrationStatus="Registered" RegistrationNumber="0001/11" />
+            </Hardware2Program>
+          </Hardware2Programs>
+        </Hardware>
+      </Hardware>
+      <Languages>
+        <Language Identifier="en-US">
+          <TranslationUnit RefId="M-00FA_H-567-1">
+            <TranslationElement RefId="M-00FA_H-567-1">
+              <Translation AttributeName="Name" Text="Temperature Sensor Hardware translated" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_H-567-1_P-567">
+              <Translation AttributeName="Name" Text="Temperature Sensor Program translated" />
+            </TranslationElement>
+          </TranslationUnit>
+          <TranslationUnit RefId="M-00FA_CS-1">
+            <TranslationElement RefId="M-00FA_CS-1">
+              <Translation AttributeName="Name" Text="Devices translated" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_H-567-1_HP-0000-00-0000_CI-567-1">
+              <Translation AttributeName="Name" Text="Catalog TranslatedTempSensor" />
+            </TranslationElement>
+          </TranslationUnit>
+          <TranslationUnit RefId="M-00FA_A-0000-00-0000">
+            <TranslationElement RefId="M-00FA_A-0000-00-0000">
+              <Translation AttributeName="Name" Text="ApplicationPrograms TranslatedTempSensor" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_A-0237-01-0000_P-10">
+              <Translation AttributeName="Name" Text="Send value as translated" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_A-0237-01-0000_PT-YesNo_EN-0">
+              <Translation AttributeName="Name" Text="No translated" />
+            </TranslationElement>
+          </TranslationUnit>
+        </Language>
+        <Language Identifier="de-DE">
+          <TranslationUnit RefId="M-00FA_H-567-1">
+            <TranslationElement RefId="M-00FA_H-567-1">
+              <Translation AttributeName="Name" Text="Temperatur Sensor Hardware Übersetzt" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_H-567-1_P-567">
+              <Translation AttributeName="Name" Text="Temperatur Sensor Program Übersetzt" />
+            </TranslationElement>
+          </TranslationUnit>
+          <TranslationUnit RefId="M-00FA_CS-1">
+            <TranslationElement RefId="M-00FA_CS-1">
+              <Translation AttributeName="Name" Text="Geräte Übersetzt" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_H-567-1_HP-0000-00-0000_CI-567-1">
+              <Translation AttributeName="Name" Text="Katalog Übersetzt TempSensor" />
+            </TranslationElement>
+          </TranslationUnit>
+          <TranslationUnit RefId="M-00FA_A-0000-00-0000">
+            <TranslationElement RefId="M-00FA_A-0000-00-0000">
+              <Translation AttributeName="Name" Text="ApplikationProgramme ÜbersetztTempSensor" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_A-0237-01-0000_P-10">
+              <Translation AttributeName="Name" Text="Wert senden als Übersetzt" />
+            </TranslationElement>
+            <TranslationElement RefId="M-00FA_A-0237-01-0000_PT-YesNo_EN-0">
+              <Translation AttributeName="Name" Text="Nein Übersetzt" />
+            </TranslationElement>
+          </TranslationUnit>
+        </Language>
+      </Languages>
+    </Manufacturer>
+  </ManufacturerData>
+</KNX>
