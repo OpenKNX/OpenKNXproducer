@@ -1049,7 +1049,8 @@ namespace OpenKNXproducer {
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lInclude.GetNamespace());
                 lResult = ExportKnxprod(lEtsPath, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
-            }
+            } else
+                lResult = 1;
             if (lResult > 0) 
                 Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
             return lResult;
