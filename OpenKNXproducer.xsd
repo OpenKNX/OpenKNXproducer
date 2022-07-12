@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This schema is used by knx-editor.xsd to extend it with OpenKNXproducer-elements -->
+<xs:schema xmlns:op="http://github.com/OpenKNX/OpenKNXproducer" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://github.com/OpenKNX/OpenKNXproducer" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.0">
+  <xs:simpleType name="OpenKnxId_enum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="0xA0" />
+      <xs:enumeration value="0xA1" />
+      <xs:enumeration value="0xA2" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NumChannels_t">
+    <xs:restriction base="xs:unsignedShort">
+      <xs:minInclusive value="2" />
+      <xs:maxInclusive value="99" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="VersionNumbers_t">
+    <xs:list itemType="xs:unsignedByte" />
+  </xs:simpleType>
+  <xs:simpleType name="Prefix_t">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Z0-9]{1,5}" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Headerfile_t">
+    <xs:restriction base="xs:string">
+      <xs:pattern value=".*\.h" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Xmlfile_t">
+    <xs:restriction base="xs:string">
+      <xs:pattern value=".*\.xml" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ModuleType_t">
+    <xs:restriction base="xs:unsignedByte">
+      <xs:minInclusive value="1" />
+      <xs:maxInclusive value="9" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Type_t">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="parameter" />
+      <xs:enumeration value="template" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="version_t">
+    <xs:attribute name="OpenKnxId" type="op:OpenKnxId_enum" use="required" />
+    <xs:attribute name="ApplicationNumber" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="ApplicationVersion" type="xs:unsignedByte" use="required" />
+    <xs:attribute name="ReplacesVersions" type="op:VersionNumbers_t" use="required" />
+    <xs:attribute name="ApplicationRevision" type="xs:unsignedByte" use="required" />
+  </xs:complexType>
+  <xs:complexType name="define_t">
+    <xs:attribute name="prefix" type="op:Prefix_t" use="required" />
+    <xs:attribute name="header" type="op:Headerfile_t" use="required" />
+    <xs:attribute name="NumChannels" type="op:NumChannels_t" use="required" />
+    <xs:attribute name="KoOffset" type="xs:unsignedShort" use="required" />
+    <xs:attribute name="ModuleType" type="op:ModuleType_t" use="required" />
+  </xs:complexType>
+  <xs:complexType name="include_t">
+    <xs:attribute name="href" type="op:Xmlfile_t" use="required" />
+    <xs:attribute name="xpath" type="xs:string" use="optional" />
+    <xs:attribute name="type" type="op:Type_t" use="optional" />
+    <xs:attribute name="prefix" type="op:Prefix_t" use="optional" />
+  </xs:complexType>
+  <xs:element name="version" type="op:version_t" />
+  <xs:element name="define" type="op:define_t" />
+  <xs:element name="include" type="op:include_t" />
+
+</xs:schema>
