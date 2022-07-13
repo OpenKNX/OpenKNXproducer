@@ -627,6 +627,12 @@ namespace OpenKNXproducer {
         }
         #endregion
 
+        private static string GetAbsWorkingDir(string iFilename) {
+            string lResult = Path.GetFullPath(iFilename);
+            lResult = Path.GetDirectoryName(lResult);
+            return lResult;
+        }
+
         // private static void ExportXsd(string iXsdFileName) {
         //     using (var fileStream = new FileStream("knx.xsd", FileMode.Create))
         //     using (var stream = DocumentSet.GetXmlSchemaDocumentAsStream(KnxXmlSchemaVersion.Version14)) {
@@ -682,7 +688,7 @@ namespace OpenKNXproducer {
             lTargetLanguage.Add(iTranslationUnit);
         }
 
-        private static bool ValidateXsd(string iTempFileName, string iXmlFileName, string iXsdFileName, bool iAutoXsd) {
+        private static bool ValidateXsd(string iWorkingDir, string iTempFileName, string iXmlFileName, string iXsdFileName, bool iAutoXsd) {
             // iDocument.Save("validationTest.xml");
             string lContent = File.ReadAllText(iTempFileName);
             XDocument lDocument = XDocument.Parse(lContent, LoadOptions.SetLineInfo);
@@ -698,6 +704,10 @@ namespace OpenKNXproducer {
                 iXsdFileName = lMatch.Groups[1].Value;
                 // in case of an -editor.xsd, we use the original xsd
                 iXsdFileName = iXsdFileName.Replace("-editor.xsd", ".xsd");
+                if (!Path.IsPathFullyQualified(iXsdFileName)) {
+                    iXsdFileName = Path.Combine(iWorkingDir, iXsdFileName);
+                    iXsdFileName = Path.GetRelativePath(Directory.GetCurrentDirectory(), iXsdFileName);
+                }
             }
             if(!string.IsNullOrEmpty(iXsdFileName))
             {
@@ -722,10 +732,10 @@ namespace OpenKNXproducer {
             return lError;
         }
 
-        private static int ExportKnxprod(string iPathETS, string iKnxprodFileName, string lTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd) {
+        private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd) {
             if (iPathETS == "") return 1;
             try {
-                if (ValidateXsd(lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
+                if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
 
                 XDocument xdoc = null;
                 string xmlContent = File.ReadAllText(lTempXmlFileName);
@@ -1028,6 +1038,7 @@ namespace OpenKNXproducer {
         static private int VerbCreate(CreateOptions opts) {
             int lResult = 0;
             WriteVersion();
+            string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string lHeaderFileName = Path.ChangeExtension(opts.XmlFileName, "h");
             if (opts.HeaderFileName != "") lHeaderFileName = opts.HeaderFileName;
             Console.WriteLine("Processing xml file {0}", opts.XmlFileName);
@@ -1051,7 +1062,7 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lInclude.GetNamespace());
-                lResult = ExportKnxprod(lEtsPath, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
+                lResult = ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
             } else
                 lResult = 1;
             if (lResult > 0) {
@@ -1064,6 +1075,7 @@ namespace OpenKNXproducer {
 
         static private int VerbCheck(CheckOptions opts) {
             WriteVersion();
+            string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string lFileName = Path.ChangeExtension(opts.XmlFileName, "xml");
             Console.WriteLine("Reading and resolving xml file {0}", lFileName);
             ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, "", "");
@@ -1078,7 +1090,7 @@ namespace OpenKNXproducer {
             lTempXmlFileName = Path.ChangeExtension(lTempXmlFileName, "debug.xml");
             if (opts.Debug) Console.WriteLine("Writing debug file to {0}", lTempXmlFileName);
             lXml.Save(lTempXmlFileName);
-            lSuccess = ValidateXsd(lTempXmlFileName, opts.XmlFileName, opts.XsdFileName, !opts.NoXsd) || lSuccess;
+            lSuccess = ValidateXsd(lWorkingDir, lTempXmlFileName, opts.XmlFileName, opts.XsdFileName, !opts.NoXsd) || lSuccess;
             return lSuccess ? 1 : 0;
         }
 
@@ -1088,11 +1100,12 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             Console.WriteLine("Reading xml file {0} writing to {1}", opts.XmlFileName, lOutputFileName);
 
+            string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string xml = File.ReadAllText(opts.XmlFileName);
             System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            return ExportKnxprod(lEtsPath, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
+            return ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
         }
     }
 }
