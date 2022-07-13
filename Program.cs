@@ -1048,6 +1048,7 @@ namespace OpenKNXproducer {
             // We restore the original namespace in File
             lInclude.SetNamespace();
             lInclude.ResetXsd();
+            lInclude.SetToolAndVersion();
             XmlDocument lXml = lInclude.GetDocument();
             bool lSuccess = ProcessSanityChecks(lXml, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();

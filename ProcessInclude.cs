@@ -211,8 +211,15 @@ namespace OpenKNXproducer {
             mDocument.Save(Path.ChangeExtension(mXmlFileName, "out.xml"));
         }
 
+        public void SetToolAndVersion() {
+            mDocument.DocumentElement.RemoveAttribute("CreatedBy");
+            mDocument.DocumentElement.SetAttribute("CreatedBy", typeof(Program).Assembly.GetName().Name);
+            mDocument.DocumentElement.RemoveAttribute("ToolVersion");
+            mDocument.DocumentElement.SetAttribute("ToolVersion", typeof(Program).Assembly.GetName().Version.ToString());
+        }
+
         public void SetNamespace() {
-            // we restor the original namespace, if necessary
+            // we restore the original namespace, if necessary
             if (mDocument.DocumentElement.GetAttribute("xmlns") == "") {
                 string lXmlns = mDocument.DocumentElement.GetAttribute("oldxmlns");
                 if (lXmlns != "") {
