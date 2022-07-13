@@ -696,6 +696,8 @@ namespace OpenKNXproducer {
                 Regex lRegex = new Regex("<\\?xml-model.* href=\"(.*.xsd)\" ");
                 Match lMatch = lRegex.Match(lContent);
                 iXsdFileName = lMatch.Groups[1].Value;
+                // in case of an -editor.xsd, we use the original xsd
+                iXsdFileName = iXsdFileName.Replace("-editor.xsd", ".xsd");
             }
             if(!string.IsNullOrEmpty(iXsdFileName))
             {
@@ -1005,19 +1007,19 @@ namespace OpenKNXproducer {
             using (var reader = new StreamReader(resourceStream, Encoding.UTF8)) {
                 lXmlFile = reader.ReadToEnd();
             }
-            lXmlFile = lXmlFile.Replace("%ApplicationName%", opts.ApplicationName);
-            lXmlFile = lXmlFile.Replace("%ApplicationNumber%", opts.ApplicationNumber.ToString());
-            lXmlFile = lXmlFile.Replace("%ApplicationVersion%", opts.ApplicationVersion.ToString());
-            lXmlFile = lXmlFile.Replace("%HardwareName%", opts.HardwareName);
-            lXmlFile = lXmlFile.Replace("%HardwareVersion%", opts.HardwareVersion.ToString());
+            lXmlFile = lXmlFile.Replace("%ApplicationName%", opts.ApplicationName.Trim());
+            lXmlFile = lXmlFile.Replace("%ApplicationNumber%", opts.ApplicationNumber.ToString().Trim());
+            lXmlFile = lXmlFile.Replace("%ApplicationVersion%", opts.ApplicationVersion.ToString().Trim());
+            lXmlFile = lXmlFile.Replace("%HardwareName%", opts.HardwareName.Trim());
+            lXmlFile = lXmlFile.Replace("%HardwareVersion%", opts.HardwareVersion.ToString().Trim());
             // lXmlFile = lXmlFile.Replace("%HardwareVersionEncoded%", GetEncoded(opts.HardwareVersion.ToString()));
-            lXmlFile = lXmlFile.Replace("%SerialNumber%", opts.SerialNumber);
+            lXmlFile = lXmlFile.Replace("%SerialNumber%", opts.SerialNumber.Trim());
             // lXmlFile = lXmlFile.Replace("%SerialNumberEncoded%", GetEncoded(opts.SerialNumber));
-            lXmlFile = lXmlFile.Replace("%OrderNumber%", opts.OrderNumber);
+            lXmlFile = lXmlFile.Replace("%OrderNumber%", opts.OrderNumber.Trim());
             // lXmlFile = lXmlFile.Replace("%OrderNumberEncoded%", GetEncoded(opts.OrderNumber));
-            lXmlFile = lXmlFile.Replace("%ProductName%", opts.ProductName);
-            lXmlFile = lXmlFile.Replace("%MaskVersion%", opts.MaskVersion);
-            lXmlFile = lXmlFile.Replace("%MediumTypes%", opts.MediumTypes);
+            lXmlFile = lXmlFile.Replace("%ProductName%", opts.ProductName.Trim());
+            lXmlFile = lXmlFile.Replace("%MaskVersion%", opts.MaskVersion.Trim());
+            lXmlFile = lXmlFile.Replace("%MediumTypes%", opts.MediumTypes.Trim());
             Console.WriteLine("Creating xml file {0}", opts.XmlFileName);
             File.WriteAllText(opts.XmlFileName, lXmlFile);
             return VerbCreate(opts);
@@ -1034,6 +1036,7 @@ namespace OpenKNXproducer {
             bool lWithVersions = lInclude.Expand();
             // We restore the original namespace in File
             lInclude.SetNamespace();
+            lInclude.ResetXsd();
             XmlDocument lXml = lInclude.GetDocument();
             bool lSuccess = ProcessSanityChecks(lXml, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();
@@ -1051,8 +1054,11 @@ namespace OpenKNXproducer {
                 lResult = ExportKnxprod(lEtsPath, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
             } else
                 lResult = 1;
-            if (lResult > 0) 
+            if (lResult > 0) {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("--> Skipping creation of {0} due to check errors! <--", lOutputFileName);
+                Console.ResetColor();
+            }
             return lResult;
         }
 

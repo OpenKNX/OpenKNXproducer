@@ -21,7 +21,7 @@ namespace OpenKNXproducer {
             public string header;
             public bool IsTemplate;
             public bool IsParameter;
-            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType) {
+            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter) {
                 prefix = iPrefix;
                 header = iHeader;
                 KoOffset = iKoOffset;
@@ -31,6 +31,7 @@ namespace OpenKNXproducer {
                 }
                 NumChannels = iNumChannels;
                 ModuleType = iModuleType;
+                IsParameter = iIsParameter;
             }
             public static DefineContent Factory(XmlNode iDefineNode) {
                 DefineContent lResult;
@@ -54,13 +55,13 @@ namespace OpenKNXproducer {
                     lReplaceKeys = iDefineNode.Attributes.GetNamedItemValueOrEmpty("ReplaceKeys");
                     lReplaceValues = iDefineNode.Attributes.GetNamedItemValueOrEmpty("ReplaceValues");
                     lModuleType = int.Parse(iDefineNode.Attributes.GetNamedItemValueOrEmpty("ModuleType"));
-                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType);
+                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false);
                     sDefines.Add(lPrefix, lResult);
                 }
                 return lResult;
             }
 
-            static public DefineContent Empty = new DefineContent("LOG", "", 1, 1, "", "", 1);
+            static public DefineContent Empty = new DefineContent("LOG", "", 1, 1, "", "", 1, true);
             public static DefineContent GetDefineContent(string iPrefix) {
                 DefineContent lResult;
                 if (sDefines.ContainsKey(iPrefix)) {
@@ -138,7 +139,7 @@ namespace OpenKNXproducer {
         
         public string HeaderGenerated {
             get {
-                mHeaderGenerated.Insert(0, "#pragma once\n#include <knx.h>\n\n");
+                mHeaderGenerated.Insert(0, "#pragma once\n\n");
                 return mHeaderGenerated.ToString();
             }
         }
@@ -200,6 +201,12 @@ namespace OpenKNXproducer {
             return mDocument;
         }
 
+        public void ResetXsd() {
+            XmlNode lXmlModel = mDocument.FirstChild?.NextSibling;
+            if (lXmlModel != null)
+                lXmlModel.InnerText = lXmlModel.InnerText.Replace("-editor.xsd", ".xsd");
+        }
+
         public void DocumentDebugOutput() {
             mDocument.Save(Path.ChangeExtension(mXmlFileName, "out.xml"));
         }
@@ -208,7 +215,10 @@ namespace OpenKNXproducer {
             // we restor the original namespace, if necessary
             if (mDocument.DocumentElement.GetAttribute("xmlns") == "") {
                 string lXmlns = mDocument.DocumentElement.GetAttribute("oldxmlns");
-                if (lXmlns != "") mDocument.DocumentElement.SetAttribute("xmlns", lXmlns);
+                if (lXmlns != "") {
+                    mDocument.DocumentElement.SetAttribute("xmlns", lXmlns);
+                    mDocument.DocumentElement.RemoveAttribute("oldxmlns");
+                }
             }
         }
 
@@ -601,7 +611,7 @@ namespace OpenKNXproducer {
                 StringBuilder lOut = new StringBuilder();
                 mHeaderKoStartGenerated = ExportHeaderKo(lOut, iHeaderPrefixName);
                 if (mHeaderKoStartGenerated && iDefine.IsParameter) {
-                    cOut.AppendLine("// Communication objects with single occurance");
+                    cOut.AppendLine("// Communication objects with single occurrence");
                     cOut.Append(lOut);
                 }
             }
@@ -616,7 +626,7 @@ namespace OpenKNXproducer {
                 mHeaderKoBlockGenerated = ExportHeaderKo(lOut, iHeaderPrefixName);
                 if (mHeaderKoBlockGenerated) {
                     if (iDefine.IsTemplate) {
-                        cOut.AppendLine("// Communication objects per channel (multiple occurance)");
+                        cOut.AppendLine("// Communication objects per channel (multiple occurrence)");
                         cOut.AppendFormat("#define {0}KoOffset {1}", iHeaderPrefixName, mKoOffset);
                         cOut.AppendLine();
                         cOut.AppendFormat("#define {0}KoBlockSize {1}", iHeaderPrefixName, mKoBlockSize);
@@ -642,7 +652,7 @@ namespace OpenKNXproducer {
 
         private void ExportHeaderParameterStart(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
             if (!mHeaderParameterStartGenerated && iDefine.IsParameter) {
-                cOut.AppendLine("// Parameter with single occurance");
+                cOut.AppendLine("// Parameter with single occurrence");
                 ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName);
                 mHeaderParameterStartGenerated = true;
             }
