@@ -97,10 +97,16 @@ namespace OpenKNXproducer {
         private string[] mReplaceValues = {};
         private int mKoBlockSize = 0;
         private static bool mRenumber = false;
+        private static bool mAbsoluteSingleParameters = false;
 
         public static bool Renumber {
             get { return mRenumber; }
             set { mRenumber = value; }
+        }
+
+        public static bool AbsoluteSingleParameters {
+            get { return mAbsoluteSingleParameters; }
+            set { mAbsoluteSingleParameters = value; }
         }
 
         public int ParameterBlockOffset {
@@ -307,7 +313,7 @@ namespace OpenKNXproducer {
             if (lMemory != null) {
                 XmlNode lAttr = lMemory.Attributes.GetNamedItem("Offset");
                 int lOffset = int.Parse(lAttr.Value);
-                if (iInclude.ChannelCount > 1)   // parameters with single occurrence are not used for template size processing // TODO: Relative single occurrence parameters
+                if (iInclude.ChannelCount > (AbsoluteSingleParameters ? 1 : 0))
                     lOffset += iInclude.ParameterBlockOffset + (iChannel - 1) * iInclude.ParameterBlockSize;
                 lAttr.Value = lOffset.ToString();
             }
@@ -660,7 +666,7 @@ namespace OpenKNXproducer {
         private void ExportHeaderParameterStart(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
             if (!mHeaderParameterStartGenerated && iDefine.IsParameter) {
                 cOut.AppendLine("// Parameter with single occurrence");
-                ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName);
+                ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
                 mHeaderParameterStartGenerated = true;
             }
         }
@@ -677,13 +683,13 @@ namespace OpenKNXproducer {
                     cOut.AppendFormat("#define {0}ParamBlockSize {1}", iHeaderPrefixName, mParameterBlockSize);
                     cOut.AppendLine();
                 }
-                int lSize = ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName);
+                int lSize = ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
                 // if (lSize != mParameterBlockSize) throw new ArgumentException(string.Format("ParameterBlockSize {0} calculation differs from header filie calculated ParameterBlockSize {1}", mParameterBlockSize, lSize));
                 mHeaderParameterBlockGenerated = true;
             }
         }
 
-        public int ExportHeaderParameter(StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
+        public int ExportHeaderParameter(StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName, bool iWithAbsoluteOffset) {
             int lMaxSize = 0;
             XmlNodeList lNodes = mDocument.SelectNodes("//Parameter");
             foreach (XmlNode lNode in lNodes) {
@@ -736,6 +742,7 @@ namespace OpenKNXproducer {
                     // Offset and BitOffset might be also defined in Parameter
                     XmlNode lParamOffsetNode = lNode.Attributes.GetNamedItem("Offset");
                     if (lParamOffsetNode != null) lOffset += int.Parse(lParamOffsetNode.Value);
+                    if (iWithAbsoluteOffset && !AbsoluteSingleParameters) lOffset += mParameterBlockOffset;
                     XmlNode lParamBitOffsetNode = lNode.Attributes.GetNamedItem("BitOffset");
                     if (lParamBitOffsetNode != null) lBitOffset += int.Parse(lParamBitOffsetNode.Value);
                     lMaxSize = Math.Max(lMaxSize, lOffset + (lBits - 1) / 8 + 1);

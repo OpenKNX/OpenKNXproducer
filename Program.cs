@@ -955,6 +955,8 @@ namespace OpenKNXproducer {
             public bool Debug { get; set; } = false;
             [Option('R', "NoRenumber", Required = false, HelpText = "Don't renumber ParameterSeparator- and ParameterBlock-Id's")]
             public bool NoRenumber { get; set; } = false;
+            [Option('A', "AbsoluteSingleParameters", Required = false, HelpText = "Compatibility with 1.5.x: Parameters with single occurrence have an absolute address in xml")]
+            public bool AbsoluteSingleParameters { get; set; } = false;
         }
 
         [Verb("check", HelpText = "execute sanity checks on given xml file")]
@@ -1044,6 +1046,7 @@ namespace OpenKNXproducer {
             Console.WriteLine("Processing xml file {0}", opts.XmlFileName);
             ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
             ProcessInclude.Renumber = !opts.NoRenumber;
+            ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
             bool lWithVersions = lInclude.Expand();
             // We restore the original namespace in File
             lInclude.SetNamespace();
