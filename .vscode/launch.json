@@ -36,6 +36,21 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug GardenControl",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "../BEM-GardenControl/src/GardenControl"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug WireGateway",
             "type": "coreclr",
             "request": "launch",

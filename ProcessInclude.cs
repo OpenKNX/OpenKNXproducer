@@ -209,7 +209,8 @@ namespace OpenKNXproducer {
 
         public void ResetXsd() {
             XmlNode lXmlModel = mDocument.FirstChild?.NextSibling;
-            if (lXmlModel != null)
+            // the following if has to be very specific, because an assignment to InnerText of an XmlElement might delete all inner tags!!! 
+            if (lXmlModel != null && lXmlModel.NodeType == XmlNodeType.ProcessingInstruction && lXmlModel.InnerText.Contains("-editor.xsd"))
                 lXmlModel.InnerText = lXmlModel.InnerText.Replace("-editor.xsd", ".xsd");
         }
 

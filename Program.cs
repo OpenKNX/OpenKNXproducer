@@ -137,9 +137,21 @@ namespace OpenKNXproducer {
             Console.WriteLine("Sanity checks... ");
             bool lFail = false;
 
-            Console.Write("- Id-Uniqueness...");
+            Console.Write("- Id-Homogeneity...");
             bool lFailPart = false;
             XmlNodeList lNodes = iTargetNode.SelectNodes("//*[@Id]");
+            foreach (XmlNode lNode in lNodes) {
+                string lId = lNode.Attributes.GetNamedItem("Id").Value;
+                if (lId.Contains("%AID%")) {
+                    WriteFail(ref lFailPart, "There are includes with new '%AID%' and with old 'M-00FA_A-0001-01-0000' notation, this cannot be mixed. No further checks possible until this is solved!");
+                    return false; // fail
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
+            Console.Write("- Id-Uniqueness...");
+            lFailPart = false;
             foreach (XmlNode lNode in lNodes) {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
                 if (gIds.ContainsKey(lId)) {
