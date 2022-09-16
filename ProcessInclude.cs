@@ -279,17 +279,21 @@ namespace OpenKNXproducer {
 
         string ReplaceKoTemplate(string iValue, int iChannel, ProcessInclude iInclude) {
             string lResult = iValue;
-            Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
             int lBlockSize = 0;
             int lOffset = 0;
             if (iInclude != null) {
                 lBlockSize = iInclude.mKoBlockSize;
                 lOffset = iInclude.KoOffset;
             }
+            // too slow!!!
             // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
+            Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
             if (lMatch.Captures.Count > 0) {
                 int lShift = int.Parse(lMatch.Groups[1].Value);
                 lResult = iValue.Replace(lMatch.Value, ((iChannel - 1) * lBlockSize + lOffset + lShift).ToString());
+                // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
+                // a replacement happened 
+                lResult = ReplaceKoTemplate(lResult, iChannel, iInclude);
             }
             return lResult;
         }
