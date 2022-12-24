@@ -37,10 +37,12 @@ namespace OpenKNXproducer {
 
         private const string gtoolName = "KNX MT";
         private const string gtoolVersion = "5.1.255.16695";
-        //installation path of a valid ETS instance (only ETS4 or ETS5 supported)
+        //installation path of a valid ETS instance (only ETS5 or ETS6 supported)
         private static List<string> gPathETS = new List<string> {
             @"C:\Program Files (x86)\ETS6",
             @"C:\Program Files (x86)\ETS5",
+            @"C:\Program Files\ETS6",
+            @"C:\Program Files\ETS5",
             AppDomain.CurrentDomain.BaseDirectory
         };
 
@@ -51,9 +53,15 @@ namespace OpenKNXproducer {
 
             if (EtsVersions.ContainsKey(lXmlns)) {
                 string lEts = "";
+                string lPath = "";
+
+                if (Environment.Is64BitOperatingSystem) 
+                    lPath = @"C:\Program Files (x86)\ETS6";
+                else
+                    lPath = @"C:\Program Files\ETS6";
                 //if we found an ets6, we can generate all versions with it
-                if(Directory.Exists(@"C:\Program Files (x86)\ETS6")) {
-                    lResult = @"C:\Program Files (x86)\ETS6";
+                if(Directory.Exists(lPath)) {
+                    lResult = lPath;
                     lEts = "ETS 6";
                 }
                 
