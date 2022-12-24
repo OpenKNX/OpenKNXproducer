@@ -16,7 +16,7 @@ dotnet.exe publish OpenKNXproducer.csproj -c Debug -r win-x86 --self-contained t
 
 # we copy publish version also to our bin to ensure same OpenKNXproducer for our delivered products
 Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe ~/bin/OpenKNXproducer-x64.exe
-Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe ~/bin/OpenKNXproducer-x86.exe
+Copy-Item bin/Debug/net6.0/win-x86/publish/OpenKNXproducer.exe ~/bin/OpenKNXproducer-x86.exe
 
 # copy package content 
 Copy-Item ~/bin/OpenKNXproducer-x64.exe release/tools
