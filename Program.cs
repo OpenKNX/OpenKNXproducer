@@ -559,24 +559,24 @@ namespace OpenKNXproducer {
                             break;
                     }
 
-                    int min=0, max=0;
+                    long min=0, max=0;
                     switch (lChild.Name) {
                         case "TypeNumber":
-                            int lDummyInt;
-                            bool lSuccess = int.TryParse(iValue, out lDummyInt);
+                            long lDummyLong;
+                            bool lSuccess = long.TryParse(iValue, out lDummyLong);
                             if (!lSuccess) {
                                 WriteFail(ref iFailPart, "Value of {0} cannot be converted to a number, value is '{1}'", iMessage, iValue);
                             }
-                            if(!int.TryParse(lChild.Attributes["minInclusive"]?.Value, out min))
+                            if(!long.TryParse(lChild.Attributes["minInclusive"]?.Value, out min))
                                 WriteFail(ref iFailPart, "MinInclusive of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["minInclusive"]?.Value ?? "empty");
-                            if(!int.TryParse(lChild.Attributes["maxInclusive"]?.Value, out max))
+                            if(!long.TryParse(lChild.Attributes["maxInclusive"]?.Value, out max))
                                 WriteFail(ref iFailPart, "MaxInclusive of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["minInclusive"]?.Value ?? "empty");
                             
                             switch(lChild.Attributes["Type"]?.Value) {
                                 case "unsignedInt":
                                     if(min < 0)
                                         WriteFail(ref iFailPart, "MinInclusive of {0} cannot be smaller than 0, value is '{1}'", iMessage, min);
-                                    if(max >= maxSize)
+                                    if(max > maxSize)
                                         WriteFail(ref iFailPart, "MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, maxSize, max);
                                     break;
 
