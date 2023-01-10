@@ -309,6 +309,8 @@ namespace OpenKNXproducer {
                 lAttr.Value = ReplaceChannelTemplate(lAttr.Value, iChannel);
                 lAttr.Value = ReplaceKoTemplate(lAttr.Value, iChannel, iInclude);
                 // lAttr.Value = lAttr.Value.Replace("%N%", mChannelCount.ToString());
+                if (lAttr.Name == "Name")
+                    lAttr.Value = iInclude.mHeaderPrefixName + lAttr.Value;
             }
         }
 
