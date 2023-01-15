@@ -422,7 +422,7 @@ namespace OpenKNXproducer {
                 // if (lLdCtrlCompareProp != null) {
                 //     lLdCtrlCompareProp.Attributes.GetNamedItem("InlineData").Value = lInlineData;
                 // }
-                // we create a comment from versio node
+                // we create a comment from version node
                 string lVersion = " " + string.Join(" ", lMcVersionNode.OuterXml.Split().Skip(1).SkipLast(2)) + " ";
                 XmlNode lVersionComment = ((XmlDocument)iTargetNode).CreateComment(lVersion);
                 lMcVersionNode.ParentNode.ReplaceChild(lVersionComment, lMcVersionNode);
@@ -490,8 +490,8 @@ namespace OpenKNXproducer {
             if (lReplacesVersionsAttribute != null) {
                 string lReplacesVersions = lReplacesVersionsAttribute.Value;
                 Console.WriteLine("- ReplacesVersions entry is: {0}", lReplacesVersions);
-                // string lOldVerion = string.Format(" {0}", lApplicationVersion - 1);
-                // if (!lReplacesVersions.Contains(lOldVerion) && lReplacesVersions != (lApplicationVersion - 1).ToString()) lReplacesVersionsAttribute.Value += lOldVerion;
+                // string lOldVersion = string.Format(" {0}", lApplicationVersion - 1);
+                // if (!lReplacesVersions.Contains(lOldVersion) && lReplacesVersions != (lApplicationVersion - 1).ToString()) lReplacesVersionsAttribute.Value += lOldVersion;
             }
             // set the right Size attributes
             // XmlNodeList lNodes = iTargetNode.SelectNodes("(//RelativeSegment | //LdCtrlRelSegment | //LdCtrlWriteRelMem)[@Size]");
@@ -546,7 +546,7 @@ namespace OpenKNXproducer {
         private int RenumberParameterBlock(int lParameterBlockCount, XmlNode lAttr) {
             // for inline parameter blocks like grid and table we need
             // the same PB number in all subblocks.
-            // we assume, that the iterator first provides the PB and lateron the subPB, 
+            // we assume, that the iterator first provides the PB and later on the subPB, 
             // before the next PB is offered.
             int lPos = lAttr.Value.IndexOf("_PB-");
             string lValue = "";
@@ -573,7 +573,7 @@ namespace OpenKNXproducer {
         public int CalcParamSize(XmlNode iParameter, XmlNode iParameterTypesNode) {
             int lResult = 0;
             if (iParameterTypesNode != null) {
-                // we calcucalte the size only, if the parameter uses some memory in the device storage
+                // we calculate the size only, if the parameter uses some memory in the device storage
                 XmlNode lMemory = iParameter.SelectSingleNode("Memory");
                 if (lMemory != null) {
                     XmlNode lSizeNode = null;
@@ -629,7 +629,7 @@ namespace OpenKNXproducer {
         private void ExportHeaderKoStart(DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName) {
             if (!mHeaderKoStartGenerated) {
                 StringBuilder lOut = new StringBuilder();
-                mHeaderKoStartGenerated = ExportHeaderKo(lOut, iHeaderPrefixName);
+                mHeaderKoStartGenerated = ExportHeaderKo(iDefine, lOut, iHeaderPrefixName);
                 if (mHeaderKoStartGenerated && iDefine.IsParameter) {
                     cOut.AppendLine("// Communication objects with single occurrence");
                     cOut.Append(lOut);
@@ -643,7 +643,7 @@ namespace OpenKNXproducer {
                 mKoBlockSize = lComObjects.Count;
 
                 StringBuilder lOut = new StringBuilder();
-                mHeaderKoBlockGenerated = ExportHeaderKo(lOut, iHeaderPrefixName);
+                mHeaderKoBlockGenerated = ExportHeaderKo(iDefine, lOut, iHeaderPrefixName);
                 if (mHeaderKoBlockGenerated) {
                     if (iDefine.IsTemplate) {
                         cOut.AppendLine("// Communication objects per channel (multiple occurrence)");
@@ -657,23 +657,36 @@ namespace OpenKNXproducer {
             }
         }
 
-        public bool ExportHeaderKo(StringBuilder cOut, string iHeaderPrefixName) {
+        private bool ExportHeaderKo(DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName) {
             XmlNodeList lNodes = mDocument.SelectNodes("//ComObject");
+            StringBuilder lOut = new StringBuilder();
+            
             bool lResult = false;
             foreach (XmlNode lNode in lNodes) {
+                string lComment = "// " + lNode.Attributes.GetNamedItem("Name").Value;
                 string lNumber = ReplaceKoTemplate(lNode.Attributes.GetNamedItemValueOrEmpty("Number"), 1, null);
                 cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
                 cOut.AppendLine();
+                lOut.AppendLine(RemoveControlChars(lComment));
+                if (iDefine.IsTemplate)
+                    lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + mChannelNumber * {0}KoBlockSize) + {0}Ko{1})", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                else
+                    lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + {0}Ko{1}))", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                lOut.AppendLine();
                 lResult = true;
             }
-            if (lResult) cOut.AppendLine();
+            if (lResult) {
+              cOut.AppendLine();
+              cOut.Append(lOut);
+              cOut.AppendLine();
+            }
             return lResult;
         }
 
         private void ExportHeaderParameterStart(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
             if (!mHeaderParameterStartGenerated && iDefine.IsParameter) {
                 cOut.AppendLine("// Parameter with single occurrence");
-                ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
+                ExportHeaderParameter(iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
                 mHeaderParameterStartGenerated = true;
             }
         }
@@ -690,14 +703,20 @@ namespace OpenKNXproducer {
                     cOut.AppendFormat("#define {0}ParamBlockSize {1}", iHeaderPrefixName, mParameterBlockSize);
                     cOut.AppendLine();
                 }
-                int lSize = ExportHeaderParameter(cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
-                // if (lSize != mParameterBlockSize) throw new ArgumentException(string.Format("ParameterBlockSize {0} calculation differs from header filie calculated ParameterBlockSize {1}", mParameterBlockSize, lSize));
+                int lSize = ExportHeaderParameter(iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
+                // if (lSize != mParameterBlockSize) throw new ArgumentException(string.Format("ParameterBlockSize {0} calculation differs from header file calculated ParameterBlockSize {1}", mParameterBlockSize, lSize));
                 mHeaderParameterBlockGenerated = true;
             }
         }
 
-        public int ExportHeaderParameter(StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName, bool iWithAbsoluteOffset) {
+        string RemoveControlChars(string iText) {
+            return iText.Replace("\n", "");
+            // return new string(iText.Where(c => !char.IsControl(c)).ToArray());
+        }
+
+        private int ExportHeaderParameter(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName, bool iWithAbsoluteOffset) {
             int lMaxSize = 0;
+            StringBuilder lOut = new StringBuilder();
             XmlNodeList lNodes = mDocument.SelectNodes("//Parameter");
             foreach (XmlNode lNode in lNodes) {
                 XmlNode lMemoryNode;
@@ -717,7 +736,9 @@ namespace OpenKNXproducer {
                     if (lParameterType != null) lTypeNumber = lParameterType.FirstChild;
                     while (lTypeNumber != null && lTypeNumber.NodeType == XmlNodeType.Comment) lTypeNumber = lTypeNumber.NextSibling;
                     int lBits = 0;
+                    int lBitBaseSize = 0;
                     string lType = "";
+                    string lKnxAccessMethod = "";
                     bool lDirectType = false;
                     if (lTypeNumber != null) {
                         XmlNode lBitsAttribute = lTypeNumber.Attributes.GetNamedItem("SizeInBit");
@@ -725,22 +746,47 @@ namespace OpenKNXproducer {
                         XmlNode lTypeAttribute = lTypeNumber.Attributes.GetNamedItem("Type");
                         if (lTypeAttribute != null) {
                             lType = lTypeAttribute.Value;
-                            lType = (lType == "signedInt") ? "int" : (lType == "unsignedInt") ? "uint" : "xxx";
+                            if (lBits <= 8) {
+                                lBitBaseSize = 8;
+                                lKnxAccessMethod = "knx.paramByte({0})";
+                            } else if (lBits <= 16) {
+                                lBitBaseSize = 16;
+                                lKnxAccessMethod = "knx.paramWord({0})";
+                            } else if (lBits <= 32) {
+                                lBitBaseSize = 32;
+                                lKnxAccessMethod = "knx.paramLong({0})";
+                            }
+                            if (lType == "signedInt") {
+                                lType = "int";
+                                lKnxAccessMethod = string.Format("({0}{1}_t){2}", lType, lBitBaseSize, lKnxAccessMethod);
+                            } else if (lType == "unsignedInt") {
+                                lType = "uint";
+                            } else {
+                                lType = "xxx";
+                            }
                         } else {
                             lType = "enum";
                             if (lBits > 8) {
                                 lType = string.Format("char*, {0} Byte", lBits / 8);
+                                lKnxAccessMethod = "knx.paramData({0})";
                                 lDirectType = true;
+                            } else {
+                                lBitBaseSize = 8;
+                                lKnxAccessMethod = "knx.paramByte({0})";
                             }
                         }
                         if (lTypeNumber.Name == "TypeFloat") {
                             lType = "float";
                             lBits = 16;
+                            lBitBaseSize = 16;
+                            lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Single)";
                             lDirectType = true;
                         }
                         if (lTypeNumber.Name == "TypeColor") {
                             lType = "color, uint, 3 Byte";
                             lBits = 24;
+                            lBitBaseSize = 32;
+                            lKnxAccessMethod = "knx.paramLong({0})";
                             lDirectType = true;
                         }
                     }
@@ -753,34 +799,58 @@ namespace OpenKNXproducer {
                     XmlNode lParamBitOffsetNode = lNode.Attributes.GetNamedItem("BitOffset");
                     if (lParamBitOffsetNode != null) lBitOffset += int.Parse(lParamBitOffsetNode.Value);
                     lMaxSize = Math.Max(lMaxSize, lOffset + (lBits - 1) / 8 + 1);
-                    if (lBits <= 7 || lType == "enum") {
+                    string lChannelCalculation = " + ";
+                    if (iDefine.IsTemplate) lChannelCalculation = " + mChannelNumber * {3}ParamBlockSize + "; 
+                    string lKnxArgument = string.Format(lKnxAccessMethod, "{3}ParamBlockOffset" + lChannelCalculation + "{3}{0}");
+                    bool lIsOut = false;
+                    string lOutput = "";
+                    string lComment = "// " + lNode.Attributes.GetNamedItem("Text").Value;
+                    if (lBits < lBitBaseSize || lType == "enum") {
                         //output for bit based parameters 
-                        int lShift = (8 - lBits - lBitOffset);
-                        lType = string.Format("{0} Bit{1}, Bit {2}", lBits, (lBits == 1) ? "" : "s", (7 - lBitOffset));
+                        int lShift = (lBitBaseSize - lBits - lBitOffset);
+                        lType = string.Format("{0} Bit{1}, Bit {2}", lBits, (lBits == 1) ? "" : "s", (lBitBaseSize - 1 - lBitOffset));
                         if (lBits > 1) lType = string.Format("{0}-{1}", lType, lShift);
                         cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
-                        if (lBits < 7 && lShift >= 0) {
+                        if (lBits < lBitBaseSize && lShift >= 0) {
                             cOut.AppendLine();
                             int lMask = ((int)Math.Pow(2, lBits) - 1) << lShift;
                             cOut.AppendFormat("#define     {0}{1}Mask 0x{2:X2}", iHeaderPrefixName, lName, lMask);
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Shift {2}", iHeaderPrefixName, lName, lShift);
+                            if (lBits == 1)
+                                lOutput = string.Format("#define Param{3}{0,-25} ((bool)" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lType, iHeaderPrefixName);
+                            else if (lShift == 0)
+                                lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lType, iHeaderPrefixName);
+                            else
+                                lOutput = string.Format("#define Param{3}{0,-25} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lType, iHeaderPrefixName);
+                            lIsOut = true;
                         }
                     } else if (lDirectType) {
                         cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
+                        lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName);
+                        lIsOut = true;
                     } else {
-                        cOut.AppendFormat("#define {4}{0,-25} {1,2}      // {3}{2}_t", lName, lOffset, lBits, lType, iHeaderPrefixName);
+                        cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {4}{2}_t", lName, lOffset, lBits, iHeaderPrefixName, lType);
+                        lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + ")", lName, lOffset, lBitBaseSize, iHeaderPrefixName, lType);
+                        lIsOut = true;
                     }
                     cOut.AppendLine();
+                    if (lIsOut) {
+                        lOut.AppendLine(RemoveControlChars(lComment));
+                        lOut.AppendLine(lOutput);
+                    }
                 }
             }
             cOut.AppendLine();
+            cOut.Append(lOut);
+            cOut.AppendLine();
+            
             return lMaxSize;
         }
 
 
         /// <summary>
-        /// Load xml document from file resolving xincludes recursivly
+        /// Load xml document from file resolving includes recursively
         /// </summary>
         public void LoadAdvanced(string iFileName) {
             if (!mLoaded) {
