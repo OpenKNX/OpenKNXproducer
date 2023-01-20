@@ -669,7 +669,7 @@ namespace OpenKNXproducer {
                 cOut.AppendLine();
                 lOut.AppendLine(RemoveControlChars(lComment));
                 if (iDefine.IsTemplate)
-                    lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + mChannelNumber * {0}KoBlockSize) + {0}Ko{1})", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                    lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + _channelIndex * {0}KoBlockSize) + {0}Ko{1})", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
                 else
                     lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + {0}Ko{1}))", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
                 lOut.AppendLine();
@@ -744,8 +744,8 @@ namespace OpenKNXproducer {
                         XmlNode lBitsAttribute = lTypeNumber.Attributes.GetNamedItem("SizeInBit");
                         if (lBitsAttribute != null) lBits = int.Parse(lBitsAttribute.Value);
                         XmlNode lTypeAttribute = lTypeNumber.Attributes.GetNamedItem("Type");
-                        if (lTypeAttribute != null) {
-                            lType = lTypeAttribute.Value;
+                        if (lTypeNumber.Name == "TypeNumber" || lTypeNumber.Name == "TypeRestriction") {
+                            if (lTypeAttribute != null) lType = lTypeAttribute.Value;
                             if (lBits <= 8) {
                                 lBitBaseSize = 8;
                                 lKnxAccessMethod = "knx.paramByte({0})";
@@ -762,27 +762,19 @@ namespace OpenKNXproducer {
                             } else if (lType == "unsignedInt") {
                                 lType = "uint";
                             } else {
-                                lType = "xxx";
+                                lType = "enum";
                             }
-                        } else {
-                            lType = "enum";
-                            if (lBits > 8) {
-                                lType = string.Format("char*, {0} Byte", lBits / 8);
-                                lKnxAccessMethod = "knx.paramData({0})";
-                                lDirectType = true;
-                            } else {
-                                lBitBaseSize = 8;
-                                lKnxAccessMethod = "knx.paramByte({0})";
-                            }
-                        }
-                        if (lTypeNumber.Name == "TypeFloat") {
+                        } else if (lTypeNumber.Name == "TypeText") {
+                            lType = string.Format("char*, {0} Byte", lBits / 8);
+                            lKnxAccessMethod = "knx.paramData({0})";
+                            lDirectType = true;
+                        } else if (lTypeNumber.Name == "TypeFloat") {
                             lType = "float";
                             lBits = 16;
                             lBitBaseSize = 16;
                             lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Single)";
                             lDirectType = true;
-                        }
-                        if (lTypeNumber.Name == "TypeColor") {
+                        } else if (lTypeNumber.Name == "TypeColor") {
                             lType = "color, uint, 3 Byte";
                             lBits = 24;
                             lBitBaseSize = 32;
@@ -800,7 +792,7 @@ namespace OpenKNXproducer {
                     if (lParamBitOffsetNode != null) lBitOffset += int.Parse(lParamBitOffsetNode.Value);
                     lMaxSize = Math.Max(lMaxSize, lOffset + (lBits - 1) / 8 + 1);
                     string lChannelCalculation = " + ";
-                    if (iDefine.IsTemplate) lChannelCalculation = " + mChannelNumber * {3}ParamBlockSize + "; 
+                    if (iDefine.IsTemplate) lChannelCalculation = " + _channelIndex * {3}ParamBlockSize + "; 
                     string lKnxArgument = string.Format(lKnxAccessMethod, "{3}ParamBlockOffset" + lChannelCalculation + "{3}{0}");
                     bool lIsOut = false;
                     string lOutput = "";
@@ -808,9 +800,9 @@ namespace OpenKNXproducer {
                     if (lBits < lBitBaseSize || lType == "enum") {
                         //output for bit based parameters 
                         int lShift = (lBitBaseSize - lBits - lBitOffset);
-                        lType = string.Format("{0} Bit{1}, Bit {2}", lBits, (lBits == 1) ? "" : "s", (lBitBaseSize - 1 - lBitOffset));
-                        if (lBits > 1) lType = string.Format("{0}-{1}", lType, lShift);
-                        cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
+                        string lSubType = string.Format("{0} Bit{1}, Bit {2}", lBits, (lBits == 1) ? "" : "s", (lBitBaseSize - 1 - lBitOffset));
+                        if (lBits > 1) lSubType = string.Format("{0}-{1}", lSubType, lShift);
+                        cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lSubType, iHeaderPrefixName);
                         if (lBits < lBitBaseSize && lShift >= 0) {
                             cOut.AppendLine();
                             int lMask = ((int)Math.Pow(2, lBits) - 1) << lShift;
@@ -818,11 +810,14 @@ namespace OpenKNXproducer {
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Shift {2}", iHeaderPrefixName, lName, lShift);
                             if (lBits == 1)
-                                lOutput = string.Format("#define Param{3}{0,-25} ((bool)" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lType, iHeaderPrefixName);
+                                lOutput = string.Format("#define Param{3}{0,-25} ((bool)" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName);
                             else if (lShift == 0)
-                                lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lType, iHeaderPrefixName);
+                                lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName);
                             else
-                                lOutput = string.Format("#define Param{3}{0,-25} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lType, iHeaderPrefixName);
+                                lOutput = string.Format("#define Param{3}{0,-25} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName);
+                            lIsOut = true;
+                        } else if (lType == "enum") {
+                            lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName);
                             lIsOut = true;
                         }
                     } else if (lDirectType) {
