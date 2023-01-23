@@ -145,6 +145,7 @@ namespace OpenKNXproducer {
         
         public string HeaderGenerated {
             get {
+                mHeaderGenerated.Insert(0, "#define paramTime(time) (uint32_t)((time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : (time & 0xC000) == 0x0000 ? (time & 0x3FFF) * 1000 : (time & 0xC000) = 0x4000 ? (time & 0x3FFF) * 60000 : (time & 0xC000) == 0x8000 ? ((time & 0x3FFF) > 1000 ? 3600000 : (time & 0x3FFF) * 3600000 ) : 0 )\n\n");
                 mHeaderGenerated.Insert(0, "#pragma once\n\n");
                 return mHeaderGenerated.ToString();
             }
@@ -646,10 +647,20 @@ namespace OpenKNXproducer {
                 mHeaderKoBlockGenerated = ExportHeaderKo(iDefine, lOut, iHeaderPrefixName);
                 if (mHeaderKoBlockGenerated) {
                     if (iDefine.IsTemplate) {
-                        cOut.AppendLine("// Communication objects per channel (multiple occurrence)");
+                        cOut.AppendLine("// deprecated");
                         cOut.AppendFormat("#define {0}KoOffset {1}", iHeaderPrefixName, mKoOffset);
                         cOut.AppendLine();
+                        cOut.AppendLine();
+                        cOut.AppendLine("// Communication objects per channel (multiple occurrence)");
+                        cOut.AppendFormat("#define {0}KoBlockOffset {1}", iHeaderPrefixName, mKoOffset);
+                        cOut.AppendLine();
                         cOut.AppendFormat("#define {0}KoBlockSize {1}", iHeaderPrefixName, mKoBlockSize);
+                        cOut.AppendLine();
+                        cOut.AppendLine();
+                        cOut.AppendFormat("#define {0}KoCalcNumber(index) (index + {0}KoBlockOffset + _channelIndex * {0}KoBlockSize)", iHeaderPrefixName);
+                        cOut.AppendLine();
+                        cOut.AppendFormat("#define {0}KoCalcIndex(number) (((number - {0}KoBlockOffset) >= 0) ? (number - {0}KoOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
+                        cOut.AppendLine();
                         cOut.AppendLine();
                     }
                     cOut.Append(lOut);
@@ -663,16 +674,19 @@ namespace OpenKNXproducer {
             
             bool lResult = false;
             foreach (XmlNode lNode in lNodes) {
-                string lComment = "// " + lNode.Attributes.GetNamedItem("Name").Value;
+                string lComment = "// " + lNode.Attributes.GetNamedItem("Text").Value;
                 string lNumber = ReplaceKoTemplate(lNode.Attributes.GetNamedItemValueOrEmpty("Number"), 1, null);
                 cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
                 cOut.AppendLine();
                 lOut.AppendLine(RemoveControlChars(lComment));
+                string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
                 if (iDefine.IsTemplate)
-                    lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + _channelIndex * {0}KoBlockSize) + {0}Ko{1})", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1} + i)))", iHeaderPrefixName, lName, lNumber, lName + "(i)");
                 else
-                    lOut.AppendFormat("#define Ko{0}{1,-25} (knx.getGroupObject({0}KoOffset + {0}Ko{1}))", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}Ko{1} + i))", iHeaderPrefixName, lName, lNumber, lName + "(i)");
                 lOut.AppendLine();
+                // lOut.AppendFormat("#define Ko{0}{1,-25} Ko{0}{3}", iHeaderPrefixName, lName, lNumber, lName + "(0)");
+                // lOut.AppendLine();
                 lResult = true;
             }
             if (lResult) {
@@ -701,6 +715,9 @@ namespace OpenKNXproducer {
                     cOut.AppendFormat("#define {0}ParamBlockOffset {1}", iHeaderPrefixName, mParameterBlockOffset);
                     cOut.AppendLine();
                     cOut.AppendFormat("#define {0}ParamBlockSize {1}", iHeaderPrefixName, mParameterBlockSize);
+                    cOut.AppendLine();
+                    cOut.AppendFormat("#define {0}ParamCalcNumber(index) (index + {0}ParamBlockOffset + _channelIndex * {0}ParamBlockSize)", iHeaderPrefixName);
+                    cOut.AppendLine();
                     cOut.AppendLine();
                 }
                 int lSize = ExportHeaderParameter(iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
@@ -791,17 +808,22 @@ namespace OpenKNXproducer {
                     XmlNode lParamBitOffsetNode = lNode.Attributes.GetNamedItem("BitOffset");
                     if (lParamBitOffsetNode != null) lBitOffset += int.Parse(lParamBitOffsetNode.Value);
                     lMaxSize = Math.Max(lMaxSize, lOffset + (lBits - 1) / 8 + 1);
-                    string lChannelCalculation = " + ";
-                    if (iDefine.IsTemplate) lChannelCalculation = " + _channelIndex * {3}ParamBlockSize + "; 
-                    string lKnxArgument = string.Format(lKnxAccessMethod, "{3}ParamBlockOffset" + lChannelCalculation + "{3}{0}");
+                    string lChannelCalculation = "{3}{0}";
+                    if (iDefine.IsTemplate) lChannelCalculation = "{3}ParamCalcNumber({3}{0})"; 
+                    string lKnxArgument = string.Format(lKnxAccessMethod, lChannelCalculation);
                     bool lIsOut = false;
                     string lOutput = "";
+                    string lTimeOutput = "";
                     string lComment = "// " + lNode.Attributes.GetNamedItem("Text").Value;
                     if (lBits < lBitBaseSize || lType == "enum") {
                         //output for bit based parameters 
                         int lShift = (lBitBaseSize - lBits - lBitOffset);
                         string lSubType = string.Format("{0} Bit{1}, Bit {2}", lBits, (lBits == 1) ? "" : "s", (lBitBaseSize - 1 - lBitOffset));
                         if (lBits > 1) lSubType = string.Format("{0}-{1}", lSubType, lShift);
+                        // new time base handling
+                        if (lParameterTypeId.Contains("_PT-DelayTime")) {
+                            lTimeOutput = string.Format("#define Param{3}{4,-25} (paramTime(Param{3}{0}))", lName, lOffset, lSubType, iHeaderPrefixName, lName + "MS");
+                        }
                         cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lSubType, iHeaderPrefixName);
                         if (lBits < lBitBaseSize && lShift >= 0) {
                             cOut.AppendLine();
@@ -810,29 +832,33 @@ namespace OpenKNXproducer {
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Shift {2}", iHeaderPrefixName, lName, lShift);
                             if (lBits == 1)
-                                lOutput = string.Format("#define Param{3}{0,-25} ((bool)" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName);
+                                lOutput = string.Format("#define Param{3}{4,-25} ((bool)(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName);
                             else if (lShift == 0)
-                                lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName);
+                                lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName, lName);
                             else
-                                lOutput = string.Format("#define Param{3}{0,-25} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName);
+                                lOutput = string.Format("#define Param{3}{4,-25} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName, lName);
                             lIsOut = true;
                         } else if (lType == "enum") {
-                            lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName);
+                            lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName, lName);
                             lIsOut = true;
                         }
                     } else if (lDirectType) {
                         cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
-                        lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName);
+                        lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName);
                         lIsOut = true;
                     } else {
                         cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {4}{2}_t", lName, lOffset, lBits, iHeaderPrefixName, lType);
-                        lOutput = string.Format("#define Param{3}{0,-25} (" + lKnxArgument + ")", lName, lOffset, lBitBaseSize, iHeaderPrefixName, lType);
+                        lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + ")", lName, lOffset, lBitBaseSize, iHeaderPrefixName, lName);
                         lIsOut = true;
                     }
                     cOut.AppendLine();
                     if (lIsOut) {
                         lOut.AppendLine(RemoveControlChars(lComment));
                         lOut.AppendLine(lOutput);
+                        if (lTimeOutput != "") {
+                          lOut.AppendLine(RemoveControlChars(lComment) + " (in Millisekunden)");
+                          lOut.AppendLine(lTimeOutput);
+                        }
                     }
                 }
             }
