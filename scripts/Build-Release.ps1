@@ -28,8 +28,12 @@ Copy-Item scripts/bossac-LICENSE.txt release/tools
 Copy-Item scripts/Readme-Release.txt release/
 Copy-Item scripts/Install-OpenKNX-Tools.ps1 release/
 
+# build release name
+$ReleaseName = ~/bin/OpenKNXproducer-x64.exe --version
+$ReleaseName = $ReleaseName.Replace(" ", "-") + ".zip"
+
 # create package 
-Compress-Archive -Path release/* -DestinationPath OpenKNXproducer.zip
+Compress-Archive -Force -Path release/* -DestinationPath "$ReleaseName"
 Remove-Item -Recurse release/*
-Move-Item OpenKNXproducer.zip release/
+Move-Item "$ReleaseName" release/
 

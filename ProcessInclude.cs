@@ -145,7 +145,7 @@ namespace OpenKNXproducer {
         
         public string HeaderGenerated {
             get {
-                mHeaderGenerated.Insert(0, "#define paramTime(time) (uint32_t)((time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : (time & 0xC000) == 0x0000 ? (time & 0x3FFF) * 1000 : (time & 0xC000) = 0x4000 ? (time & 0x3FFF) * 60000 : (time & 0xC000) == 0x8000 ? ((time & 0x3FFF) > 1000 ? 3600000 : (time & 0x3FFF) * 3600000 ) : 0 )\n\n");
+                mHeaderGenerated.Insert(0, "#define paramDelay(time) (uint32_t)((time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : (time & 0xC000) == 0x0000 ? (time & 0x3FFF) * 1000 : (time & 0xC000) = 0x4000 ? (time & 0x3FFF) * 60000 : (time & 0xC000) == 0x8000 ? ((time & 0x3FFF) > 1000 ? 3600000 : (time & 0x3FFF) * 3600000 ) : 0 )\n\n");
                 mHeaderGenerated.Insert(0, "#pragma once\n\n");
                 return mHeaderGenerated.ToString();
             }
@@ -681,9 +681,9 @@ namespace OpenKNXproducer {
                 lOut.AppendLine(RemoveControlChars(lComment));
                 string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
                 if (iDefine.IsTemplate)
-                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1} + i)))", iHeaderPrefixName, lName, lNumber, lName + "(i)");
+                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1})))", iHeaderPrefixName, lName, lNumber, lName);
                 else
-                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}Ko{1} + i))", iHeaderPrefixName, lName, lNumber, lName + "(i)");
+                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}Ko{1}))", iHeaderPrefixName, lName, lNumber, lName);
                 lOut.AppendLine();
                 // lOut.AppendFormat("#define Ko{0}{1,-25} Ko{0}{3}", iHeaderPrefixName, lName, lNumber, lName + "(0)");
                 // lOut.AppendLine();
@@ -716,7 +716,7 @@ namespace OpenKNXproducer {
                     cOut.AppendLine();
                     cOut.AppendFormat("#define {0}ParamBlockSize {1}", iHeaderPrefixName, mParameterBlockSize);
                     cOut.AppendLine();
-                    cOut.AppendFormat("#define {0}ParamCalcNumber(index) (index + {0}ParamBlockOffset + _channelIndex * {0}ParamBlockSize)", iHeaderPrefixName);
+                    cOut.AppendFormat("#define {0}ParamCalcIndex(index) (index + {0}ParamBlockOffset + _channelIndex * {0}ParamBlockSize)", iHeaderPrefixName);
                     cOut.AppendLine();
                     cOut.AppendLine();
                 }
@@ -809,7 +809,7 @@ namespace OpenKNXproducer {
                     if (lParamBitOffsetNode != null) lBitOffset += int.Parse(lParamBitOffsetNode.Value);
                     lMaxSize = Math.Max(lMaxSize, lOffset + (lBits - 1) / 8 + 1);
                     string lChannelCalculation = "{3}{0}";
-                    if (iDefine.IsTemplate) lChannelCalculation = "{3}ParamCalcNumber({3}{0})"; 
+                    if (iDefine.IsTemplate) lChannelCalculation = "{3}ParamCalcIndex({3}{0})"; 
                     string lKnxArgument = string.Format(lKnxAccessMethod, lChannelCalculation);
                     bool lIsOut = false;
                     string lOutput = "";
@@ -822,7 +822,7 @@ namespace OpenKNXproducer {
                         if (lBits > 1) lSubType = string.Format("{0}-{1}", lSubType, lShift);
                         // new time base handling
                         if (lParameterTypeId.Contains("_PT-DelayTime")) {
-                            lTimeOutput = string.Format("#define Param{3}{4,-25} (paramTime(Param{3}{0}))", lName, lOffset, lSubType, iHeaderPrefixName, lName + "MS");
+                            lTimeOutput = string.Format("#define Param{3}{4,-25} (paramDelay(" + lKnxArgument + "))", lName, lOffset, lSubType, iHeaderPrefixName, lName + "MS");
                         }
                         cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lSubType, iHeaderPrefixName);
                         if (lBits < lBitBaseSize && lShift >= 0) {
