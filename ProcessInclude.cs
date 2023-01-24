@@ -145,7 +145,7 @@ namespace OpenKNXproducer {
         
         public string HeaderGenerated {
             get {
-                mHeaderGenerated.Insert(0, "#define paramDelay(time) (uint32_t)((time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : (time & 0xC000) == 0x0000 ? (time & 0x3FFF) * 1000 : (time & 0xC000) = 0x4000 ? (time & 0x3FFF) * 60000 : (time & 0xC000) == 0x8000 ? ((time & 0x3FFF) > 1000 ? 3600000 : (time & 0x3FFF) * 3600000 ) : 0 )\n\n");
+                mHeaderGenerated.Insert(0, "#define paramDelay(time) (uint32_t)((time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : (time & 0xC000) == 0x0000 ? (time & 0x3FFF) * 1000 : (time & 0xC000) == 0x4000 ? (time & 0x3FFF) * 60000 : (time & 0xC000) == 0x8000 ? ((time & 0x3FFF) > 1000 ? 3600000 : (time & 0x3FFF) * 3600000 ) : 0 )\n\n");
                 mHeaderGenerated.Insert(0, "#pragma once\n\n");
                 return mHeaderGenerated.ToString();
             }
