@@ -14,6 +14,7 @@ namespace OpenKNXproducer {
         {
             public string prefix;
             public int KoOffset;
+            public int KoSingleOffset;
             public string[] ReplaceKeys = {};
             public string[] ReplaceValues = {};
             public int NumChannels;
@@ -21,10 +22,11 @@ namespace OpenKNXproducer {
             public string header;
             public bool IsTemplate;
             public bool IsParameter;
-            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter) {
+            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iKoSingleOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter) {
                 prefix = iPrefix;
                 header = iHeader;
                 KoOffset = iKoOffset;
+                KoSingleOffset = iKoSingleOffset;
                 if (iReplaceKeys.Length > 0) {
                     ReplaceKeys = iReplaceKeys.Split(" ");
                     ReplaceValues = iReplaceValues.Split(" ");
@@ -38,30 +40,33 @@ namespace OpenKNXproducer {
 
                 int lChannelCount = 1;
                 int lKoOffset = 1;
+                int lKoSingleOffset = 0;
                 string lPrefix = "";
                 string lHeader = "";
                 string lReplaceKeys = "";
                 string lReplaceValues = "";
                 int lModuleType = 1;
 
-                lPrefix = iDefineNode.Attributes.GetNamedItemValueOrEmpty("prefix");
+                lPrefix = iDefineNode.NodeAttr("prefix");
                 if (lPrefix == "") lPrefix = "LOG"; // backward compatibility
                 if (sDefines.ContainsKey(lPrefix)) {
                     lResult = sDefines[lPrefix];
                 } else {
-                    lHeader = iDefineNode.Attributes.GetNamedItemValueOrEmpty("header");
-                    lChannelCount = int.Parse(iDefineNode.Attributes.GetNamedItemValueOrEmpty("NumChannels"));
-                    lKoOffset = int.Parse(iDefineNode.Attributes.GetNamedItemValueOrEmpty("KoOffset"));
-                    lReplaceKeys = iDefineNode.Attributes.GetNamedItemValueOrEmpty("ReplaceKeys");
-                    lReplaceValues = iDefineNode.Attributes.GetNamedItemValueOrEmpty("ReplaceValues");
-                    lModuleType = int.Parse(iDefineNode.Attributes.GetNamedItemValueOrEmpty("ModuleType"));
-                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false);
+                    lHeader = iDefineNode.NodeAttr("header");
+                    lChannelCount = int.Parse(iDefineNode.NodeAttr("NumChannels"));
+                    lKoOffset = int.Parse(iDefineNode.NodeAttr("KoOffset"));
+                    int lValue = 0;
+                    if (int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lValue)) lKoSingleOffset = lValue;
+                    lReplaceKeys = iDefineNode.NodeAttr("ReplaceKeys");
+                    lReplaceValues = iDefineNode.NodeAttr("ReplaceValues");
+                    lModuleType = int.Parse(iDefineNode.NodeAttr("ModuleType"));
+                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lKoSingleOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false);
                     sDefines.Add(lPrefix, lResult);
                 }
                 return lResult;
             }
 
-            static public DefineContent Empty = new DefineContent("LOG", "", 1, 1, "", "", 1, true);
+            static public DefineContent Empty = new DefineContent("LOG", "", 1, 0, 1, "", "", 1, true);
             public static DefineContent GetDefineContent(string iPrefix) {
                 DefineContent lResult;
                 if (sDefines.ContainsKey(iPrefix)) {
@@ -92,6 +97,7 @@ namespace OpenKNXproducer {
         private int mParameterBlockOffset = 0;
         private int mParameterBlockSize = -1;
         private int mKoOffset = 0;
+        private int mKoSingleOffset = 0;
         private int mModuleType = 1;
         private string[] mReplaceKeys = {};
         private string[] mReplaceValues = {};
@@ -126,6 +132,11 @@ namespace OpenKNXproducer {
         public int KoOffset {
             get { return mKoOffset; }
             set { mKoOffset = value; }
+        }
+
+        public int KoSingleOffset {
+            get { return mKoSingleOffset; }
+            set { mKoSingleOffset = value; }
         }
 
         public int ModuleType {
@@ -278,28 +289,35 @@ namespace OpenKNXproducer {
             return lResult;
         }
 
-        string ReplaceKoTemplate(string iValue, int iChannel, ProcessInclude iInclude) {
+        string ReplaceKoTemplate(DefineContent iDefine, string iValue, int iChannel, ProcessInclude iInclude, bool iIsName) {
             string lResult = iValue;
             int lBlockSize = 0;
             int lOffset = 0;
-            if (iInclude != null) {
-                lBlockSize = iInclude.mKoBlockSize;
-                lOffset = iInclude.KoOffset;
-            }
-            // too slow!!!
-            // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
-            Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
-            if (lMatch.Captures.Count > 0) {
-                int lShift = int.Parse(lMatch.Groups[1].Value);
-                lResult = iValue.Replace(lMatch.Value, ((iChannel - 1) * lBlockSize + lOffset + lShift).ToString());
-                // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
-                // a replacement happened 
-                lResult = ReplaceKoTemplate(lResult, iChannel, iInclude);
+            if (iDefine.IsTemplate)
+            {
+                if (iInclude != null) {
+                    lBlockSize = iInclude.mKoBlockSize;
+                    lOffset = iInclude.KoOffset;
+                }
+                // too slow!!!
+                // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
+                Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
+                if (lMatch.Captures.Count > 0) {
+                    int lShift = int.Parse(lMatch.Groups[1].Value);
+                    lResult = iValue.Replace(lMatch.Value, ((iChannel - 1) * lBlockSize + lOffset + lShift).ToString());
+                    // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
+                    // a replacement happened 
+                    lResult = ReplaceKoTemplate(iDefine, lResult, iChannel, iInclude, iIsName);
+                }
+            } else if (iIsName) {
+                // iChannel is in this case KoSingleOffset
+                int lValue = int.Parse(iValue);
+                lResult = (lValue + iDefine.KoSingleOffset).ToString();
             }
             return lResult;
         }
 
-        void ProcessAttributes(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
+        void ProcessAttributes(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
             foreach (XmlAttribute lAttr in iTargetNode.Attributes) {
                 // we have to mark ParameterBlock and ParameterSeparator for renumber processing
                 if (lAttr.Value.Contains("%T%")) {
@@ -308,7 +326,7 @@ namespace OpenKNXproducer {
                 }
                 lAttr.Value = lAttr.Value.Replace("%T%", iInclude.ModuleType.ToString());
                 lAttr.Value = ReplaceChannelTemplate(lAttr.Value, iChannel);
-                lAttr.Value = ReplaceKoTemplate(lAttr.Value, iChannel, iInclude);
+                lAttr.Value = ReplaceKoTemplate(iDefine, lAttr.Value, iChannel, iInclude, lAttr.Name == "Number");
                 // lAttr.Value = lAttr.Value.Replace("%N%", mChannelCount.ToString());
                 if (lAttr.Name == "Name")
                     lAttr.Value = iInclude.mHeaderPrefixName + lAttr.Value;
@@ -327,39 +345,39 @@ namespace OpenKNXproducer {
             }
         }
 
-        void ProcessUnion(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
+        void ProcessUnion(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
             //calculate new offset
             ProcessParameter(iChannel, iTargetNode, iInclude);
             XmlNodeList lChildren = iTargetNode.ChildNodes;
             foreach (XmlNode lChild in lChildren) {
                 if (lChild.Name=="Parameter")
-                    ProcessAttributes(iChannel, lChild, iInclude);
+                    ProcessAttributes(iDefine, iChannel, lChild, iInclude);
             }
         }
 
-        void ProcessChannel(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
+        void ProcessChannel(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
             //attributes of the node
             if (iTargetNode.Attributes != null) {
-                ProcessAttributes(iChannel, iTargetNode, iInclude);
+                ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
             }
 
             //Print individual children of the node, gets only direct children of the node
             XmlNodeList lChildren = iTargetNode.ChildNodes;
             foreach (XmlNode lChild in lChildren) {
-                ProcessChannel(iChannel, lChild, iInclude);
+                ProcessChannel(iDefine, iChannel, lChild, iInclude);
             }
         }
 
-        void ProcessTemplate(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
-            ProcessAttributes(iChannel, iTargetNode, iInclude);
+        void ProcessTemplate(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
+            ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
             if (iTargetNode.Name == "Parameter") {
                 ProcessParameter(iChannel, iTargetNode, iInclude);
             } else
             if (iTargetNode.Name == "Union") {
-                ProcessUnion(iChannel, iTargetNode, iInclude);
+                ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
             } else
             if (iTargetNode.Name == "Channel" || iTargetNode.Name == "ParameterBlock" || iTargetNode.Name == "choose") {
-                ProcessChannel(iChannel, iTargetNode, iInclude);
+                ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
             }
         }
 
@@ -675,7 +693,7 @@ namespace OpenKNXproducer {
             bool lResult = false;
             foreach (XmlNode lNode in lNodes) {
                 string lComment = "// " + lNode.Attributes.GetNamedItem("Text").Value;
-                string lNumber = ReplaceKoTemplate(lNode.Attributes.GetNamedItemValueOrEmpty("Number"), 1, null);
+                string lNumber = ReplaceKoTemplate(iDefine, lNode.NodeAttr("Number"), 1, null, true);
                 cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
                 cOut.AppendLine();
                 lOut.AppendLine(RemoveControlChars(lComment));
@@ -920,11 +938,11 @@ namespace OpenKNXproducer {
             // try
             {
                 //Load document...
-                string lIncludeName = lIncludeNode.Attributes.GetNamedItemValueOrEmpty("href");
-                string lHeaderPrefixName = lIncludeNode.Attributes.GetNamedItemValueOrEmpty("prefix");
+                string lIncludeName = lIncludeNode.NodeAttr("href");
+                string lHeaderPrefixName = lIncludeNode.NodeAttr("prefix");
                 DefineContent lDefine = DefineContent.GetDefineContent(lHeaderPrefixName);
-                lDefine.IsTemplate = (lIncludeNode.Attributes.GetNamedItemValueOrEmpty("type") == "template");
-                lDefine.IsParameter = (lIncludeNode.Attributes.GetNamedItemValueOrEmpty("type") == "parameter");
+                lDefine.IsTemplate = (lIncludeNode.NodeAttr("type") == "template");
+                lDefine.IsParameter = (lIncludeNode.NodeAttr("type") == "parameter");
                 ProcessInclude lInclude = ProcessInclude.Factory(lIncludeName, lDefine.header, lHeaderPrefixName);
                 string lTargetPath = Path.Combine(iCurrentDir, lIncludeName);
                 lInclude.LoadAdvanced(lTargetPath);
@@ -933,7 +951,7 @@ namespace OpenKNXproducer {
                 lDefine = DefineContent.GetDefineContent(lHeaderPrefixName.Trim('_'));
                 //...find include in real document...
                 XmlNode lParent = lIncludeNode.ParentNode;
-                string lXPath = lIncludeNode.Attributes.GetNamedItemValueOrEmpty("xpath");
+                string lXPath = lIncludeNode.NodeAttr("xpath");
                 XmlNodeList lChildren = lInclude.SelectNodes(lXPath);
                 string lHeaderFileName = Path.Combine(iCurrentDir, lDefine.header);
                 lInclude.ModuleType = lDefine.ModuleType;
@@ -943,6 +961,7 @@ namespace OpenKNXproducer {
                         // ChannelCount and KoOffset are taken from correct prefix
                         lInclude.ChannelCount = lDefine.NumChannels;
                         lInclude.KoOffset = lDefine.KoOffset;
+                        lInclude.KoSingleOffset = lDefine.KoSingleOffset;
                         lInclude.ReplaceKeys = lDefine.ReplaceKeys;
                         lInclude.ReplaceValues = lDefine.ReplaceValues;
                         ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
@@ -960,7 +979,7 @@ namespace OpenKNXproducer {
                             XmlNode lImportNode = lParent.OwnerDocument.ImportNode(lChild, true);
                             // for any Parameter node we do offset recalculation
                             // if there is no prefix name, we do no template replacement
-                            if (lHeaderPrefixName != "") ProcessTemplate(lChannel, lImportNode, lInclude);
+                            if (lHeaderPrefixName != "") ProcessTemplate(lDefine, lChannel, lImportNode, lInclude);
                             lParent.InsertBefore(lImportNode, lIncludeNode);
                         }
                     }

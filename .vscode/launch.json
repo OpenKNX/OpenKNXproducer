@@ -5,6 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug SensorBigModule",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "../OAM-SensorBigModule/src/SensormodulBig"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug PresenceModule",
             "type": "coreclr",
             "request": "launch",
@@ -13,7 +28,6 @@
             "args": [
                 "create",
                 "--Debug",
-                // "--Xsd=../../knx_20.xsd",
                 "../OAM-PresenceModule/src/PMmodul"
             ],
             "cwd": "${workspaceFolder}",
