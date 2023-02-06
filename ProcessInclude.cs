@@ -685,7 +685,7 @@ namespace OpenKNXproducer {
                         cOut.AppendLine();
                         cOut.AppendFormat("#define {0}KoCalcNumber(index) (index + {0}KoBlockOffset + _channelIndex * {0}KoBlockSize)", iHeaderPrefixName);
                         cOut.AppendLine();
-                        cOut.AppendFormat("#define {0}KoCalcIndex(number) (((number - {0}KoBlockOffset) >= 0) ? (number - {0}KoOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
+                        cOut.AppendFormat("#define {0}KoCalcIndex(number) ((number >= {0}KoCalcNumber(0) && number < {0}KoCalcNumber({0}KoBlockSize)) ? (number - {0}KoOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
                         cOut.AppendLine();
                         cOut.AppendLine();
                     }
