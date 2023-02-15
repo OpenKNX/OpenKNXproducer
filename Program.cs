@@ -26,6 +26,7 @@ namespace OpenKNXproducer {
         public string ETS { get; private set; }
     }
     class Program {
+        public static string WorkingDir = "";
         private static Dictionary<string, EtsVersion> EtsVersions = new Dictionary<string, EtsVersion>() {
             {"http://knx.org/xml/project/11", new EtsVersion("4.0.1997.50261", "ETS 4")},
             {"http://knx.org/xml/project/12", new EtsVersion("5.0.204.12971", "ETS 5")},
@@ -35,8 +36,6 @@ namespace OpenKNXproducer {
             {"http://knx.org/xml/project/21", new EtsVersion("6.0", "ETS 6.0")}
         };
 
-        private const string gtoolName = "KNX MT";
-        private const string gtoolVersion = "5.1.255.16695";
         //installation path of a valid ETS instance (only ETS5 or ETS6 supported)
         private static List<string> gPathETS = new List<string> {
             @"C:\Program Files (x86)\ETS6",
@@ -548,6 +547,10 @@ namespace OpenKNXproducer {
                             //There is no SizeInBit attribute
                             break;
 
+                        case "TypePicture":
+                            //There is no SizeInBit attribute
+                            break;
+
                         case "TypeColor":
                             //There is no SizeInBit attribute
                             break;
@@ -780,10 +783,12 @@ namespace OpenKNXproducer {
                 XElement xcata = xmanu.Element(XName.Get("Catalog", ns));
                 XElement xhard = xmanu.Element(XName.Get("Hardware", ns));
                 XElement xappl = xmanu.Element(XName.Get("ApplicationPrograms", ns));
+                XElement xbagg = xmanu.Element(XName.Get("Baggages", ns));
 
                 List<XElement> xcataL = new List<XElement>();
                 List<XElement> xhardL = new List<XElement>();
                 List<XElement> xapplL = new List<XElement>();
+                List<XElement> xbaggL = new List<XElement>();
                 XElement xlangs = xmanu.Element(XName.Get("Languages", ns));
 
                 if(xlangs != null)
@@ -813,6 +818,7 @@ namespace OpenKNXproducer {
                 //Save Catalog
                 xhard.Remove();
                 xappl.Remove();
+                xbagg.Remove();
                 if(xcataL.Count > 0)
                 {
                     xlangs.Elements().Remove();
@@ -823,6 +829,7 @@ namespace OpenKNXproducer {
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
                 if(xcataL.Count > 0) xlangs.Remove();
 
+                // Save Hardware
                 xcata.Remove();
                 xmanu.Add(xhard);
                 if(xhardL.Count > 0)
@@ -835,7 +842,20 @@ namespace OpenKNXproducer {
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
                 if(xhardL.Count > 0) xlangs.Remove();
 
+                // Save Baggages
                 xhard.Remove();
+                xmanu.Add(xbagg);
+                if(xbaggL.Count > 0)
+                {
+                    xlangs.Elements().Remove();
+                    foreach(XElement xlang in xbaggL)
+                        xlangs.Add(xlang);
+                    xmanu.Add(xlangs);
+                }
+                xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Baggages.xml"));
+                if(xbaggL.Count > 0) xlangs.Remove();
+
+                xbagg.Remove();
                 xmanu.Add(xappl);
                 if(xapplL.Count > 0)
                 {
@@ -848,7 +868,10 @@ namespace OpenKNXproducer {
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
                 if(xapplL.Count > 0) xlangs.Remove();
 
-
+                // Copy baggages to output dir
+                string lSourceBaggageName = Path.Combine(iWorkingDir, "Baggages.debug");
+                var lSourceBaggageDir = new DirectoryInfo(lSourceBaggageName);
+                lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
 
                 IDictionary<string, string> applProgIdMappings = new Dictionary<string, string>();
                 IDictionary<string, string> applProgHashes = new Dictionary<string, string>();
@@ -1060,13 +1083,16 @@ namespace OpenKNXproducer {
         static private int VerbCreate(CreateOptions opts) {
             int lResult = 0;
             WriteVersion();
-            string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
+            WorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string lHeaderFileName = Path.ChangeExtension(opts.XmlFileName, "h");
             if (opts.HeaderFileName != "") lHeaderFileName = opts.HeaderFileName;
             Console.WriteLine("Processing xml file {0}", opts.XmlFileName);
             ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
             ProcessInclude.Renumber = !opts.NoRenumber;
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
+            string lBaggageDirName = Path.Combine(WorkingDir, "Baggages.debug");
+            if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
+            Directory.CreateDirectory(lBaggageDirName);
             bool lWithVersions = lInclude.Expand();
             // We restore the original namespace in File
             lInclude.SetNamespace();
@@ -1086,7 +1112,7 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lInclude.GetNamespace());
-                lResult = ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
+                lResult = ExportKnxprod(lEtsPath, WorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
             } else
                 lResult = 1;
             if (lResult > 0) {

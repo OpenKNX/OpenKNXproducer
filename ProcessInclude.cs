@@ -1,12 +1,9 @@
-using System;
 using System.Xml;
-using System.IO;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Text;
-using System.Linq;
 
-namespace OpenKNXproducer {
+namespace OpenKNXproducer
+{
     public class ProcessInclude {
 
         const string cOwnNamespace = "http://github.com/OpenKNX/OpenKNXproducer";
@@ -376,16 +373,77 @@ namespace OpenKNXproducer {
             }
         }
 
+        void ProcessBaggage(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
+            // Baggage-node
+            XmlNode lBaggageIdAttr = iTargetNode.Attributes.GetNamedItem("Id");
+            if (lBaggageIdAttr != null) {
+                // we have a real Baggage definition, not just an extension reference
+                // we copy all baggage files to our working dir
+                string lBaggageId = lBaggageIdAttr.Value;
+                XmlNode lFileNameAttr = iTargetNode.Attributes.GetNamedItem("Name");
+                string lFileName = lFileNameAttr.Value;
+                XmlNode lPathAttr = iTargetNode.Attributes.GetNamedItem("TargetPath");
+                string lPath = lPathAttr.Value;
+                lPath = lPath.Replace("/", "\\");
+                string lSourceDirName = Path.Combine(iInclude.mCurrentDir, "Baggages", lPath);
+                string lTargetDirRoot = Path.Combine(mCurrentDir, "Baggages.debug");
+                if (lBaggageId.StartsWith("%FILE-HELP") || lBaggageId.StartsWith("%FILE-ICONS"))
+                {
+                    // context sensitive help and icons have to be merged
+                    // we expect a directory, even if the file notation says ".zip"
+                    lFileName = lFileName.Replace(".zip", "");
+                    // for ETS, we need a zip and ensure, that it is generated
+                    lFileNameAttr.Value = lFileName + ".zip";
+                    // the path has to go to the specific application folder of the root application
+                    lPath = DetermineBaggagePath(lPath);
+                    if (mCurrentDir == iInclude.mCurrentDir) mBaggageBaseDir = lPath;
+                    lPathAttr.Value = mBaggageBaseDir;
+                    // now we copy all files to target
+                    lSourceDirName = Path.Combine(lSourceDirName, lFileName);
+                    if (Directory.Exists(lSourceDirName))
+                    {
+                        var lSourceDir = new DirectoryInfo(lSourceDirName);
+                        lSourceDir.DeepCopy(Path.Combine(lTargetDirRoot, lPath, lFileName));
+                    }
+                }
+                else {
+                    // we copy single files without any merge process
+                    string lSourceFileName = Path.Combine(lSourceDirName, lFileName);
+                    string lTargetFileName = Path.Combine(lTargetDirRoot, lPath, lFileName);
+                    if (File.Exists(lSourceFileName)) {
+                        Directory.CreateDirectory(Path.Combine(lTargetDirRoot, lPath));
+                        File.Copy(lSourceFileName, lTargetFileName, true);
+                    } 
+                }
+            }
+        }
+
+        private string DetermineBaggagePath(string iPath)
+        {
+            var lDirInfo = new DirectoryInfo(Path.Combine(mCurrentDir, "Baggages"));
+            var lSubDirInfos = lDirInfo.EnumerateDirectories("A?");
+            if (lSubDirInfos != null) {
+                var lSubSubDirInfos = lSubDirInfos.First().EnumerateDirectories("??");
+                if (lSubSubDirInfos != null)
+                    iPath = Path.Combine(lSubDirInfos.First().Name, lSubSubDirInfos.First().Name);
+            } 
+            return iPath;
+        }
+
         void ProcessTemplate(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
-            ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
-            if (iTargetNode.Name == "Parameter") {
-                ProcessParameter(iChannel, iTargetNode, iInclude);
-            } else
-            if (iTargetNode.Name == "Union") {
-                ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
-            } else
-            if (iTargetNode.Name == "Channel" || iTargetNode.Name == "ParameterBlock" || iTargetNode.Name == "choose") {
-                ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
+            if (iTargetNode.Name == "Baggage") {
+                ProcessBaggage(iDefine, iChannel, iTargetNode, iInclude);
+            } else {
+                ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
+                if (iTargetNode.Name == "Parameter") {
+                    ProcessParameter(iChannel, iTargetNode, iInclude);
+                } else
+                if (iTargetNode.Name == "Union") {
+                    ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
+                } else
+                if (iTargetNode.Name == "Channel" || iTargetNode.Name == "ParameterBlock" || iTargetNode.Name == "choose") {
+                    ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
+                }
             }
         }
 
@@ -476,6 +534,10 @@ namespace OpenKNXproducer {
             if (lOldId == "%AID%") lNewId = "M-00FA_A" + lNewId;
             int lParameterSeparatorCount = 1;
             int lParameterBlockCount = 1;
+            // Baggages handling
+            PreprocessBaggages(iTargetNode);
+            ReplaceBaggages(iTargetNode);
+            ReplaceExtensions(iTargetNode);
             XmlNodeList lAttrs;
             lAttrs = iTargetNode.SelectNodes("//*/@*[starts-with(.,'%AID%')]");
             if (lAttrs.Count == 0) 
@@ -566,6 +628,90 @@ namespace OpenKNXproducer {
                 }
             }
             return lWithVersions;
+        }
+
+        Dictionary<string, string> mBaggageId = new Dictionary<string, string>();
+        private void PreprocessBaggages(XmlNode iTargetNode)
+        {
+            XmlNode lBaggages = iTargetNode.SelectSingleNode(@"//Baggages", nsmgr);
+            bool lWithHelp = false;
+            bool lWithIcons = false;
+            string lPath = "";
+            string lFileName = "";
+            XmlNode lIdNode = null;
+
+            bool HandleZipFile(string iZipPattern, ref bool eZipType) {
+                if (lIdNode.Value.StartsWith(iZipPattern)) {
+                    if (eZipType) {
+                        // mark for removal
+                        lIdNode.Value = "!!DELETE!!";
+                        return true;
+                    }
+                    // the following happens just once
+                    eZipType = true;
+                    string lSourceDirName = Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName.Replace(".zip", ""));
+                    string lTargetName = Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName);
+                    System.IO.Compression.ZipFile.CreateFromDirectory(lSourceDirName, lTargetName);
+                    Directory.Delete(lSourceDirName, true);
+                }
+                return false;
+            }
+
+            if (lBaggages != null) {
+                foreach (XmlNode lBaggage in lBaggages.ChildNodes)
+                {
+                    // We need to create according Id from Baggage filename
+                    lPath = lBaggage.Attributes.GetNamedItem("TargetPath").Value;
+                    lFileName = lBaggage.Attributes.GetNamedItem("Name").Value;
+                    lIdNode = lBaggage.Attributes.GetNamedItem("Id");
+                    if (HandleZipFile("%FILE-HELP", ref lWithHelp)) continue;
+                    if (HandleZipFile("%FILE-ICONS", ref lWithIcons)) continue;
+
+                    string lBaggageId = string.Format("M-00FA_BG-{0}-{1}", Program.GetEncoded(lPath), Program.GetEncoded(lFileName));
+                    if (!mBaggageId.ContainsKey(lIdNode.Value))
+                        mBaggageId.Add(lIdNode.Value, lBaggageId);
+                    lIdNode.Value = lBaggageId;
+                    DateTime lFileCreation = File.GetCreationTimeUtc(Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName));
+                    string lIsoDateTime = lFileCreation.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+                    XmlNode lTimeInfo = lBaggage.SelectSingleNode("FileInfo/@TimeInfo", nsmgr);
+                    if (lTimeInfo != null && lTimeInfo.Value == "%DATETIME%")
+                        lTimeInfo.Value = lIsoDateTime;
+                } 
+                // duplicate zip-baggages are deleted
+                XmlNodeList lDeletes = lBaggages.SelectNodes(@"Baggage[@Id ='!!DELETE!!']", nsmgr);
+                foreach (XmlNode lDelete in lDeletes)
+                {
+                    lDelete.ParentNode.RemoveChild(lDelete);
+                }
+            }
+        }
+
+        private void ReplaceBaggages(XmlNode iTargetNode)
+        {
+            XmlNodeList lRefIds = iTargetNode.SelectNodes(@"//./@*[starts-with(.,'%FILE-')]", nsmgr);
+            if (lRefIds != null) {
+                foreach (XmlNode lRefId in lRefIds) {
+                    if (mBaggageId.ContainsKey(lRefId.Value)) {
+                        lRefId.Value = mBaggageId[lRefId.Value];
+                    }
+                }
+            }
+        }
+
+        private void ReplaceExtensions(XmlNode iTargetNode)
+        {
+            XmlNode lExtensions = iTargetNode.SelectSingleNode(@"//Extension", nsmgr);
+            if (lExtensions != null) {
+                lExtensions.RemoveAll();
+                foreach (var lBaggageId in mBaggageId)
+                {
+                    XmlNode lBaggage = ((XmlDocument)iTargetNode).CreateElement("Baggage");
+                    lExtensions.AppendChild(lBaggage);
+                    XmlAttribute lRefId = ((XmlDocument)iTargetNode).CreateAttribute("RefId");
+                    lBaggage.Attributes.Append(lRefId);
+                    lRefId.Value = lBaggageId.Value;
+                }
+            }
         }
 
         Dictionary<string, string> mParameterBlockMap = new Dictionary<string, string>();
@@ -896,12 +1042,16 @@ namespace OpenKNXproducer {
         }
 
 
+        string mCurrentDir = "";
+        string mBaggageBaseDir = "";
+
         /// <summary>
         /// Load xml document from file resolving includes recursively
         /// </summary>
         public void LoadAdvanced(string iFileName) {
             if (!mLoaded) {
                 string lCurrentDir = Path.GetDirectoryName(Path.GetFullPath(iFileName));
+                mCurrentDir = lCurrentDir;
                 string lFileData = File.ReadAllText(iFileName);
                 if (lFileData.Contains("oldxmlns")) {
                     // we get rid of default namespace, we already have an original (this file was already processed by our processor)
