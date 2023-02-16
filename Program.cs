@@ -138,15 +138,16 @@ namespace OpenKNXproducer {
             iNode.ParentNode.InsertBefore(lComment, iNode);
         }
 
-        static bool ProcessSanityChecks(XmlDocument iTargetNode, bool iWithVersions) {
+        static bool ProcessSanityChecks(ProcessInclude iInclude, bool iWithVersions) {
 
             Console.WriteLine();
             Console.WriteLine("Sanity checks... ");
             bool lFail = false;
+            XmlDocument lXml = iInclude.GetDocument();
 
             Console.Write("- Id-Homogeneity...");
             bool lFailPart = false;
-            XmlNodeList lNodes = iTargetNode.SelectNodes("//*[@Id]");
+            XmlNodeList lNodes = lXml.SelectNodes("//*[@Id]");
             foreach (XmlNode lNode in lNodes) {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
                 if (lId.Contains("%AID%")) {
@@ -198,14 +199,14 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- RefId-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//*[@RefId]");
+            lNodes = lXml.SelectNodes("//*[@RefId]");
             foreach (XmlNode lNode in lNodes) {
                 if (lNode.Name != "Manufacturer") {
                     string lRefId = lNode.Attributes.GetNamedItem("RefId").Value;
                     if (!gIds.ContainsKey(lRefId)) {
                         WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lRefId, lNode.Name, lNode.NodeAttr("Name"));
                     } else if (lRefId.Contains("_R")) {
-                        CreateComment(iTargetNode, lNode, lRefId);
+                        CreateComment(lXml, lNode, lRefId);
                     }
                 }
             }
@@ -214,14 +215,14 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- ParamRefId-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//*[@ParamRefId]");
+            lNodes = lXml.SelectNodes("//*[@ParamRefId]");
             foreach (XmlNode lNode in lNodes) {
                 if (lNode.Name != "Manufacturer") {
                     string lParamRefId = lNode.Attributes.GetNamedItem("ParamRefId").Value;
                     if (!gIds.ContainsKey(lParamRefId)) {
                         WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lParamRefId, lNode.Name, lNode.NodeAttr("Name"));
                     } else {
-                        CreateComment(iTargetNode, lNode, lParamRefId);
+                        CreateComment(lXml, lNode, lParamRefId);
                     }
                 }
             }
@@ -230,13 +231,13 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- TextParameterRefId-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//*[@TextParameterRefId]");
+            lNodes = lXml.SelectNodes("//*[@TextParameterRefId]");
             foreach (XmlNode lNode in lNodes) {
                 string lTextParamRefId = lNode.Attributes.GetNamedItem("TextParameterRefId").Value;
                 if (!gIds.ContainsKey(lTextParamRefId)) {
                     WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lTextParamRefId, lNode.Name, lNode.NodeAttr("Name"));
                 } else {
-                    CreateComment(iTargetNode, lNode, lTextParamRefId);
+                    CreateComment(lXml, lNode, lTextParamRefId);
                 }
             }
             if (!lFailPart) Console.WriteLine(" OK");
@@ -244,13 +245,13 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- SourceParamRefRef-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//*[@SourceParamRefRef]");
+            lNodes = lXml.SelectNodes("//*[@SourceParamRefRef]");
             foreach (XmlNode lNode in lNodes) {
                 string lSourceParamRefRef = lNode.Attributes.GetNamedItem("SourceParamRefRef").Value;
                 if (!gIds.ContainsKey(lSourceParamRefRef)) {
                     WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lSourceParamRefRef, lNode.Name, lNode.NodeAttr("Name"));
                 } else {
-                    CreateComment(iTargetNode, lNode, lSourceParamRefRef, "-Source");
+                    CreateComment(lXml, lNode, lSourceParamRefRef, "-Source");
                 }
             }
             if (!lFailPart) Console.WriteLine(" OK");
@@ -258,13 +259,13 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- TargetParamRefRef-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//*[@TargetParamRefRef]");
+            lNodes = lXml.SelectNodes("//*[@TargetParamRefRef]");
             foreach (XmlNode lNode in lNodes) {
                 string lTargetParamRefRef = lNode.Attributes.GetNamedItem("TargetParamRefRef").Value;
                 if (!gIds.ContainsKey(lTargetParamRefRef)) {
                     WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lTargetParamRefRef, lNode.Name, lNode.NodeAttr("Name"));
                 } else {
-                    CreateComment(iTargetNode, lNode, lTargetParamRefRef, "-Target");
+                    CreateComment(lXml, lNode, lTargetParamRefRef, "-Target");
                 }
             }
             if (!lFailPart) Console.WriteLine(" OK");
@@ -272,7 +273,7 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- ParameterType-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//*[@ParameterType]");
+            lNodes = lXml.SelectNodes("//*[@ParameterType]");
             foreach (XmlNode lNode in lNodes) {
                 string lParameterType = lNode.Attributes.GetNamedItem("ParameterType").Value;
                 if (!gIds.ContainsKey(lParameterType)) {
@@ -284,7 +285,7 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- Union-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//Union");
+            lNodes = lXml.SelectNodes("//Union");
             foreach (XmlNode lNode in lNodes) {
                 string lSize = lNode.NodeAttr("SizeInBit");
                 if (lSize == "") {
@@ -296,7 +297,7 @@ namespace OpenKNXproducer {
 
             Console.Write("- Parameter-Name-Uniqueness...");
             lFailPart = false;
-            lNodes = iTargetNode.SelectNodes("//Parameter[@Name]");
+            lNodes = lXml.SelectNodes("//Parameter[@Name]");
             Dictionary<string, bool> lParameterNames = new Dictionary<string, bool>();
             foreach (XmlNode lNode in lNodes) {
                 string lName = lNode.Attributes.GetNamedItem("Name").Value;
@@ -311,7 +312,7 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- Parameter-Value-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//Parameter");
+            lNodes = lXml.SelectNodes("//Parameter");
             foreach (XmlNode lNode in lNodes) {
                 // we add the node to parameter cache
                 string lNodeId = lNode.NodeAttr("Id");
@@ -320,7 +321,7 @@ namespace OpenKNXproducer {
                 if (lParameterValue == null) {
                     WriteFail(ref lFailPart, "{0} has no Value attribute", lMessage);
                 }
-                lFailPart = CheckParameterValueIntegrity(iTargetNode, lFailPart, lNode, lParameterValue, lMessage);
+                lFailPart = CheckParameterValueIntegrity(lXml, lFailPart, lNode, lParameterValue, lMessage);
             }
             if (!lFailPart) Console.WriteLine(" OK");
             lFail = lFail || lFailPart;
@@ -328,17 +329,17 @@ namespace OpenKNXproducer {
             lFailPart = false;
             bool lSkipTest = false;
             Console.Write("- ParameterRef-Value-Integrity...");
-            lNodes = iTargetNode.SelectNodes("//ParameterRef[@Value]");
+            lNodes = lXml.SelectNodes("//ParameterRef[@Value]");
             foreach (XmlNode lNode in lNodes) {
                 string lParameterRefValue = lNode.NodeAttr("Value");
                 // find parameter
-                XmlNode lParameterNode = GetNodeById(iTargetNode, lNode.NodeAttr("RefId"));
+                XmlNode lParameterNode = GetNodeById(lXml, lNode.NodeAttr("RefId"));
                 if (lParameterNode == null) {
                     lSkipTest = true;
                     break;
                 }
                 string lMessage = string.Format("ParameterRef {0}, referencing Parameter {1},", lNode.NodeAttr("Id"), lParameterNode.NodeAttr("Name"));
-                lFailPart = CheckParameterValueIntegrity(iTargetNode, lFailPart, lParameterNode, lParameterRefValue, lMessage);
+                lFailPart = CheckParameterValueIntegrity(lXml, lFailPart, lParameterNode, lParameterRefValue, lMessage);
             }
             if (lSkipTest) {
                 WriteFail(ref lFailPart, "Test not possible due to Errors in ParameterRef definitions (sove above problems first)");
@@ -348,7 +349,7 @@ namespace OpenKNXproducer {
 
             Console.Write("- ComObject-Name-Uniqueness...");
             lFailPart = false;
-            lNodes = iTargetNode.SelectNodes("//ComObject[@Name]");
+            lNodes = lXml.SelectNodes("//ComObject[@Name]");
             Dictionary<string, bool> lKoNames = new Dictionary<string, bool>();
             foreach (XmlNode lNode in lNodes) {
                 string lName = lNode.Attributes.GetNamedItem("Name").Value;
@@ -363,7 +364,7 @@ namespace OpenKNXproducer {
 
             Console.Write("- ComObject-Number-Uniqueness...");
             lFailPart = false;
-            lNodes = iTargetNode.SelectNodes("//ComObject[@Number]");
+            lNodes = lXml.SelectNodes("//ComObject[@Number]");
             Dictionary<int, bool> lKoNumbers = new Dictionary<int, bool>();
             foreach (XmlNode lNode in lNodes) {
                 int lNumber = 0;
@@ -384,12 +385,12 @@ namespace OpenKNXproducer {
             Console.Write("- Id-Namespace...");
             // find refid
             lFailPart = false;
-            XmlNode lApplicationProgramNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
+            XmlNode lApplicationProgramNode = lXml.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
             string lApplicationId = lApplicationProgramNode.Attributes.GetNamedItem("Id").Value;
             string lRefNs = lApplicationId; //.Replace("M-00FA_A", "");
             if(lRefNs.StartsWith("M-")) lRefNs = lRefNs.Substring(8);
             // check all nodes according to refid
-            lNodes = iTargetNode.SelectNodes("//*/@*[string-length() > '13']");
+            lNodes = lXml.SelectNodes("//*/@*[string-length() > '13']");
             foreach (XmlNode lNode in lNodes) {
                 if (lNode.Value != null) {
                     var lMatch = Regex.Match(lNode.Value, "-[0-9A-F]{4}-[0-9A-F]{2}-[0-9A-F]{4}");
@@ -474,7 +475,7 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- Serial number...");
-            lNodes = iTargetNode.SelectNodes("//*[@SerialNumber]");
+            lNodes = lXml.SelectNodes("//*[@SerialNumber]");
             foreach (XmlNode lNode in lNodes) {
                 string lSerialNumber = lNode.Attributes.GetNamedItem("SerialNumber").Value;
                 if (lSerialNumber.Contains("-")) {
@@ -484,9 +485,31 @@ namespace OpenKNXproducer {
             if (!lFailPart) Console.WriteLine(" OK");
             lFail = lFail || lFailPart;
 
+            Console.Write("- HelpContext-Ids...");
+            lFailPart = false;
+            lNodes = lXml.SelectNodes("//*/@HelpContext");
+            foreach (XmlNode lNode in lNodes) {
+                if (!iInclude.IsHelpContextId(lNode.Value)) {
+                    WriteFail(ref lFailPart, "HelpContext {0} not found in HelpContext baggage", lNode.Value);
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
+            Console.Write("- Icon-Ids...");
+            lFailPart = false;
+            lNodes = lXml.SelectNodes("//*/@Icon");
+            foreach (XmlNode lNode in lNodes) {
+                if (!iInclude.IsIconId(lNode.Value)) {
+                    WriteFail(ref lFailPart, "Icon {0} not found in HelpContext baggage", lNode.Value);
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
             lFailPart = false;
             Console.Write("- Application data...");
-            lNodes = iTargetNode.SelectNodes("//ApplicationProgram");
+            lNodes = lXml.SelectNodes("//ApplicationProgram");
             foreach (XmlNode lNode in lNodes) {
                 int lNumber = -1;
                 bool lIsInt = int.TryParse(lNode.Attributes.GetNamedItem("ApplicationNumber").Value, out lNumber);
@@ -504,7 +527,7 @@ namespace OpenKNXproducer {
 
             lFailPart = false;
             Console.Write("- Memory size...");
-            lNodes = iTargetNode.SelectNodes("//*[self::RelativeSegment or self::LdCtrlRelSegment or self::LdCtrlWriteRelMem][@Size]");
+            lNodes = lXml.SelectNodes("//*[self::RelativeSegment or self::LdCtrlRelSegment or self::LdCtrlWriteRelMem][@Size]");
             foreach (XmlNode lNode in lNodes) {
                 int lNumber = -1;
                 string lValue = lNode.Attributes.GetNamedItem("Size").Value;
@@ -814,11 +837,11 @@ namespace OpenKNXproducer {
 
                     }
                 }
+                xhard.Remove();
+                if (xbagg != null) xbagg.Remove();
 
                 //Save Catalog
-                xhard.Remove();
                 xappl.Remove();
-                xbagg.Remove();
                 if(xcataL.Count > 0)
                 {
                     xlangs.Elements().Remove();
@@ -828,9 +851,9 @@ namespace OpenKNXproducer {
                 }
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
                 if(xcataL.Count > 0) xlangs.Remove();
+                xcata.Remove();
 
                 // Save Hardware
-                xcata.Remove();
                 xmanu.Add(xhard);
                 if(xhardL.Count > 0)
                 {
@@ -841,21 +864,23 @@ namespace OpenKNXproducer {
                 }
                 xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
                 if(xhardL.Count > 0) xlangs.Remove();
-
-                // Save Baggages
                 xhard.Remove();
-                xmanu.Add(xbagg);
-                if(xbaggL.Count > 0)
-                {
-                    xlangs.Elements().Remove();
-                    foreach(XElement xlang in xbaggL)
-                        xlangs.Add(xlang);
-                    xmanu.Add(xlangs);
-                }
-                xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Baggages.xml"));
-                if(xbaggL.Count > 0) xlangs.Remove();
 
-                xbagg.Remove();
+                if (xbagg != null) {
+                    // Save Baggages
+                    xmanu.Add(xbagg);
+                    if(xbaggL.Count > 0)
+                    {
+                        xlangs.Elements().Remove();
+                        foreach(XElement xlang in xbaggL)
+                            xlangs.Add(xlang);
+                        xmanu.Add(xlangs);
+                    }
+                    xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Baggages.xml"));
+                    if(xbaggL.Count > 0) xlangs.Remove();
+                    xbagg.Remove();
+                }
+
                 xmanu.Add(xappl);
                 if(xapplL.Count > 0)
                 {
@@ -1099,7 +1124,7 @@ namespace OpenKNXproducer {
             lInclude.ResetXsd();
             lInclude.SetToolAndVersion();
             XmlDocument lXml = lInclude.GetDocument();
-            bool lSuccess = ProcessSanityChecks(lXml, lWithVersions);
+            bool lSuccess = ProcessSanityChecks(lInclude, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
             if (opts.Debug) lTempXmlFileName = opts.XmlFileName;
@@ -1133,7 +1158,7 @@ namespace OpenKNXproducer {
             lInclude.LoadAdvanced(lFileName);
             lInclude.SetNamespace();
             XmlDocument lXml = lInclude.GetDocument();
-            bool lSuccess = ProcessSanityChecks(lXml, false);
+            bool lSuccess = ProcessSanityChecks(lInclude, false);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
             if (opts.Debug) lTempXmlFileName = opts.XmlFileName;

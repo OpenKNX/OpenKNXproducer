@@ -151,6 +151,14 @@ namespace OpenKNXproducer
             set { mReplaceValues = value; }
         }
         
+        public int GetIdOfProjectNamespace(XmlDocument iDocument) {
+            string lProject = iDocument.DocumentElement.NodeAttr("oldxmlns");
+            lProject = lProject.Replace("http://knx.org/xml/project/", "");
+            int lResult = 0;
+            int.TryParse(lProject, out lResult);
+            return lResult;
+        }
+
         public string HeaderGenerated {
             get {
                 mHeaderGenerated.Insert(0, @"
@@ -652,6 +660,21 @@ namespace OpenKNXproducer
                     string lSourceDirName = Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName.Replace(".zip", ""));
                     string lTargetName = Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName);
                     System.IO.Compression.ZipFile.CreateFromDirectory(lSourceDirName, lTargetName);
+                    // before we delete the underlying directories, we store some information
+                    HashSet<string> lHashId = new HashSet<string>();
+                    var lFiles = Directory.EnumerateFiles(lSourceDirName);
+                    foreach (var lFile in lFiles)
+                    {
+                        lHashId.Add(Path.GetFileNameWithoutExtension(lFile));
+                    }
+                    if (iZipPattern == "%FILE-HELP") {
+                        mBaggageHelpFileName = Path.Combine(lPath, lFileName);
+                        mBaggageHelpId = lHashId;
+                    }
+                    else if (iZipPattern == "%FILE-ICONS") {
+                        mBaggageIconFileName = Path.Combine(lPath, lFileName);
+                        mBaggageIconId = lHashId;
+                    }
                     Directory.Delete(lSourceDirName, true);
                 }
                 return false;
@@ -689,10 +712,19 @@ namespace OpenKNXproducer
         private void ReplaceBaggages(XmlNode iTargetNode)
         {
             XmlNodeList lRefIds = iTargetNode.SelectNodes(@"//./@*[starts-with(.,'%FILE-')]", nsmgr);
+            int lProjectNamespace = GetIdOfProjectNamespace((XmlDocument)iTargetNode);
             if (lRefIds != null) {
                 foreach (XmlNode lRefId in lRefIds) {
                     if (mBaggageId.ContainsKey(lRefId.Value)) {
                         lRefId.Value = mBaggageId[lRefId.Value];
+                    }
+                    if (lProjectNamespace == 14) {
+                        if (lRefId.Name == "ContextHelpFile") {
+                            lRefId.Value = mBaggageHelpFileName;
+                        } else
+                        if (lRefId.Name == "IconFile") {
+                            lRefId.Value = mBaggageIconFileName;
+                        } 
                     }
                 }
             }
@@ -1044,6 +1076,18 @@ namespace OpenKNXproducer
 
         string mCurrentDir = "";
         string mBaggageBaseDir = "";
+        string mBaggageHelpFileName = "";
+        string mBaggageIconFileName = "";
+        HashSet<string> mBaggageHelpId = new HashSet<string>();
+        HashSet<string> mBaggageIconId = new HashSet<string>();
+
+        public bool IsHelpContextId(string iId) {
+            return mBaggageHelpId.Contains(iId);
+        }
+
+        public bool IsIconId(string iId) {
+            return mBaggageIconId.Contains(iId);
+        }
 
         /// <summary>
         /// Load xml document from file resolving includes recursively
