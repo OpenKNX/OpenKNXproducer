@@ -778,7 +778,7 @@ namespace OpenKNXproducer {
             return lError;
         }
 
-        private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd) {
+        private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iBaggageName, string iXsdFileName, bool iIsDebug, bool iAutoXsd) {
             if (iPathETS == "") return 1;
             try {
                 if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
@@ -894,7 +894,7 @@ namespace OpenKNXproducer {
                 if(xapplL.Count > 0) xlangs.Remove();
 
                 // Copy baggages to output dir
-                string lSourceBaggageName = Path.Combine(iWorkingDir, "Baggages.debug");
+                string lSourceBaggageName = Path.Combine(iWorkingDir, iBaggageName);
                 var lSourceBaggageDir = new DirectoryInfo(lSourceBaggageName);
                 lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
 
@@ -1115,7 +1115,7 @@ namespace OpenKNXproducer {
             ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
             ProcessInclude.Renumber = !opts.NoRenumber;
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
-            string lBaggageDirName = Path.Combine(WorkingDir, "Baggages.debug");
+            string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
             Directory.CreateDirectory(lBaggageDirName);
             bool lWithVersions = lInclude.Expand();
@@ -1137,7 +1137,7 @@ namespace OpenKNXproducer {
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess) {
                 string lEtsPath = FindEtsPath(lInclude.GetNamespace());
-                lResult = ExportKnxprod(lEtsPath, WorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
+                lResult = ExportKnxprod(lEtsPath, WorkingDir, lOutputFileName, lTempXmlFileName, lInclude.BaggagesName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
             } else
                 lResult = 1;
             if (lResult > 0) {
@@ -1180,7 +1180,7 @@ namespace OpenKNXproducer {
             System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            return ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
+            return ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, opts.XmlFileName, Path.GetFileName(opts.XmlFileName).Replace(".xml", ".baggages"), opts.XsdFileName, false, !opts.NoXsd);
         }
     }
 }

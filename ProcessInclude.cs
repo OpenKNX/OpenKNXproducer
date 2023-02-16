@@ -190,6 +190,7 @@ namespace OpenKNXproducer
         private ProcessInclude(string iXmlFileName, string iHeaderFileName, string iHeaderPrefixName) {
             mXmlFileName = iXmlFileName;
             mHeaderFileName = iHeaderFileName;
+            mBaggagesName = Path.GetFileName(iXmlFileName).Replace(".xml", ".baggages");
             if (iHeaderPrefixName != "" && !iHeaderPrefixName.EndsWith('_')) iHeaderPrefixName += "_";
             mHeaderPrefixName = iHeaderPrefixName;
         }
@@ -394,7 +395,7 @@ namespace OpenKNXproducer
                 string lPath = lPathAttr.Value;
                 lPath = lPath.Replace("/", "\\");
                 string lSourceDirName = Path.Combine(iInclude.mCurrentDir, "Baggages", lPath);
-                string lTargetDirRoot = Path.Combine(mCurrentDir, "Baggages.debug");
+                string lTargetDirRoot = Path.Combine(mCurrentDir, mBaggagesName);
                 if (lBaggageId.StartsWith("%FILE-HELP") || lBaggageId.StartsWith("%FILE-ICONS"))
                 {
                     // context sensitive help and icons have to be merged
@@ -404,7 +405,9 @@ namespace OpenKNXproducer
                     lFileNameAttr.Value = lFileName + ".zip";
                     // the path has to go to the specific application folder of the root application
                     lPath = DetermineBaggagePath(lPath);
-                    if (mCurrentDir == iInclude.mCurrentDir) mBaggageBaseDir = lPath;
+                    if (mCurrentDir == iInclude.mCurrentDir) {
+                        mBaggageBaseDir = lPath;
+                    }
                     lPathAttr.Value = mBaggageBaseDir;
                     // now we copy all files to target
                     lSourceDirName = Path.Combine(lSourceDirName, lFileName);
@@ -657,8 +660,8 @@ namespace OpenKNXproducer
                     }
                     // the following happens just once
                     eZipType = true;
-                    string lSourceDirName = Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName.Replace(".zip", ""));
-                    string lTargetName = Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName);
+                    string lSourceDirName = Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName.Replace(".zip", ""));
+                    string lTargetName = Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName);
                     System.IO.Compression.ZipFile.CreateFromDirectory(lSourceDirName, lTargetName);
                     // before we delete the underlying directories, we store some information
                     HashSet<string> lHashId = new HashSet<string>();
@@ -694,7 +697,7 @@ namespace OpenKNXproducer
                     if (!mBaggageId.ContainsKey(lIdNode.Value))
                         mBaggageId.Add(lIdNode.Value, lBaggageId);
                     lIdNode.Value = lBaggageId;
-                    DateTime lFileCreation = File.GetCreationTimeUtc(Path.Combine(mCurrentDir, "Baggages.debug", lPath, lFileName));
+                    DateTime lFileCreation = File.GetCreationTimeUtc(Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName));
                     string lIsoDateTime = lFileCreation.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
                     XmlNode lTimeInfo = lBaggage.SelectSingleNode("FileInfo/@TimeInfo", nsmgr);
                     if (lTimeInfo != null && lTimeInfo.Value == "%DATETIME%")
@@ -1076,6 +1079,7 @@ namespace OpenKNXproducer
 
         string mCurrentDir = "";
         string mBaggageBaseDir = "";
+        string mBaggagesName = "";
         string mBaggageHelpFileName = "";
         string mBaggageIconFileName = "";
         HashSet<string> mBaggageHelpId = new HashSet<string>();
@@ -1088,6 +1092,8 @@ namespace OpenKNXproducer
         public bool IsIconId(string iId) {
             return mBaggageIconId.Contains(iId);
         }
+
+        public string BaggagesName { get {return mBaggagesName;} }
 
         /// <summary>
         /// Load xml document from file resolving includes recursively
