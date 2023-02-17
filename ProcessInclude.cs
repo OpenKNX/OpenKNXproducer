@@ -394,7 +394,11 @@ namespace OpenKNXproducer
                 XmlNode lPathAttr = iTargetNode.Attributes.GetNamedItem("TargetPath");
                 string lPath = lPathAttr.Value;
                 lPath = lPath.Replace("/", "\\");
-                string lSourceDirName = Path.Combine(iInclude.mCurrentDir, "Baggages", lPath);
+                string lSourceDirName = "";
+                if (lFileName.StartsWith("..\\"))
+                    lSourceDirName = iInclude.mCurrentDir;
+                else
+                    lSourceDirName = Path.Combine(iInclude.mCurrentDir,  "Baggages", lPath);
                 string lTargetDirRoot = Path.Combine(mCurrentDir, mBaggagesName);
                 if (lBaggageId.StartsWith("%FILE-HELP") || lBaggageId.StartsWith("%FILE-ICONS"))
                 {
@@ -420,10 +424,11 @@ namespace OpenKNXproducer
                 else {
                     // we copy single files without any merge process
                     string lSourceFileName = Path.Combine(lSourceDirName, lFileName);
-                    string lTargetFileName = Path.Combine(lTargetDirRoot, lPath, lFileName);
+                    string lTargetFileName = Path.Combine(lTargetDirRoot, lPath, Path.GetFileName(lFileName));
                     if (File.Exists(lSourceFileName)) {
                         Directory.CreateDirectory(Path.Combine(lTargetDirRoot, lPath));
                         File.Copy(lSourceFileName, lTargetFileName, true);
+                        lFileNameAttr.Value = Path.GetFileName(lFileName);
                     } 
                 }
             }
@@ -1094,6 +1099,7 @@ namespace OpenKNXproducer
         }
 
         public string BaggagesName { get {return mBaggagesName;} }
+        public string CurrentDir { get {return mCurrentDir;} }
 
         /// <summary>
         /// Load xml document from file resolving includes recursively

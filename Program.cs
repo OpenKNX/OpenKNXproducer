@@ -507,6 +507,18 @@ namespace OpenKNXproducer {
             if (!lFailPart) Console.WriteLine(" OK");
             lFail = lFail || lFailPart;
 
+            Console.Write("- Baggage-File-Existence...");
+            lFailPart = false;
+            lNodes = lXml.SelectNodes("//Baggage[@TargetPath]");
+            foreach (XmlNode lNode in lNodes) {
+                string lFileName = Path.Combine(iInclude.BaggagesName, lNode.NodeAttr("TargetPath"), lNode.NodeAttr("Name"));
+                if (!File.Exists(Path.Combine(iInclude.CurrentDir, lFileName))) {
+                    WriteFail(ref lFailPart, "File {0} not found in baggage dir", lFileName);
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
             lFailPart = false;
             Console.Write("- Application data...");
             lNodes = lXml.SelectNodes("//ApplicationProgram");
