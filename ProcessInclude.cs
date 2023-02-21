@@ -342,7 +342,7 @@ namespace OpenKNXproducer
                 lAttr.Value = ReplaceChannelTemplate(lAttr.Value, iChannel);
                 lAttr.Value = ReplaceKoTemplate(iDefine, lAttr.Value, iChannel, iInclude, lAttr.Name == "Number");
                 // lAttr.Value = lAttr.Value.Replace("%N%", mChannelCount.ToString());
-                if (lAttr.Name == "Name")
+                if (lAttr.Name == "Name" && iTargetNode.Name != "ParameterType")
                     lAttr.Value = iInclude.mHeaderPrefixName + lAttr.Value;
             }
         }
@@ -575,6 +575,14 @@ namespace OpenKNXproducer
                     lAttr.Value = lAttr.Value.Replace("_PST-", "_PS-");
                     lAttr.Value = lAttr.Value.Replace("_PBT-", "_PB-");
                 }
+            }
+            // process Enumeration-IDs (%ENID%)
+            XmlNodeList lEnumerations = iTargetNode.SelectNodes("//ParameterType//*[@Id='%ENID%']");
+            foreach (XmlNode lEnumeration in lEnumerations)
+            {
+                XmlNode lIdNode = lEnumeration.Attributes.GetNamedItem("Id");
+                XmlNode lParameterType = lEnumeration.ParentNode.ParentNode;
+                lIdNode.Value = lParameterType.NodeAttr("Id") + "_EN-" + lEnumeration.NodeAttr("Value"); 
             }
             Console.WriteLine("- ApplicationNumber: {0}, ApplicationVersion: {1}, old ID is: {3}, new (calculated) ID is: {2}", lApplicationNumber, lApplicationVersion, lNewId, lOldId);
             if (lInlineData != "") Console.WriteLine("- Calculated InlineData for Versioning: {0}", lInlineData);

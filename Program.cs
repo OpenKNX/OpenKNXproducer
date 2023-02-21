@@ -382,6 +382,28 @@ namespace OpenKNXproducer {
             if (!lFailPart) Console.WriteLine(" OK");
             lFail = lFail || lFailPart;
 
+            Console.Write("- RefId-Id-Comparison...");
+            lFailPart = false;
+            lNodes = iTargetNode.SelectNodes("//ParameterRef|//ComObjectRef");
+            Regex regex = new Regex("(_O-|_UP-|_P-|_R-)");
+            foreach (XmlNode lNode in lNodes) {
+                string lId = lNode.Attributes.GetNamedItem("Id").Value;
+                string[] lIds = regex.Split(lId);
+                string lRefId = lNode.Attributes.GetNamedItem("RefId").Value;
+                string[] lRefIds = regex.Split(lRefId);
+                if (lIds[2].Length == 7 && lIds[4].Length == 9 && lRefIds[2].Length == 7) {
+                    // seems to be OpenKNX naming convention
+                    if (lIds[2] != lRefIds[2]) {
+                        WriteFail(ref lFailPart, "{0} {1}: The first Id-Part {2}{3} should fit to the RefId-Part {2}{4} (OpenKNX naming convention)", lNode.Name, lId, lIds[1], lIds[2], lRefIds[2]);
+                    }
+                    // if (!lIds[4].StartsWith(lIds[2])) {
+                    //     WriteFail(ref lFailPart, "{0} {1}: The first Id-Part {2} should fit to the second Id-Part {3} (OpenKNX naming convention)", lNode.Name, lId, lIds[2], lIds[4]);
+                    // }    
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
             Console.Write("- Id-Namespace...");
             // find refid
             lFailPart = false;
