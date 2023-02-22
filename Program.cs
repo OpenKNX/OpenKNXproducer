@@ -454,8 +454,12 @@ namespace OpenKNXproducer {
                         lIdMatchReadable = lIdPart + "tcccnnn$";
                         break;
                     case "ParameterType":
+                        lIdPart = "_PT-";
+                        break;
                     case "Enumeration":
                         lIdPart = "_PT-";
+                        string pt_id = lElement.ParentNode.ParentNode.Attributes["Id"].Value;
+                        lIdPart = pt_id.Substring(pt_id.IndexOf("_PT-")) + "_EN-"; // + lElement.Attributes["Value"].Value; don't check the value, ETS accepts anyway.
                         break;
                     case "ParameterRef":
                     case "ComObjectRef":
