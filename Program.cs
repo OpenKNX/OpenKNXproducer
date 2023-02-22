@@ -384,7 +384,7 @@ namespace OpenKNXproducer {
 
             Console.Write("- RefId-Id-Comparison...");
             lFailPart = false;
-            lNodes = iTargetNode.SelectNodes("//ParameterRef|//ComObjectRef");
+            lNodes = lXml.SelectNodes("//ParameterRef|//ComObjectRef");
             Regex regex = new Regex("(_O-|_UP-|_P-|_R-)");
             foreach (XmlNode lNode in lNodes) {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
