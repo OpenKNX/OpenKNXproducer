@@ -991,7 +991,7 @@ namespace OpenKNXproducer
                                 lKnxAccessMethod = "knx.paramWord({0})";
                             } else if (lBits <= 32) {
                                 lBitBaseSize = 32;
-                                lKnxAccessMethod = "knx.paramLong({0})";
+                                lKnxAccessMethod = "knx.paramInt({0})";
                             }
                             if (lType == "signedInt") {
                                 lType = "int";
@@ -1015,7 +1015,7 @@ namespace OpenKNXproducer
                             lType = "color, uint, 3 Byte";
                             lBits = 24;
                             lBitBaseSize = 32;
-                            lKnxAccessMethod = "knx.paramLong({0})";
+                            lKnxAccessMethod = "knx.paramInt({0})";
                             lDirectType = true;
                         }
                     }
