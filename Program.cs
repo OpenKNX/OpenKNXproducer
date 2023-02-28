@@ -404,6 +404,26 @@ namespace OpenKNXproducer {
             if (!lFailPart) Console.WriteLine(" OK");
             lFail = lFail || lFailPart;
 
+            Console.Write("- RefId-RefRef-Comparison...");
+            lFailPart = false;
+            lNodes = iTargetNode.SelectNodes("//ParameterRefRef|//ComObjectRefRef");
+            Regex regex1 = new Regex("(_UP-|_P-)");
+            foreach (XmlNode lNode in lNodes) {
+                string lId = lNode.NodeAttr("RefId");
+                if (lNode.Name == "ParameterRefRef") {
+                  if (!regex1.IsMatch(lId)) {
+                    WriteFail(ref lFailPart, "{0} {1}: Referenced Id is not a Parameter", lNode.Name, lId);
+                  }
+                } 
+                else if (lNode.Name == "ComObjectRefRef") {
+                  if (!lId.Contains("_O-")) {
+                    WriteFail(ref lFailPart, "{0} {1}: Referenced Id is not a ComObject", lNode.Name, lId);
+                  }
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
             Console.Write("- Id-Namespace...");
             // find refid
             lFailPart = false;

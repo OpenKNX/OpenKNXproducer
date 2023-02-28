@@ -125,6 +125,21 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug LEDModule",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "../LEDModule/src/LEDModul"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug LanguageTest",
             "type": "coreclr",
             "request": "launch",
