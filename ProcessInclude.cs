@@ -816,7 +816,7 @@ namespace OpenKNXproducer
                                 Console.WriteLine("Parse error in include {0} in line {1}", mXmlFileName, lSizeNode.InnerXml);
                             }
                         } else if (lSizeNode.SelectSingleNode("TypeFloat") != null) {
-                            lResult = 2;
+                            lResult = 4;
                         } else if (lSizeNode.SelectSingleNode("TypeColor") != null) {
                             lResult = 3;
                         }
@@ -1007,8 +1007,8 @@ namespace OpenKNXproducer
                             lDirectType = true;
                         } else if (lTypeNumber.Name == "TypeFloat") {
                             lType = "float";
-                            lBits = 16;
-                            lBitBaseSize = 16;
+                            lBits = 32;
+                            lBitBaseSize = 32;
                             lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Single)";
                             lDirectType = true;
                         } else if (lTypeNumber.Name == "TypeColor") {
