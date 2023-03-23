@@ -411,14 +411,22 @@ namespace OpenKNXproducer
                     lPath = DetermineBaggagePath(lPath);
                     if (mCurrentDir == iInclude.mCurrentDir) {
                         mBaggageBaseDir = lPath;
+                        if (!mBaggageTargetZipDirName.ContainsKey(lBaggageId)) {
+                            mBaggageTargetZipDirName.Add(lBaggageId, lFileName);
+                        }
                     }
                     lPathAttr.Value = mBaggageBaseDir;
                     // now we copy all files to target
                     lSourceDirName = Path.Combine(lSourceDirName, lFileName);
                     if (Directory.Exists(lSourceDirName))
                     {
+                        if (!mBaggageTargetZipDirName.ContainsKey(lBaggageId)) {
+                            // this is the case where an include provides a .zip-File, but the application doesn't.
+                            // i.e. logic has an Icons.zip, but vpm has not. We generate an according file name
+                            mBaggageTargetZipDirName.Add(lBaggageId, lFileName);
+                        }
                         var lSourceDir = new DirectoryInfo(lSourceDirName);
-                        lSourceDir.DeepCopy(Path.Combine(lTargetDirRoot, lPath, lFileName));
+                        lSourceDir.DeepCopy(Path.Combine(lTargetDirRoot, lPath, mBaggageTargetZipDirName[lBaggageId]));
                     }
                 }
                 else {
@@ -1092,6 +1100,7 @@ namespace OpenKNXproducer
 
         string mCurrentDir = "";
         string mBaggageBaseDir = "";
+        Dictionary<string, string> mBaggageTargetZipDirName = new Dictionary<string, string>();
         string mBaggagesName = "";
         string mBaggageHelpFileName = "";
         string mBaggageIconFileName = "";

@@ -572,12 +572,12 @@ namespace OpenKNXproducer {
                 int lNumber = -1;
                 bool lIsInt = int.TryParse(lNode.Attributes.GetNamedItem("ApplicationNumber").Value, out lNumber);
                 if (!lIsInt || lNumber < 0) {
-                    WriteFail(ref lFailPart, "Applicationprogram.ApplicationNumber is incorrect or could not be parsed");
+                    WriteFail(ref lFailPart, "ApplicationProgram.ApplicationNumber is incorrect or could not be parsed");
                 }
                 lNumber = -1;
                 lIsInt = int.TryParse(lNode.Attributes.GetNamedItem("ApplicationVersion").Value, out lNumber);
                 if (!lIsInt || lNumber < 0) {
-                    WriteFail(ref lFailPart, "Applicationprogram.ApplicationVersion is incorrect or could not be parsed");
+                    WriteFail(ref lFailPart, "ApplicationProgram.ApplicationVersion is incorrect or could not be parsed");
                 }
             }
             if (!lFailPart) Console.WriteLine(" OK");
@@ -954,7 +954,8 @@ namespace OpenKNXproducer {
                 // Copy baggages to output dir
                 string lSourceBaggageName = Path.Combine(iWorkingDir, iBaggageName);
                 var lSourceBaggageDir = new DirectoryInfo(lSourceBaggageName);
-                lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
+                if (lSourceBaggageDir.Exists)
+                    lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
 
                 IDictionary<string, string> applProgIdMappings = new Dictionary<string, string>();
                 IDictionary<string, string> applProgHashes = new Dictionary<string, string>();
@@ -1175,7 +1176,7 @@ namespace OpenKNXproducer {
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
             string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
-            Directory.CreateDirectory(lBaggageDirName);
+            // Directory.CreateDirectory(lBaggageDirName);
             bool lWithVersions = lInclude.Expand();
             // We restore the original namespace in File
             lInclude.SetNamespace();

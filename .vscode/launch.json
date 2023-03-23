@@ -192,6 +192,21 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug knxprod creation",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "knxprod",
+                "--NoXsd",
+                "tests/LogicModuleNoBaggages.debug.xml"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug Temp File",
             "type": "coreclr",
             "request": "launch",
