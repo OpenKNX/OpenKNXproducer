@@ -311,16 +311,22 @@ namespace OpenKNXproducer {
                 // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
                 Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
                 if (lMatch.Captures.Count > 0) {
-                    int lShift = int.Parse(lMatch.Groups[1].Value);
-                    lResult = iValue.Replace(lMatch.Value, ((iChannel - 1) * lBlockSize + lOffset + lShift).ToString());
-                    // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
-                    // a replacement happened 
-                    lResult = ReplaceKoTemplate(iDefine, lResult, iChannel, iInclude, iIsName);
+                    int lShift = 0;
+                    if (int.TryParse(lMatch.Groups[1].Value, out lShift)) {
+                        // we replace just in case it is numeric, otherwise an error message will appear during final document check
+                        lResult = iValue.Replace(lMatch.Value, ((iChannel - 1) * lBlockSize + lOffset + lShift).ToString());
+                        // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
+                        // a replacement happened 
+                        lResult = ReplaceKoTemplate(iDefine, lResult, iChannel, iInclude, iIsName);
+                    }
                 }
             } else if (iIsName) {
                 // iChannel is in this case KoSingleOffset
-                int lValue = int.Parse(iValue);
-                lResult = (lValue + iDefine.KoSingleOffset).ToString();
+                int lValue = 0;
+                if (int.TryParse(iValue, out lValue)) {
+                    // we replace just in case it is numeric, otherwise an error message will appear during final document check
+                    lResult = (lValue + iDefine.KoSingleOffset).ToString();
+                }
             }
             return lResult;
         }
