@@ -837,7 +837,10 @@ namespace OpenKNXproducer {
         }
 
         private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iBaggageName, string iXsdFileName, bool iIsDebug, bool iAutoXsd) {
-            if (iPathETS == "") return 1;
+            if (iPathETS == "") {
+                Console.WriteLine("No ETS found, skipped knxprod creation!");
+                return 0;
+            } 
             try {
                 if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
 
