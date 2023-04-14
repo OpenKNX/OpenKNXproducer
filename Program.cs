@@ -621,7 +621,8 @@ namespace OpenKNXproducer {
                         case "TypeText":
                             if (!int.TryParse(lChild.Attributes["SizeInBit"]?.Value, out sizeInBit))
                                 WriteFail(ref iFailPart, "SizeInBit of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["SizeInBit"]?.Value ?? "empty");
-                            maxSize = sizeInBit / 8;
+                            else
+                                maxSize = sizeInBit / 8;
                             break;
 
                         case "TypeFloat":
@@ -637,9 +638,10 @@ namespace OpenKNXproducer {
                             break;
 
                         default:
-                            if (!int.TryParse(lChild.Attributes["SizeInBit"]?.Value, out sizeInBit))
+                            if (!int.TryParse(lChild.Attributes["SizeInBit"]?.Value, out sizeInBit)) 
                                 WriteFail(ref iFailPart, "SizeInBit of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["SizeInBit"]?.Value ?? "empty");
-                            maxSize = Convert.ToInt64(Math.Pow(2, int.Parse(lChild.Attributes["SizeInBit"]?.Value ?? "0")));
+                            else
+                                maxSize = Convert.ToInt64(Math.Pow(2, int.Parse(lChild.Attributes["SizeInBit"]?.Value ?? "0")));
                             break;
                     }
 
@@ -660,14 +662,14 @@ namespace OpenKNXproducer {
                                 case "unsignedInt":
                                     if(min < 0)
                                         WriteFail(ref iFailPart, "MinInclusive of {0} cannot be smaller than 0, value is '{1}'", iMessage, min);
-                                    if(max > maxSize)
-                                        WriteFail(ref iFailPart, "MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, maxSize, max);
+                                    if(max >= maxSize)
+                                        WriteFail(ref iFailPart, "MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, maxSize - 1, max);
                                     break;
 
                                 case "signedInt":
                                     if(min < ((maxSize/2)*(-1)))
                                         WriteFail(ref iFailPart, "MinInclusive of {0} cannot be smaller than {1}, value is '{2}'", iMessage, ((maxSize/2)*(-1)), min);
-                                    if(max > ((maxSize/2)-1))
+                                    if(max >= ((maxSize/2)))
                                         WriteFail(ref iFailPart, "MinInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, ((maxSize/2)-1), max);
                                     break;
                             }
