@@ -83,6 +83,7 @@ namespace OpenKNXproducer
         private XmlNode mParameterTypesNode = null;
         private static Dictionary<string, ProcessInclude> gIncludes = new Dictionary<string, ProcessInclude>();
         private static Dictionary<string, DefineContent> sDefines = new Dictionary<string, DefineContent>();
+        private static int sMaxKoNumber = 0;
         private string mXmlFileName;
         private string mHeaderFileName;
         private string mHeaderPrefixName;
@@ -319,8 +320,11 @@ namespace OpenKNXproducer
                 if (lMatch.Captures.Count > 0) {
                     int lShift = 0;
                     if (int.TryParse(lMatch.Groups[1].Value, out lShift)) {
-                        // we replace just in case it is numeric, otherwise an error message will appear during final document check
-                        lResult = iValue.Replace(lMatch.Value, ((iChannel - 1) * lBlockSize + lOffset + lShift).ToString());
+                        int lKoNumber = ((iChannel - 1) * lBlockSize + lOffset + lShift);
+                        // we replace just in case it is numeric, otherwise an error message will appear during final document check                        
+                        lResult = iValue.Replace(lMatch.Value, lKoNumber.ToString());
+                        // remember the max replaced number
+                        sMaxKoNumber = (lKoNumber > sMaxKoNumber) ? lKoNumber : sMaxKoNumber;
                         // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
                         // a replacement happened 
                         lResult = ReplaceKoTemplate(iDefine, lResult, iChannel, iInclude, iIsName);
@@ -517,6 +521,7 @@ namespace OpenKNXproducer
             XmlNode lMcVersionNode = iTargetNode.SelectSingleNode("//oknxp:version", nsmgr);
             string lInlineData = "";
             string lVersionMessage = "";
+            StringBuilder lVersionInformation = new StringBuilder();
             if (lMcVersionNode != null) {
                 // found oknxp:version, we apply its attributes to knxprod-xml
                 int lOpenKnxId = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("OpenKnxId").Value, 16);
@@ -543,12 +548,12 @@ namespace OpenKNXproducer
                 lMcVersionNode.ParentNode.ReplaceChild(lVersionComment, lMcVersionNode);
                 lWithVersions = true; // we have to deal with versions
                 // finally, we make some version info available in header file
-                mHeaderGenerated.AppendFormat("#define MAIN_OpenKnxId 0x{0:X2}", lOpenKnxId);
-                mHeaderGenerated.AppendLine();
-                mHeaderGenerated.AppendFormat("#define MAIN_ApplicationNumber {0}", lAppNumber);
-                mHeaderGenerated.AppendLine();
-                mHeaderGenerated.AppendFormat("#define MAIN_ApplicationVersion {0}", lAppVersion-lAppRevision);
-                mHeaderGenerated.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_OpenKnxId 0x{0:X2}", lOpenKnxId);
+                lVersionInformation.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_ApplicationNumber {0}", lAppNumber);
+                lVersionInformation.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_ApplicationVersion {0}", lAppVersion-lAppRevision);
+                lVersionInformation.AppendLine();
             }
 
             // change all Id-Attributes / renumber ParameterSeparator and ParameterBlock
@@ -638,8 +643,13 @@ namespace OpenKNXproducer
             XmlNode lOrderNumberAttribute = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware/Products/Product/@OrderNumber");
             string lOrderNumberEncoded = Program.GetEncoded(lOrderNumberAttribute.Value);
             if (lMcVersionNode != null) {
-                mHeaderGenerated.AppendFormat("#define MAIN_OrderNumber \"{0}\"", lOrderNumberAttribute.Value);
-                mHeaderGenerated.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_ApplicationSize {0}", lSize);
+                lVersionInformation.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_MaxKoNumber {0}", sMaxKoNumber);
+                lVersionInformation.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_OrderNumber \"{0}\"", lOrderNumberAttribute.Value);
+                lVersionInformation.AppendLine();
+                mHeaderGenerated.Insert(0, lVersionInformation);
             }
             // XmlNodeList lCatalog = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Catalog/descendant::*/@*");
             // XmlNodeList lHardware = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Hardware/descendant::*/@*");
