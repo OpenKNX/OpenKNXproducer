@@ -557,7 +557,7 @@ namespace OpenKNXproducer {
             XmlNode lOrderNumberAttribute = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware/Products/Product/@OrderNumber");
             string lOrderNumberEncoded = Program.GetEncoded(lOrderNumberAttribute.Value);
             if (lMcVersionNode != null) {
-                lVersionInformation.AppendFormat("#define MAIN_ApplicationSize {0}", lSize);
+                lVersionInformation.AppendFormat("#define MAIN_ParameterSize {0}", lSize);
                 lVersionInformation.AppendLine();
                 lVersionInformation.AppendFormat("#define MAIN_MaxKoNumber {0}", sMaxKoNumber);
                 lVersionInformation.AppendLine();
