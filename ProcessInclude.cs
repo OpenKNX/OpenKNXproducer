@@ -455,10 +455,10 @@ namespace OpenKNXproducer
         private string DetermineBaggagePath(string iPath)
         {
             var lDirInfo = new DirectoryInfo(Path.Combine(mCurrentDir, "Baggages"));
-            var lSubDirInfos = lDirInfo.EnumerateDirectories("A?");
-            if (lSubDirInfos != null) {
+            var lSubDirInfos = lDirInfo.EnumerateDirectories("??");
+            if (lSubDirInfos != null && lSubDirInfos.Count() > 0) {
                 var lSubSubDirInfos = lSubDirInfos.First().EnumerateDirectories("??");
-                if (lSubSubDirInfos != null)
+                if (lSubSubDirInfos != null && lSubSubDirInfos.Count() > 0)
                     iPath = Path.Combine(lSubDirInfos.First().Name, lSubSubDirInfos.First().Name);
             } 
             return iPath;
