@@ -35,7 +35,7 @@ namespace OpenKNXproducer
             public static DefineContent Factory(XmlNode iDefineNode) {
                 DefineContent lResult;
 
-                int lChannelCount = 1;
+                int lChannelCount = 0;
                 int lKoOffset = 1;
                 int lKoSingleOffset = 0;
                 string lPrefix = "";
@@ -50,10 +50,9 @@ namespace OpenKNXproducer
                     lResult = sDefines[lPrefix];
                 } else {
                     lHeader = iDefineNode.NodeAttr("header");
-                    lChannelCount = int.Parse(iDefineNode.NodeAttr("NumChannels"));
-                    lKoOffset = int.Parse(iDefineNode.NodeAttr("KoOffset"));
-                    int lValue = 0;
-                    if (int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lValue)) lKoSingleOffset = lValue;
+                    if (!int.TryParse(iDefineNode.NodeAttr("NumChannels"), out lChannelCount)) lChannelCount = 0;
+                    if (!int.TryParse(iDefineNode.NodeAttr("KoOffset"), out lKoOffset)) lKoOffset = 1;
+                    if (!int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lKoSingleOffset)) lKoSingleOffset = 0;
                     lReplaceKeys = iDefineNode.NodeAttr("ReplaceKeys");
                     lReplaceValues = iDefineNode.NodeAttr("ReplaceValues");
                     lModuleType = int.Parse(iDefineNode.NodeAttr("ModuleType"));
@@ -485,11 +484,11 @@ namespace OpenKNXproducer
             // set number of Channels
             XmlNodeList lNodes = iTargetNode.SelectNodes("//*[@Value='%N%']");
             foreach (XmlNode lNode in lNodes) {
-                lNode.Attributes.GetNamedItem("Value").Value = mChannelCount.ToString();
+                lNode.Attributes.GetNamedItem("Value").Value = ChannelCount.ToString();
             }
             lNodes = iTargetNode.SelectNodes("//*[@maxInclusive='%N%']");
             foreach (XmlNode lNode in lNodes) {
-                lNode.Attributes.GetNamedItem("maxInclusive").Value = mChannelCount.ToString();
+                lNode.Attributes.GetNamedItem("maxInclusive").Value = ChannelCount.ToString();
             }
             // // set the max channel value
             // ReplaceDocumentStrings(mDocument, "%N%", mChannelCount.ToString());
@@ -952,7 +951,7 @@ namespace OpenKNXproducer
         private void ExportHeaderParameterBlock(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
             if (!mHeaderParameterBlockGenerated) {
                 if (iDefine.IsTemplate) {
-                    cOut.AppendFormat("#define {0}ChannelCount {1}", iHeaderPrefixName, mChannelCount);
+                    cOut.AppendFormat("#define {0}ChannelCount {1}", iHeaderPrefixName, ChannelCount);
                     cOut.AppendLine();
                     cOut.AppendLine();
                     cOut.AppendLine("// Parameter per channel");
@@ -1232,7 +1231,7 @@ namespace OpenKNXproducer
                     }
                 }
                 lParent.RemoveChild(lIncludeNode);
-                if (lInclude.ChannelCount > 1) ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
+                if (lInclude.ChannelCount >= 1) ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
                 // we replace also all additional replace key value pairs
                 for (int lCount = 0; lCount < lInclude.ReplaceKeys.Length; lCount++)
                 {
