@@ -1231,7 +1231,7 @@ namespace OpenKNXproducer
                     }
                 }
                 lParent.RemoveChild(lIncludeNode);
-                if (lInclude.ChannelCount >= 1) ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
+                if (lDefine.IsTemplate) ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
                 // we replace also all additional replace key value pairs
                 for (int lCount = 0; lCount < lInclude.ReplaceKeys.Length; lCount++)
                 {
