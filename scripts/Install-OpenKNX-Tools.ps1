@@ -8,17 +8,29 @@ if (!(Test-Path -Path ~/bin)) {
 Write-Host "Kopiere OpenKNX-Tools..."
 
 $os = "??-Bit"
+$setExecutable = 0
+
 Copy-Item tools/bossac* ~/bin/
 if ($?) {
-    if ([Environment]::Is64BitOperatingSystem) 
-    {
-        $os="64-Bit"
-        Copy-Item tools/OpenKNXproducer-x64.exe ~/bin/OpenKNXproducer.exe
-    }
-    else
-    {
-        $os="32-Bit"
-        Copy-Item tools/OpenKNXproducer-x86.exe ~/bin/OpenKNXproducer.exe
+    if ($Env:OS -eq "Windows_NT") {
+        if ([Environment]::Is64BitOperatingSystem)
+        {
+            $os="Windows 64-Bit"
+            Copy-Item tools/OpenKNXproducer-x64.exe ~/bin/OpenKNXproducer.exe
+        }
+        else
+        {
+            $os="Windows 32-Bit"
+            Copy-Item tools/OpenKNXproducer-x86.exe ~/bin/OpenKNXproducer.exe
+        }
+    } elseif ($IsMacOS) {
+        $os = "Mac OS"
+        $setExecutable = 1
+        Copy-Item tools/OpenKNXproducer-osx64.exe ~/bin/OpenKNXproducer
+    } elseif ($IsMacOS) {
+        $os = "Linux OS"
+        $setExecutable = 1
+        Copy-Item tools/OpenKNXproducer-linux64.exe ~/bin/OpenKNXproducer
     }
 }
 if (!$?) {
@@ -29,9 +41,12 @@ if (!$?) {
 $version = ~/bin/OpenKNXproducer version
 
 Write-Host "
-    Die folgenden OpenKNX-Tools ($os-Version) wurden im Verzeichnis ~/bin verfuegbar gemacht:
+    Die folgenden OpenKNX-Tools ($os) wurden im Verzeichnis ~/bin verfuegbar gemacht:
         bossac          1.7.0 - Firmware-Upload fuer SAMD-Prozessoren
         $version - Erzeugung einer knxprod-Datei fuer die ETS
 "
+if ($setExecutable) {
+    Write-Host "ACHTUNG: Die Datei ~/bin/OpenKNXproducer muss not mit chmod +x ausführbar gemacht werden. Dies muss über Kommandozeile geschehen, solange wir keine andere Lösung hierfür gefunen haben."
+}
 
 timeout /T 20
