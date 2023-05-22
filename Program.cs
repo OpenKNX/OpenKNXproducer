@@ -61,7 +61,7 @@ namespace OpenKNXproducer {
                 //if we found an ets6, we can generate all versions with it
                 if(Directory.Exists(lPath)) {
                     lResult = lPath;
-                    lEts = "ETS 6";
+                    lEts = "ETS 6.x";
                 }
                 
                 //if we found ets6 dlls, we can generate all versions with it

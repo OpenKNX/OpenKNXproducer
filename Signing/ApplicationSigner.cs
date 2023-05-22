@@ -18,14 +18,18 @@ namespace OpenKNXproducer.Signing
             //with HashStore Method
             Assembly asm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.XmlSigning.dll"));
 
-            if(asm.GetName().Version.ToString().StartsWith("6.0")) { //ab ETS6
+            string asmVersion = asm.GetName().Version.ToString();
+            if(asmVersion.StartsWith("6.")) { //ab ETS6
                 Assembly objm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.Xml.ObjectModel.dll"));
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
-                _instance = Activator.CreateInstance(asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher"), applProgFile, mapBaggageIdToFileIntegrity, patchIds, knxSchemaVersion);
-                _type = asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher");
+                if (asmVersion.StartsWith("6.0"))
+                    _type = asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher");
+                else if (asmVersion.StartsWith("6.1"))
+                    _type = asm.GetType("Knx.Ets.XmlSigning.Signer.ApplicationProgramHasher");
+                _instance = Activator.CreateInstance(_type, applProgFile, mapBaggageIdToFileIntegrity, patchIds, knxSchemaVersion);
             } else { //für ETS5 und früher
-                _instance = Activator.CreateInstance(asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher"), applProgFile, mapBaggageIdToFileIntegrity, patchIds);
                 _type = asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher");
+                _instance = Activator.CreateInstance(_type, applProgFile, mapBaggageIdToFileIntegrity, patchIds);
             }
         }
 

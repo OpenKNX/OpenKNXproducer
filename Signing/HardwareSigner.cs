@@ -21,15 +21,19 @@ namespace OpenKNXproducer.Signing
             Type RegistrationKeyEnum = objm.GetType("Knx.Ets.Xml.ObjectModel.RegistrationKey");
             object registrationKey = Enum.Parse(RegistrationKeyEnum, "knxconv");
 
-            if(asm.GetName().Version.ToString().StartsWith("6.0")) {
+            string asmVersion = asm.GetName().Version.ToString();
+            if(asmVersion.StartsWith("6.")) { //ab ETS6
                 // registrationKey= Knx.Ets.Xml.ObjectModel.RegistrationKey.knxconv (is an enum)
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
-                _instance = Activator.CreateInstance(asm.GetType("Knx.Ets.XmlSigning.HardwareSigner"), hardwareFile, applProgIdMappings, applProgHashes, patchIds, registrationKey, knxSchemaVersion);
-                _type = asm.GetType("Knx.Ets.XmlSigning.HardwareSigner");
+                if (asmVersion.StartsWith("6.0"))
+                    _type = asm.GetType("Knx.Ets.XmlSigning.HardwareSigner");
+                else if (asmVersion.StartsWith("6.1"))
+                    _type = asm.GetType("Knx.Ets.XmlSigning.Signer.HardwareSigner");
+                _instance = Activator.CreateInstance(_type, hardwareFile, applProgIdMappings, applProgHashes, patchIds, registrationKey, knxSchemaVersion);
             } else {
                 // registrationKey= Knx.Ets.Xml.ObjectModel.RegistrationKey.knxconv (is an enum)
-                _instance = Activator.CreateInstance(asm.GetType("Knx.Ets.XmlSigning.HardwareSigner"), hardwareFile, applProgIdMappings, applProgHashes, patchIds, registrationKey);
                 _type = asm.GetType("Knx.Ets.XmlSigning.HardwareSigner");
+                _instance = Activator.CreateInstance(_type, hardwareFile, applProgIdMappings, applProgHashes, patchIds, registrationKey);
             }
         }
 
