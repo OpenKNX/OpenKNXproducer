@@ -22,10 +22,9 @@ namespace OpenKNXproducer.Signing
             if(asmVersion.StartsWith("6.")) { //ab ETS6
                 Assembly objm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.Xml.ObjectModel.dll"));
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
+                _type = asm.GetType("Knx.Ets.XmlSigning.Signer.ApplicationProgramHasher");
                 if (asmVersion.StartsWith("6.0"))
                     _type = asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher");
-                else if (asmVersion.StartsWith("6.1"))
-                    _type = asm.GetType("Knx.Ets.XmlSigning.Signer.ApplicationProgramHasher");
                 _instance = Activator.CreateInstance(_type, applProgFile, mapBaggageIdToFileIntegrity, patchIds, knxSchemaVersion);
             } else { //für ETS5 und früher
                 _type = asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher");
