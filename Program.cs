@@ -127,15 +127,18 @@ namespace OpenKNXproducer {
         }
 
         private static void CreateComment(XmlDocument iTargetNode, XmlNode iNode, string iId, string iSuffix = "") {
-            string lNodeId = iId.Substring(0, iId.LastIndexOf("_R"));
-            string lTextId = iId;
-            string lNodeName = "Id-mismatch! Name not found!";
-            string lText = "Id-mismatch! Text not found!";
-            if (gIds.ContainsKey(lNodeId)) lNodeName = gIds[lNodeId].NodeAttr("Name");
-            if (gIds.ContainsKey(lTextId) && gIds[lTextId].NodeAttr("Text") == "") lTextId = lNodeId;
-            if (gIds.ContainsKey(lTextId)) lText = gIds[lTextId].NodeAttr("Text");
-            XmlComment lComment = iTargetNode.CreateComment(string.Format(" {0}{3} {1} '{2}'", iNode.Name, lNodeName, lText, iSuffix));
-            iNode.ParentNode.InsertBefore(lComment, iNode);
+            int lLength = iId.LastIndexOf("_R");
+            if (lLength >= 0) { 
+                string lNodeId = iId.Substring(0, lLength);
+                string lTextId = iId;
+                string lNodeName = "Id-mismatch! Name not found!";
+                string lText = "Id-mismatch! Text not found!";
+                if (gIds.ContainsKey(lNodeId)) lNodeName = gIds[lNodeId].NodeAttr("Name");
+                if (gIds.ContainsKey(lTextId) && gIds[lTextId].NodeAttr("Text") == "") lTextId = lNodeId;
+                if (gIds.ContainsKey(lTextId)) lText = gIds[lTextId].NodeAttr("Text");
+                XmlComment lComment = iTargetNode.CreateComment(string.Format(" {0}{3} {1} '{2}'", iNode.Name, lNodeName, lText, iSuffix));
+                iNode.ParentNode.InsertBefore(lComment, iNode);
+            }
         }
 
         static bool ProcessSanityChecks(ProcessInclude iInclude, bool iWithVersions) {
@@ -224,6 +227,48 @@ namespace OpenKNXproducer {
                     } else {
                         CreateComment(lXml, lNode, lParamRefId);
                     }
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
+            lFailPart = false;
+            Console.Write("- AllocatorRefId-Integrity...");
+            lNodes = lXml.SelectNodes("//*[@AllocatorRefId]");
+            foreach (XmlNode lNode in lNodes) {
+                string lAllocatorRefId = lNode.Attributes.GetNamedItem("AllocatorRefId").Value;
+                if (!gIds.ContainsKey(lAllocatorRefId)) {
+                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lAllocatorRefId, lNode.Name, lNode.NodeAttr("Name"));
+                } else {
+                    CreateComment(lXml, lNode, lAllocatorRefId);
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
+            lFailPart = false;
+            Console.Write("- BaseValue-Integrity...");
+            lNodes = lXml.SelectNodes("//*[@BaseValue]");
+            foreach (XmlNode lNode in lNodes) {
+                string lBaseValue = lNode.Attributes.GetNamedItem("BaseValue").Value;
+                if (!gIds.ContainsKey(lBaseValue)) {
+                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lBaseValue, lNode.Name, lNode.NodeAttr("Name"));
+                } else {
+                    CreateComment(lXml, lNode, lBaseValue);
+                }
+            }
+            if (!lFailPart) Console.WriteLine(" OK");
+            lFail = lFail || lFailPart;
+
+            lFailPart = false;
+            Console.Write("- BaseOffset-Integrity...");
+            lNodes = lXml.SelectNodes("//*[@BaseOffset]");
+            foreach (XmlNode lNode in lNodes) {
+                string lBaseOffset = lNode.Attributes.GetNamedItem("BaseOffset").Value;
+                if (!gIds.ContainsKey(lBaseOffset)) {
+                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lBaseOffset, lNode.Name, lNode.NodeAttr("Name"));
+                } else {
+                    CreateComment(lXml, lNode, lBaseOffset);
                 }
             }
             if (!lFailPart) Console.WriteLine(" OK");
@@ -456,6 +501,12 @@ namespace OpenKNXproducer {
                 string lIdMatch = "";
                 string lIdMatchReadable = "";
                 lId = lId.Replace(lApplicationId, "");
+                // remove module prefixes
+                if (lId.StartsWith("_MD-")) {
+                    var lUnderscoreIndex = lId.IndexOf("_", 3);
+                    if (lUnderscoreIndex > 0)
+                        lId = lId.Substring(lUnderscoreIndex);
+                }
                 XmlNode lElement = lKeyValuePair.Value;
                 switch (lElement.Name)
                 {
