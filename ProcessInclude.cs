@@ -4,84 +4,17 @@ using System.Text;
 
 namespace OpenKNXproducer
 {
-    public class ProcessInclude {
+    public partial class ProcessInclude {
 
         const string cOwnNamespace = "http://github.com/OpenKNX/OpenKNXproducer";
-        private class DefineContent
-        {
-            public string prefix;
-            public int KoOffset;
-            public int KoSingleOffset;
-            public string[] ReplaceKeys = {};
-            public string[] ReplaceValues = {};
-            public int NumChannels;
-            public int ModuleType;
-            public string header;
-            public bool IsTemplate;
-            public bool IsParameter;
-            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iKoSingleOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter) {
-                prefix = iPrefix;
-                header = iHeader;
-                KoOffset = iKoOffset;
-                KoSingleOffset = iKoSingleOffset;
-                if (iReplaceKeys.Length > 0) {
-                    ReplaceKeys = iReplaceKeys.Split(" ");
-                    ReplaceValues = iReplaceValues.Split(" ");
-                }
-                NumChannels = iNumChannels;
-                ModuleType = iModuleType;
-                IsParameter = iIsParameter;
-            }
-            public static DefineContent Factory(XmlNode iDefineNode) {
-                DefineContent lResult;
-
-                int lChannelCount = 0;
-                int lKoOffset = 1;
-                int lKoSingleOffset = 0;
-                string lPrefix = "";
-                string lHeader = "";
-                string lReplaceKeys = "";
-                string lReplaceValues = "";
-                int lModuleType = 1;
-
-                lPrefix = iDefineNode.NodeAttr("prefix");
-                if (lPrefix == "") lPrefix = "LOG"; // backward compatibility
-                if (sDefines.ContainsKey(lPrefix)) {
-                    lResult = sDefines[lPrefix];
-                } else {
-                    lHeader = iDefineNode.NodeAttr("header");
-                    if (!int.TryParse(iDefineNode.NodeAttr("NumChannels"), out lChannelCount)) lChannelCount = 0;
-                    if (!int.TryParse(iDefineNode.NodeAttr("KoOffset"), out lKoOffset)) lKoOffset = 1;
-                    if (!int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lKoSingleOffset)) lKoSingleOffset = 0;
-                    lReplaceKeys = iDefineNode.NodeAttr("ReplaceKeys");
-                    lReplaceValues = iDefineNode.NodeAttr("ReplaceValues");
-                    lModuleType = int.Parse(iDefineNode.NodeAttr("ModuleType"));
-                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lKoSingleOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false);
-                    sDefines.Add(lPrefix, lResult);
-                }
-                return lResult;
-            }
-
-            static public DefineContent Empty = new DefineContent("LOG", "", 1, 0, 1, "", "", 1, true);
-            public static DefineContent GetDefineContent(string iPrefix) {
-                DefineContent lResult;
-                if (sDefines.ContainsKey(iPrefix)) {
-                    lResult = sDefines[iPrefix];
-                } else {
-                    lResult = Empty;
-                }
-                return lResult;
-            }
-        }
 
         private XmlNamespaceManager nsmgr;
         private XmlDocument mDocument = new XmlDocument();
         private bool mLoaded = false;
         StringBuilder mHeaderGenerated = new StringBuilder();
 
-        private XmlNode mParameterTypesNode = null;
+        private static XmlNode sParameterTypesNode = null;
         private static Dictionary<string, ProcessInclude> gIncludes = new Dictionary<string, ProcessInclude>();
-        private static Dictionary<string, DefineContent> sDefines = new Dictionary<string, DefineContent>();
         private static int sMaxKoNumber = 0;
         private string mXmlFileName;
         private string mHeaderFileName;
@@ -101,6 +34,10 @@ namespace OpenKNXproducer
         private int mKoBlockSize = 0;
         private static bool mRenumber = false;
         private static bool mAbsoluteSingleParameters = false;
+
+        public static XmlNode PatameterTypesNode {
+            get { return sParameterTypesNode; }
+        }
 
         public static bool Renumber {
             get { return mRenumber; }
@@ -271,6 +208,7 @@ namespace OpenKNXproducer
             LoadAdvanced(mXmlFileName);
             // we use here an empty DefineContent, just for startup
             ExportHeader(DefineContent.Empty, mHeaderFileName, mHeaderPrefixName, this);
+            ProcessModule.ExportHeaderParameterAll(this, mHeaderGenerated);
             // finally we do all processing necessary for the whole (resolved) document
             bool lWithVersions = ProcessFinish(mDocument);
             // DocumentDebugOutput();
@@ -362,7 +300,8 @@ namespace OpenKNXproducer
                 lAttr.Value = ReplaceKoTemplate(iDefine, lAttr.Value, iChannel, iInclude, lAttr.Name == "Number");
                 // lAttr.Value = lAttr.Value.Replace("%N%", mChannelCount.ToString());
                 if (lAttr.Name == "Name" && (iTargetNode.Name != "ParameterType" && iTargetNode.Name != "Argument"))
-                    lAttr.Value = iInclude.mHeaderPrefixName + lAttr.Value;
+                    if (!lAttr.Value.StartsWith(iInclude.mHeaderPrefixName))
+                        lAttr.Value = iInclude.mHeaderPrefixName + lAttr.Value;
             }
         }
 
@@ -394,23 +333,16 @@ namespace OpenKNXproducer
                 ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
             }
 
+            if (iTargetNode.Name == "ModuleDef")
+                ProcessModule.ProcessModuleFactory(iDefine, iChannel, iTargetNode, iInclude);
+
+            if (iTargetNode.Name == "Module")
+                ProcessModule.ProcessModuleInstance(iDefine, iChannel, iTargetNode, iInclude);
+
             //Print individual children of the node, gets only direct children of the node
             XmlNodeList lChildren = iTargetNode.ChildNodes;
             foreach (XmlNode lChild in lChildren) {
                 ProcessChannel(iDefine, iChannel, lChild, iInclude);
-            }
-        }
-
-        void ProcessModuleDef(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude) {
-            //attributes of the node
-            if (iTargetNode.Attributes != null) {
-                ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
-            }
-
-            //Print individual children of the node, gets only direct children of the node
-            XmlNodeList lChildren = iTargetNode.ChildNodes;
-            foreach (XmlNode lChild in lChildren) {
-                ProcessModuleDef(iDefine, iChannel, lChild, iInclude);
             }
         }
 
@@ -497,11 +429,8 @@ namespace OpenKNXproducer
                 if (iTargetNode.Name == "Union") {
                     ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
                 } else
-                if (iTargetNode.Name == "Channel" || iTargetNode.Name == "ParameterBlock" || iTargetNode.Name == "choose") {
+                if ("Channel,ParameterBlock,ModuleDef,choose".Contains(iTargetNode.Name)) {
                     ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
-                } else
-                if (iTargetNode.Name == "ModuleDef") {
-                    ProcessModuleDef(iDefine, iChannel, iTargetNode, iInclude);
                 }
             }
         }
@@ -950,11 +879,11 @@ namespace OpenKNXproducer
                 lOut.AppendLine(RemoveControlChars(lComment));
                 string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
                 if (iDefine.IsTemplate)
-                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1})))", iHeaderPrefixName, lName, lNumber, lName);
+                    lOut.AppendFormat("#define Ko{0}{3,-35} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1})))", iHeaderPrefixName, lName, lNumber, lName);
                 else
-                    lOut.AppendFormat("#define Ko{0}{3,-25} (knx.getGroupObject({0}Ko{1}))", iHeaderPrefixName, lName, lNumber, lName);
+                    lOut.AppendFormat("#define Ko{0}{3,-35} (knx.getGroupObject({0}Ko{1}))", iHeaderPrefixName, lName, lNumber, lName);
                 lOut.AppendLine();
-                // lOut.AppendFormat("#define Ko{0}{1,-25} Ko{0}{3}", iHeaderPrefixName, lName, lNumber, lName + "(0)");
+                // lOut.AppendFormat("#define Ko{0}{1,-35} Ko{0}{3}", iHeaderPrefixName, lName, lNumber, lName + "(0)");
                 // lOut.AppendLine();
                 lResult = true;
             }
@@ -966,15 +895,15 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        private void ExportHeaderParameterStart(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
+        private void ExportHeaderParameterStart(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
             if (!mHeaderParameterStartGenerated && iDefine.IsParameter) {
                 cOut.AppendLine("// Parameter with single occurrence");
-                ExportHeaderParameter(iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
+                ExportHeaderParameter(iNodes, iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
                 mHeaderParameterStartGenerated = true;
             }
         }
 
-        private void ExportHeaderParameterBlock(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
+        private void ExportHeaderParameterBlock(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName) {
             if (!mHeaderParameterBlockGenerated) {
                 if (iDefine.IsTemplate) {
                     cOut.AppendFormat("#define {0}ChannelCount {1}", iHeaderPrefixName, ChannelCount);
@@ -989,9 +918,9 @@ namespace OpenKNXproducer
                     cOut.AppendLine();
                     cOut.AppendLine();
                 }
-                int lSize = ExportHeaderParameter(iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
+                int lSize = ExportHeaderParameter(iNodes, iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
                 // if (lSize != mParameterBlockSize) throw new ArgumentException(string.Format("ParameterBlockSize {0} calculation differs from header file calculated ParameterBlockSize {1}", mParameterBlockSize, lSize));
-                mHeaderParameterBlockGenerated = true;
+                mHeaderParameterBlockGenerated = true;    
             }
         }
 
@@ -1000,11 +929,11 @@ namespace OpenKNXproducer
             // return new string(iText.Where(c => !char.IsControl(c)).ToArray());
         }
 
-        private int ExportHeaderParameter(DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName, bool iWithAbsoluteOffset) {
+        public int ExportHeaderParameter(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName, bool iWithAbsoluteOffset, string iChannelCalculation = "", string iChannelArgs = "") {
             int lMaxSize = 0;
             StringBuilder lOut = new StringBuilder();
-            XmlNodeList lNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union/Parameter");
-            foreach (XmlNode lNode in lNodes) {
+            // XmlNodeList lNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union/Parameter");
+            foreach (XmlNode lNode in iNodes) {
                 XmlNode lMemoryNode;
                 string lName = lNode.Attributes.GetNamedItem("Name").Value;
                 lName = ReplaceChannelName(lName);
@@ -1017,7 +946,7 @@ namespace OpenKNXproducer
                 if (lMemory != null && iParameterTypesNode != null) {
                     // parse parameter type to fill additional information
                     string lParameterTypeId = lNode.NodeAttr("ParameterType");
-                    XmlNode lParameterType = iParameterTypesNode.SelectSingleNode(string.Format("//ParameterType[@Id='{0}']", lParameterTypeId));
+                    XmlNode lParameterType = iParameterTypesNode.SelectSingleNode(string.Format("./ParameterType[@Id='{0}']", lParameterTypeId));
                     XmlNode lTypeNumber = null;
                     if (lParameterType != null) lTypeNumber = lParameterType.FirstChild;
                     while (lTypeNumber != null && lTypeNumber.NodeType == XmlNodeType.Comment) lTypeNumber = lTypeNumber.NextSibling;
@@ -1078,7 +1007,7 @@ namespace OpenKNXproducer
                     if (lParamBitOffsetNode != null) lBitOffset += int.Parse(lParamBitOffsetNode.Value);
                     lMaxSize = Math.Max(lMaxSize, lOffset + (lBits - 1) / 8 + 1);
                     string lChannelCalculation = "{3}{0}";
-                    if (iDefine.IsTemplate) lChannelCalculation = "{3}ParamCalcIndex({3}{0})"; 
+                    if (iDefine.IsTemplate) lChannelCalculation = (iChannelCalculation == "") ? "{3}ParamCalcIndex({3}{0})" : iChannelCalculation; 
                     string lKnxArgument = string.Format(lKnxAccessMethod, lChannelCalculation);
                     bool lIsOut = false;
                     string lOutput = "";
@@ -1091,9 +1020,9 @@ namespace OpenKNXproducer
                         if (lBits > 1) lSubType = string.Format("{0}-{1}", lSubType, lShift);
                         // new time base handling
                         if (lParameterTypeId.Contains("_PT-DelayTime")) {
-                            lTimeOutput = string.Format("#define Param{3}{4,-25} (paramDelay(" + lKnxArgument + "))", lName, lOffset, lSubType, iHeaderPrefixName, lName + "MS");
+                            lTimeOutput = string.Format("#define Param{3}{4,-35} (paramDelay(" + lKnxArgument + "))", lName, lOffset, lSubType, iHeaderPrefixName, lName + "MS" + iChannelArgs);
                         }
-                        cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lSubType, iHeaderPrefixName);
+                        cOut.AppendFormat("#define {3}{0,-35} {1,2}      // {2}", lName, lOffset, lSubType, iHeaderPrefixName);
                         if (lBits < lBitBaseSize && lShift >= 0) {
                             cOut.AppendLine();
                             int lMask = ((int)Math.Pow(2, lBits) - 1) << lShift;
@@ -1101,23 +1030,23 @@ namespace OpenKNXproducer
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Shift {2}", iHeaderPrefixName, lName, lShift);
                             if (lBits == 1)
-                                lOutput = string.Format("#define Param{3}{4,-25} ((bool)(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName);
+                                lOutput = string.Format("#define Param{3}{4,-35} ((bool)(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
                             else if (lShift == 0)
-                                lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName, lName);
+                                lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
                             else
-                                lOutput = string.Format("#define Param{3}{4,-25} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName, lName);
+                                lOutput = string.Format("#define Param{3}{4,-35} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
                             lIsOut = true;
                         } else if (lType == "enum") {
-                            lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName, lName);
+                            lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
                             lIsOut = true;
                         }
                     } else if (lDirectType) {
-                        cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
-                        lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName);
+                        cOut.AppendFormat("#define {3}{0,-35} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
+                        lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName + iChannelArgs);
                         lIsOut = true;
                     } else {
-                        cOut.AppendFormat("#define {3}{0,-25} {1,2}      // {4}{2}_t", lName, lOffset, lBits, iHeaderPrefixName, lType);
-                        lOutput = string.Format("#define Param{3}{4,-25} (" + lKnxArgument + ")", lName, lOffset, lBitBaseSize, iHeaderPrefixName, lName);
+                        cOut.AppendFormat("#define {3}{0,-35} {1,2}      // {4}{2}_t", lName, lOffset, lBits, iHeaderPrefixName, lType);
+                        lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lBitBaseSize, iHeaderPrefixName, lName + iChannelArgs);
                         lIsOut = true;
                     }
                     cOut.AppendLine();
@@ -1278,21 +1207,22 @@ namespace OpenKNXproducer
         private void ExportHeader(DefineContent iDefine, string iHeaderFileName, string iHeaderPrefixName, ProcessInclude iInclude, XmlNodeList iChildren = null) {
             // iInclude.ParseHeaderFile(iHeaderFileName);
 
-            if (mParameterTypesNode == null) {
+            if (sParameterTypesNode == null) {
                 // before we start with template processing, we calculate all Parameter relevant info
-                mParameterTypesNode = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
+                sParameterTypesNode = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
             }
 
-            if (mParameterTypesNode != null) {
+            XmlNodeList lParameterNodes = null;
+            if (sParameterTypesNode != null) {
                 // the main document contains necessary ParameterTypes definitions
+                lParameterNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union");
                 // there are new parameters in include, we have to calculate a new parameter offset
-                XmlNodeList lParameterNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union");
                 if (lParameterNodes != null) {
-                    mParameterBlockSize = CalcParamSize(lParameterNodes, mParameterTypesNode);
+                    mParameterBlockSize = CalcParamSize(lParameterNodes, sParameterTypesNode);
                 }
                 if (iChildren != null) {
                     // ... and we do parameter processing, so we calculate ParamBlockSize for this include
-                    int lBlockSize = iInclude.CalcParamSize(iChildren, mParameterTypesNode);
+                    int lBlockSize = iInclude.CalcParamSize(iChildren, sParameterTypesNode);
                     if (lBlockSize > 0) {
                         iInclude.ParameterBlockSize = lBlockSize;
                         // we calculate also ParamOffset
@@ -1302,9 +1232,13 @@ namespace OpenKNXproducer
             }
             // Header file generation is only possible before we resolve includes
             // First we serialize local parameters of this instance
-            ExportHeaderParameterStart(iDefine, mHeaderGenerated, mParameterTypesNode, iHeaderPrefixName);
+            lParameterNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
+            ExportHeaderParameterStart(lParameterNodes, iDefine, mHeaderGenerated, sParameterTypesNode, iHeaderPrefixName);
             // followed by template parameters of the include
-            if (iInclude != this) iInclude.ExportHeaderParameterBlock(iDefine, mHeaderGenerated, mParameterTypesNode, iHeaderPrefixName);
+            if (iInclude != this) {
+                lParameterNodes = iInclude.mDocument.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
+                iInclude.ExportHeaderParameterBlock(lParameterNodes, iDefine, mHeaderGenerated, sParameterTypesNode, iHeaderPrefixName);
+            }
 
             ExportHeaderKoStart(iDefine, mHeaderGenerated, iHeaderPrefixName);
             if (iInclude != this) iInclude.ExportHeaderKoBlock(iDefine, mHeaderGenerated, iHeaderPrefixName);

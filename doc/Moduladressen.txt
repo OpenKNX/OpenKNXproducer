@@ -1,0 +1,97 @@
+Wie adressiert man die Parameter von Modules und Submodules. Beispiel:
+  Ca, Cb, Cc, Cd: Channel, 5 Byte groß, 4 mal vorhanden
+  M1a, M1b, M1c: Module in Cx, 4 Byte groß, 3 mal vorhanden
+  M2a, M2b: SubModule in M1x, 2 Byte, 2 mal vorhanden.
+
+Rechnerisch: 4 * (5 + 3 * (4 + 2 * 2)) = 4 * (5 + 3 * 8) = 4 * 29 = 116 Byte
+Klassische Speicheraufteilung (wie man es erwarten würde):
+              00        01        02        03        04        05        06        07
+0x0000        Ca        Ca        Ca        Ca        Ca     CaM1a     CaM1a     CaM1a 
+0x0008     CaM1a  CaM1aM2a  CaM1aM2a  CaM1aM2b  CaM1aM2b     CaM1b     CaM1b     CaM1b
+0x0010     CaM1b  CaM1bM2a  CaM1bM2a  CaM1bM2b  CaM1bM2b     CaM1c     CaM1C     CaM1c
+0x0018     CaM1c  CaM1cM2a  CaM1cM2a  CaM1cM2b  CaM1cM2b        Cb        Cb        Cb
+0x0020        Cb        Cb     CbM1a     CbM1a     CbM1a     CbM1a  CbM1aM2a  CbM1aM2a
+0x0028  CbM1aM2b  CbM1aM2b     CbM1b     CbM1b     CbM1b     CbM1b  CbM1bM2a  CbM1bM2a
+0x0030  CbM1bM2b  CbM1bM2b     CbM1c     CbM1c     CbM1c     CbM1c  CbM1CM2a  CbM1CM2a
+0x0038  CbM1cM2b  CbM1bM2b        Cc        Cc        Cc        Cc        Cc     CcM1a
+0x0040     CcM1a     CcM1a     CcM1a  CcM1aM2a  CcM1aM2a  CcM1aM2b  CcM1aM2b     CcM1b 
+0x0048     CcM1b     CcM1b     CcM1b  CcM1bM2a  CcM1bM2a  CcM1bM2b  CcM1bM2b     CcM1c
+0x0050     CcM1c     CcM1c     CcM1c  CcM1cM2a  CcM1cM2a  CcM1cM2b  CcM1cM2b        Cd
+0x0058        Cd        Cd        Cd        Cd     CdM1a     CdM1a     CdM1a     CdM1a
+0x0060  CdM1aM2a  CdM1aM2a  CdM1aM2b  CdM1aM2b     CdM1b     CdM1b     CdM1b     CdM1b
+0x0068  CdM1bM2a  CdM1bM2a  CdM1bM2b  CdM1bM2b     CdM1c     CdM1c     CdM1c     CdM1c
+0x0070  CdM1cM2a  CdM1cM2a  CdM1cM2b  CdM1cM2b 
+
+Zugriffe:
+Ci  = Channel index (0-3)
+M1i = Module1 index (0-2)
+M2i = Module2 index (0-1)
+o   = Offset für den jew. Parameter
+
+Cx  = o + Ci * 29
+M1x = o + Ci * 29 + 5 + M1i * 8 = Cx + 5 + M1i * 8
+M2x = o + C1 * 29 + 5 + M1i * 8 + 4 + M2i * 2 = M1x + 4 + M2i * 2
+
+Speicheraufteilung als hintereinanderliegende Arrays:
+              00        01        02        03        04        05        06        07
+0x0000        Ca        Ca        Ca        Ca        Ca        Cb        Cb        Cb
+0x0008        Cb        Cb        Cc        Cc        Cc        Cc        Cc        Cd
+0x0010        Cd        Cd        Cd        Cd     CaM1a     CaM1a     CaM1a     CaM1a
+0x0018     CaM1b     CaM1b     CaM1b     CaM1b     CaM1c     CaM1c     CaM1c     CaM1c
+0x0020     CbM1a     CbM1a     CbM1a     CbM1a     CbM1b     CbM1b     CbM1b     CbM1b
+0x0028     CbM1c     CbM1c     CbM1c     CbM1c     CcM1a     CcM1a     CcM1a     CcM1a
+0x0030     CcM1b     CcM1b     CcM1b     CcM1b     CcM1c     CcM1c     CcM1c     CcM1c
+0x0038     CdM1a     CdM1a     CdM1a     CdM1a     CdM1b     CdM1b     CdM1b     CdM1b
+0x0040     CdM1c     CdM1c     CdM1c     CdM1c  CaM1aM2a  CaM1aM2a  CaM1aM2b  CaM1aM2b
+0x0048  CaM1bM2a  CaM1bM2a  CaM1bM2b  CaM1bM2b  CaM1cM2a  CaM1cM2a  CaM1cM2b  CaM1cM2b
+0x0050  CbM1aM2a  CbM1aM2a  CbM1aM2b  CbM1aM2b  CbM1bM2a  CbM1bM2a  CbM1bM2b  CbM1bM2b
+0x0058  CbM1cM2a  CbM1cM2a  CbM1cM2b  CbM1cM2b  CcM1aM2a  CcM1aM2a  CcM1aM2b  CcM1aM2b
+0x0060  CcM1bM2a  CcM1bM2a  CcM1bM2b  CcM1bM2b  CcM1cM2a  CcM1cM2a  CcM1cM2b  CcM1cM2b
+0x0068  CdM1aM2a  CdM1aM2a  CdM1aM2b  CdM1aM2b  CdM1bM2a  CdM1bM2a  CdM1bM2b  CdM1bM2b
+0x0070  CdM1cM2a  CdM1cM2a  CdM1cM2b  CdM1cM2b
+
+Zugriffe:
+Ci  = Channel index (0-3)
+M1i = Module1 index (0-2)
+M2i = Module2 index (0-1)
+o   = Offset für den jew. Parameter
+
+Cx  = o + Ci * 5
+M1x = 20 + o + Ci * (3 * 4) + M1i * 4
+M2x = 68 + o + Ci * (3 * 2 * 2) + M1i * (2 * 2) + M2i * 2 
+
+Speicheraufteilung (final im Producer implementiert, alle Module kommen hinter die normalparameter):
+              00        01        02        03        04        05        06        07
+0x0000        Ca        Ca        Ca        Ca        Ca        Cb        Cb        Cb
+0x0008        Cb        Cb        Cc        Cc        Cc        Cc        Cc        Cd
+0x0010        Cd        Cd        Cd        Cd     CaM1a     CaM1a     CaM1a     CaM1a
+0x0018  CaM1aM2a  CaM1aM2a  CaM1aM2b  CaM1aM2b     CaM1b     CaM1b     CaM1b     CaM1b
+0x0020  CaM1bM2a  CaM1bM2a  CaM1bM2b  CaM1bM2b     CaM1c     CaM1c     CaM1c     CaM1c
+0x0028  CaM1cM2a  CaM1cM2a  CaM1cM2b  CaM1cM2b     CbM1a     CbM1a     CbM1a     CbM1a
+0x0030  CbM1aM2a  CbM1aM2a  CbM1aM2b  CbM1aM2b     CbM1b     CbM1b     CbM1b     CbM1b
+0x0038  CbM1bM2a  CbM1bM2a  CbM1bM2b  CbM1bM2b     CbM1c     CbM1c     CbM1c     CbM1c
+0x0040  CbM1cM2a  CbM1cM2a  CbM1cM2b  CbM1cM2b     CcM1a     CcM1a     CcM1a     CcM1a
+0x0048  CcM1aM2a  CcM1aM2a  CcM1aM2b  CcM1aM2b     CcM1b     CcM1b     CcM1b     CcM1b
+0x0050  CcM1bM2a  CcM1bM2a  CcM1bM2b  CcM1bM2b     CcM1c     CcM1c     CcM1c     CcM1c
+0x0058  CcM1cM2a  CcM1cM2a  CcM1cM2b  CcM1cM2b     CdM1a     CdM1a     CdM1a     CdM1a
+0x0060  CdM1aM2a  CdM1aM2a  CdM1aM2b  CdM1aM2b     CdM1b     CdM1b     CdM1b     CdM1b
+0x0068  CdM1bM2a  CdM1bM2a  CdM1bM2b  CdM1bM2b     CdM1c     CdM1c     CdM1c     CdM1c
+0x0070  CdM1cM2a  CdM1cM2a  CdM1cM2b  CdM1cM2b       
+
+Größen:
+Ci  = Channel index (0-3)
+Cn  = ChannelCount = 4
+Cl  = ChannelOwnSize = 5
+M1i = Module1 index (0-2)
+M1n = M1Count = 3
+M1l = M1OwnSize = 4
+M2i = Module2 index (0-1)
+M2n = M2Count = 2
+M2l = M2OwnSize = 2
+o   = Offset für den jew. Parameter (aus #define)
+Cp  = ParamOffset für das jew. OpenKnx-Module
+M1p = ParamOffset für das jew. ETS-Root-Module (im Beispiel = 20)
+
+Cx  = Cp +  o + Ci * Cl (existiert schon)
+M1x = M1p + o + Ci * (M1n * (M1l + M2n * M2l)) + M1i * (M1l + M2n * M2l)
+M2x = M1x + M1l + M2i * M2l 
