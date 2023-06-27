@@ -370,7 +370,9 @@ namespace OpenKNXproducer {
                 int lNumber = 0;
                 bool lIsInt = int.TryParse(lNode.Attributes.GetNamedItem("Number").Value, out lNumber);
                 if (lIsInt) {
-                    if (lKoNumbers.ContainsKey(lNumber)) {
+                    if (lNumber == 0) {
+                        WriteFail(ref lFailPart, "ComObject Number 0 is not allowed in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
+                    } else if (lKoNumbers.ContainsKey(lNumber)) {
                         WriteFail(ref lFailPart, "{0} is a duplicate Number in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
                     } else {
                         lKoNumbers.Add(lNumber, true);
