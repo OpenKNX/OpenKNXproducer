@@ -28,6 +28,8 @@
             "args": [
                 "create",
                 "--Debug",
+                "--HeaderFileName",
+                "../OAM-PresenceModule/include/knxprod.h",
                 "../OAM-PresenceModule/src/PMmodul"
             ],
             "cwd": "${workspaceFolder}",
@@ -88,6 +90,8 @@
             "args": [
                 "create",
                 "--Debug",
+                "--HeaderFileName",
+                "../OAM-LogicModule/include/knxprod.h",
                 "../OAM-LogicModule/src/Logikmodul"
             ],
             "cwd": "${workspaceFolder}",

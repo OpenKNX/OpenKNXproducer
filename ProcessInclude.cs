@@ -1,6 +1,7 @@
 using System.Xml;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Data.Common;
 
 namespace OpenKNXproducer
 {
@@ -21,8 +22,9 @@ namespace OpenKNXproducer
             public bool IsTemplate;
             public bool IsParameter;
             public string VerifyFile = "";
-            public string VerifyXPath = "";
-            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iKoSingleOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter, string iVerifyFile, string iVerifyXPath)
+            public string VerifyRegex = "";
+            public int VerifyVersion = -1;
+            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iKoSingleOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter, string iVerifyFile, string iVerifyRegex, int iVerifyVersion)
             {
                 prefix = iPrefix;
                 header = iHeader;
@@ -37,7 +39,8 @@ namespace OpenKNXproducer
                 ModuleType = iModuleType;
                 IsParameter = iIsParameter;
                 VerifyFile = iVerifyFile;
-                VerifyXPath = iVerifyXPath;
+                VerifyRegex = iVerifyRegex;
+                VerifyVersion = iVerifyVersion;
             }
             public static DefineContent Factory(XmlNode iDefineNode)
             {
@@ -52,7 +55,8 @@ namespace OpenKNXproducer
                 string lReplaceValues = "";
                 int lModuleType = 1;
                 string lVerifyFile = "";
-                string lVerifyXPath = "";
+                string lVerifyRegex = "";
+                int lVerifyVersion = -1;
                 lPrefix = iDefineNode.NodeAttr("prefix");
                 if (lPrefix == "") lPrefix = "LOG"; // backward compatibility
                 if (sDefines.ContainsKey(lPrefix))
@@ -71,16 +75,17 @@ namespace OpenKNXproducer
                     XmlNode lVerify = iDefineNode.FirstChild;
                     if (lVerify != null && lVerify.Name == "op:verify")
                     {
-                        lVerifyFile = lVerify.NodeAttr("file");
-                        lVerifyXPath = lVerify.NodeAttr("xpath");
+                        lVerifyFile = lVerify.NodeAttr("File");
+                        lVerifyRegex = lVerify.NodeAttr("Regex", @"#define\s*ModuleVersion\s*(\d{1,3})");
+                        int.TryParse(lVerify.NodeAttr("ModuleVersion", "-1"), out lVerifyVersion);
                     }
-                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lKoSingleOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false, lVerifyFile, lVerifyXPath);
+                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lKoSingleOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false, lVerifyFile, lVerifyRegex, lVerifyVersion);
                     sDefines.Add(lPrefix, lResult);
                 }
                 return lResult;
             }
 
-            static public DefineContent Empty = new("LOG", "", 1, 0, 1, "", "", 1, true, "", "");
+            static public DefineContent Empty = new("LOG", "", 1, 0, 1, "", "", 1, true, "", "", -1);
             public static DefineContent GetDefineContent(string iPrefix)
             {
                 DefineContent lResult;
@@ -1332,19 +1337,51 @@ namespace OpenKNXproducer
         public string CurrentDir { get { return mCurrentDir; } }
 
 
-        public bool VerifyModuleDependency(string iFileName, string iXPath)
+        private bool VerifyModuleDependency(DefineContent iDefine, string iCurrentDir)
         {
             bool lResult = true;
-            if (iFileName != "" && iXPath != "")
+            if (iDefine.VerifyFile != "")
             {
-                var xmlReader = new XmlTextReader(iFileName);
-                xmlReader.Namespaces = false;
-                XmlDocument lDocument = new();
-                lDocument.Load(xmlReader);
-                XmlNamespaceManager lNsmgr = new(lDocument.NameTable);
-                lNsmgr.AddNamespace("oknxp", cOwnNamespace);
-                XmlNode lNode = lDocument.DocumentElement.SelectSingleNode(iXPath, lNsmgr);
-                lResult = (lNode != null);
+                string lFileName = Path.Combine(iCurrentDir, iDefine.VerifyFile);
+                string lVersion = "-1";
+                int lVersionInt = -1;
+                try
+                {
+                    using (var lVersionFile = File.OpenText(lFileName))
+                    {
+                        Regex lKeyword = new Regex(iDefine.VerifyRegex);
+                        string lLine;
+                        lResult = false;
+                        while ((lLine = lVersionFile.ReadLine()) != null)
+                        {
+                            Match lMatch = lKeyword.Match(lLine);
+                            if (lMatch.Success)
+                            {
+                                lVersion = lMatch.Groups[1].Value;
+                                mHeaderGenerated.AppendFormat(@"#define {0}_ModuleVersion {1}", iDefine.prefix, lVersion);
+                                mHeaderGenerated.AppendLine();
+                                lResult = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (iDefine.VerifyVersion >= 0 && int.TryParse(lVersion, out lVersionInt))
+                    {
+                        lResult = (iDefine.VerifyVersion == lVersionInt);
+                        if (!lResult)
+                            Program.additionalMessages.Add(string.Format("You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}", iDefine.prefix, lVersionInt), true);
+                    }
+                    else
+                    {
+                        // add warning
+                        Program.additionalMessages.Add(string.Format("Verify for module {0} was not specified or could not be parsed. You should enable this for consistent ETS Applications!", iDefine.prefix), false);
+                    }
+                }
+                catch (System.IO.FileNotFoundException)
+                {
+                    Program.additionalMessages.Add(string.Format("Version file {0} not found, please check name and path.", iDefine.VerifyFile), true);
+                    lResult = false;
+                }
             }
             return lResult;
         }
@@ -1403,10 +1440,7 @@ namespace OpenKNXproducer
                 foreach (XmlNode lDefineNode in lDefineNodes)
                 {
                     DefineContent lDefine = DefineContent.Factory(lDefineNode);
-                    if (!VerifyModuleDependency(Path.Combine(iCurrentDir, lDefine.VerifyFile), lDefine.VerifyXPath))
-                    {
-                        Program.additionalMessages.Add(string.Format("Module {0} has a newer ETS application, you have to update your ETS application, too!", lDefine.prefix), true);
-                    }
+                    VerifyModuleDependency(lDefine, iCurrentDir);
                 }
             }
 

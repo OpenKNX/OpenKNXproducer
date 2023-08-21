@@ -120,15 +120,26 @@ namespace OpenKNXproducer
         public static void WriteFail(ref bool iFail, string iFormat, params object[] iParams)
         {
             if (!iFail) Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("  --> " + iFormat, iParams);
+            Console.ResetColor();
             iFail = true;
         }
 
         public static void WriteWarn(ref bool iWarn, string iFormat, params object[] iParams)
         {
             if (!iWarn) Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("  --> WARN: " + iFormat, iParams);
+            Console.ResetColor();
             iWarn = true;
+        }
+
+        public static void WriteOK(string iOk = "OK")
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine(" " + iOk);
+            Console.ResetColor();
         }
 
         // Node cache
@@ -185,7 +196,7 @@ namespace OpenKNXproducer
                     return false; // fail
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Id-Uniqueness...");
@@ -202,7 +213,7 @@ namespace OpenKNXproducer
                     gIds.Add(lId, lNode);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Id-R_Suffix-Uniqueness...");
@@ -234,7 +245,7 @@ namespace OpenKNXproducer
                     }
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -255,7 +266,7 @@ namespace OpenKNXproducer
                     }
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -276,7 +287,7 @@ namespace OpenKNXproducer
                     }
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -294,7 +305,7 @@ namespace OpenKNXproducer
                     CreateComment(lXml, lNode, lTextParamRefId);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -312,7 +323,7 @@ namespace OpenKNXproducer
                     CreateComment(lXml, lNode, lSourceParamRefRef, "-Source");
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -330,7 +341,7 @@ namespace OpenKNXproducer
                     CreateComment(lXml, lNode, lTargetParamRefRef, "-Target");
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -344,7 +355,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lParameterType, lNode.Name, lNode.NodeAttr("Name"));
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -358,7 +369,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "Union without SizeInBit-Attribute found");
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Parameter-Name-Uniqueness...");
@@ -377,7 +388,7 @@ namespace OpenKNXproducer
                     lParameterNames.Add(lName, true);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -395,7 +406,7 @@ namespace OpenKNXproducer
                 }
                 lFailPart = CheckParameterValueIntegrity(lXml, lFailPart, lNode, lParameterValue, lMessage);
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -419,7 +430,7 @@ namespace OpenKNXproducer
             {
                 WriteFail(ref lFailPart, "Test not possible due to Errors in ParameterRef definitions (sove above problems first)");
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- ComObject-Name-Uniqueness...");
@@ -438,7 +449,7 @@ namespace OpenKNXproducer
                     lKoNames.Add(lName, true);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- ComObject-Number-Uniqueness...");
@@ -469,7 +480,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "ComObject.Number is not an Integer in ComObject with name {0}", lNode.NodeAttr("Name"));
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- RefId-Id-Comparison...");
@@ -494,7 +505,7 @@ namespace OpenKNXproducer
                     // }    
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- RefId-RefRef-Comparison...");
@@ -519,7 +530,7 @@ namespace OpenKNXproducer
                     }
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Id-Namespace...");
@@ -546,7 +557,7 @@ namespace OpenKNXproducer
                     }
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Id-Format...");
@@ -624,7 +635,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "{0} {1} has the Id={2}, but this Id has not the OpenKNX-Format {3}", lElement.Name, lElement.NodeAttr("Name"), lKeyValuePair.Key, lIdMatchReadable);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -638,7 +649,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "Hardware.SerialNumber={0}, it contains a dash (-), this will cause problems in knxprod.", lSerialNumber);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- HelpContext-Ids...");
@@ -651,7 +662,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "HelpContext {0} not found in HelpContext baggage", lNode.Value);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Icon-Ids...");
@@ -664,7 +675,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "Icon {0} not found in HelpContext baggage", lNode.Value);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Baggage-File-Existence...");
@@ -678,7 +689,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "File {0} not found in baggage dir", lFileName);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -699,7 +710,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "ApplicationProgram.ApplicationVersion is incorrect or could not be parsed");
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             lFailPart = false;
@@ -715,7 +726,7 @@ namespace OpenKNXproducer
                     WriteFail(ref lFailPart, "Size-Attribute of {0} is incorrect ({1}), are you missing %MemorySize% replacement?", lNode.Name, lValue);
                 }
             }
-            if (!lFailPart) Console.WriteLine(" OK");
+            if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
             Console.Write("- Further messages during document processing...");
@@ -728,9 +739,10 @@ namespace OpenKNXproducer
                 else
                     WriteWarn(ref lWarnPart, lMessage.Key, "");
             }
-            if (!lFailPart) Console.WriteLine(" NONE");
+            if (!lFailPart && !lWarnPart) WriteOK("NONE");
             lFail = lFail || lFailPart;
 
+            Console.WriteLine();
             return !lFail;
         }
 
@@ -988,7 +1000,9 @@ namespace OpenKNXproducer
                         Console.WriteLine($"{e.Message}");
                         lError = true;
                     });
+                    Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine(lError ? "" : "OK");
+                    Console.ResetColor();
                 }
                 else
                 {
@@ -1172,7 +1186,9 @@ namespace OpenKNXproducer
                 if (!iIsDebug)
                     System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
 
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Output of {0} successful", iKnxprodFileName);
+                Console.ResetColor();
                 return 0;
             }
             catch (Exception ex)
