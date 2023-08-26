@@ -7,5 +7,15 @@
 			"path": "../Organization"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"workbench.colorCustomizations": {
+			"activityBar.background": "#693500",
+			"activityBar.foreground": "#ffffff",
+			"activityBar.activeBackground": "#d06800",
+			"statusBar.foreground": "#ffffff",
+			"statusBar.background": "#693500",
+			"titleBar.activeBackground": "#693500",
+			"titleBar.activeForeground": "#ffffff"
+		}
+	}
 }
