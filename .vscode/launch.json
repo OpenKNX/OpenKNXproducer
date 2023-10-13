@@ -20,6 +20,23 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug Dummy",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-Dummy/include/knxprod.h",
+                "../OAM-Dummy/src/DummyModule"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug PresenceModule",
             "type": "coreclr",
             "request": "launch",

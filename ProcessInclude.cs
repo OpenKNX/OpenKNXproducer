@@ -76,7 +76,7 @@ namespace OpenKNXproducer
                     if (lVerify != null && lVerify.Name == "op:verify")
                     {
                         lVerifyFile = lVerify.NodeAttr("File");
-                        lVerifyRegex = lVerify.NodeAttr("Regex", @"#define\s*ModuleVersion\s*(\d{1,3})");
+                        lVerifyRegex = lVerify.NodeAttr("Regex", "\\s\"version\":\\s\"(\\d{1,2}).(\\d{1,2}).*\",");
                         int.TryParse(lVerify.NodeAttr("ModuleVersion", "-1"), out lVerifyVersion);
                     }
                     lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lKoSingleOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false, lVerifyFile, lVerifyRegex, lVerifyVersion);
@@ -1357,24 +1357,35 @@ namespace OpenKNXproducer
                             Match lMatch = lKeyword.Match(lLine);
                             if (lMatch.Success)
                             {
-                                lVersion = lMatch.Groups[1].Value;
-                                mHeaderGenerated.AppendFormat(@"#define {0}_ModuleVersion {1}", iDefine.prefix, lVersion);
-                                mHeaderGenerated.AppendLine();
-                                lResult = true;
-                                break;
+                                if (lMatch.Groups.Count == 2)
+                                {
+                                    lVersion = lMatch.Groups[1].Value;
+                                    mHeaderGenerated.AppendFormat(@"#define {0}_ModuleVersion {1}", iDefine.prefix, lVersion);
+                                    mHeaderGenerated.AppendLine();
+                                    lResult = int.TryParse(lVersion, out lVersionInt);
+                                    break;
+                                }
+                                else if (lMatch.Groups.Count == 3)
+                                {
+                                    lVersionInt = int.Parse(lMatch.Groups[1].Value) * 16 + int.Parse(lMatch.Groups[2].Value);
+                                    mHeaderGenerated.AppendFormat(@"#define {0}_ModuleVersion {1}", iDefine.prefix, lVersionInt);
+                                    mHeaderGenerated.AppendLine();
+                                    lResult = (lVersionInt >= 0);
+                                    break;
+                                }
                             }
                         }
                     }
-                    if (iDefine.VerifyVersion >= 0 && int.TryParse(lVersion, out lVersionInt))
+                    if (lResult && iDefine.VerifyVersion >= 0)
                     {
                         lResult = (iDefine.VerifyVersion == lVersionInt);
                         if (!lResult)
-                            Program.additionalMessages.Add(string.Format("You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}", iDefine.prefix, lVersionInt), true);
+                            Program.additionalMessages.Add(string.Format("You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt), true);
                     }
                     else
                     {
                         // add warning
-                        Program.additionalMessages.Add(string.Format("Verify for module {0} was not specified or could not be parsed. You should enable this for consistent ETS Applications!", iDefine.prefix), false);
+                        Program.additionalMessages.Add(string.Format("Verify for module {0} was not specified or could not be parsed. You should enable this for consistent ETS Applications, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix), false);
                     }
                 }
                 catch (System.IO.FileNotFoundException)
@@ -1481,7 +1492,7 @@ namespace OpenKNXproducer
                         lInclude.ReplaceValues = lDefine.ReplaceValues;
                         ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
                     }
-                    else if (lDefine.IsParameter)
+                    else if (lDefine.IsParameter || "ComObject".Contains(lChildren[0].LocalName))
                     {
                         ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
                     }
