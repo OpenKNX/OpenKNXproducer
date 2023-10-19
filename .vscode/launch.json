@@ -54,6 +54,23 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug PresenceModule Doku",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "baggages",
+                "-d",
+                "../OFM-PresenceModule/Doc/Applikationbeschreibung-Praesenz.md",
+                "-b",
+                "../OFM-PresenceModule/src/Baggages/Help_de"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug SensorModule",
             "type": "coreclr",
             "request": "launch",

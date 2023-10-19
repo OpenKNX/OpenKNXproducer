@@ -10,6 +10,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
 using OpenKNXproducer.Signing;
+using System.ComponentModel.DataAnnotations;
 // using Knx.Ets.Xml.ObjectModel;
 
 //using Knx.Ets.Converter.ConverterEngine;
@@ -1270,6 +1271,17 @@ namespace OpenKNXproducer
             public string OutputFile { get; set; } = "";
         }
 
+        [Verb("baggages", HelpText = "Create baggages files from given documentation file")]
+        class BaggagesOptions
+        {
+            [Option('b', "BaggagesDir", Required = true, HelpText = "Baggages directory", MetaValue = "DIR")]
+            public string BaggagesDir { get; set; } = "";
+            [Option('d', "DocFileName", Required = true, HelpText = "Documentation file name", MetaValue = "FILE")]
+            public string DocFileName { get; set; } = "";
+            [Option('p', "Prefix", Required = false, HelpText = "Module Prefix", MetaValue = "STRING")]
+            public string Prefix { get; set; } = "";
+        }
+
         [Verb("create", HelpText = "Process given xml file with all includes and create knxprod")]
         class CreateOptions : KnxprodOptions
         {
@@ -1295,12 +1307,13 @@ namespace OpenKNXproducer
         static int Main(string[] args)
         {
             return new CommandLine.Parser(settings => settings.HelpWriter = Console.Out)
-              .ParseArguments<CreateOptions, CheckOptions, KnxprodOptions, NewOptions>(args)
+              .ParseArguments<CreateOptions, CheckOptions, KnxprodOptions, NewOptions, BaggagesOptions>(args)
               .MapResult(
                 (NewOptions opts) => VerbNew(opts),
                 (CreateOptions opts) => VerbCreate(opts),
                 (KnxprodOptions opts) => VerbKnxprod(opts),
                 (CheckOptions opts) => VerbCheck(opts),
+                (BaggagesOptions opts) => VerbBaggages(opts),
                 errs => 1);
         }
 
@@ -1397,8 +1410,22 @@ namespace OpenKNXproducer
             lTempXmlFileName = Path.ChangeExtension(lTempXmlFileName, "debug.xml");
             if (opts.Debug) Console.WriteLine("Writing debug file to {0}", lTempXmlFileName);
             lXml.Save(lTempXmlFileName);
-            Console.WriteLine("Writing header file to {0}", lHeaderFileName);
-            File.WriteAllText(lHeaderFileName, lInclude.HeaderGenerated);
+            // we check against old file content
+            bool lIsEqual = false;
+            if (File.Exists(lHeaderFileName))
+            {
+                string lOldHeaderGenerated = File.ReadAllText(lHeaderFileName);
+                lIsEqual = (lOldHeaderGenerated == lInclude.HeaderGenerated);
+            }
+            if (lIsEqual)
+            {
+                Console.WriteLine("Unchanged header file {0}, not written to disk", lHeaderFileName);
+            }
+            else
+            {
+                Console.WriteLine("Writing header file to {0}", lHeaderFileName);
+                File.WriteAllText(lHeaderFileName, lInclude.HeaderGenerated);
+            }
             string lOutputFileName = Path.ChangeExtension(opts.OutputFile, "knxprod");
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess)
@@ -1452,6 +1479,15 @@ namespace OpenKNXproducer
             System.Text.RegularExpressions.Match match = rs.Match(xml);
             string lEtsPath = FindEtsPath(match.Groups[1].Value);
             return ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, opts.XmlFileName, Path.GetFileName(opts.XmlFileName).Replace(".xml", ".baggages"), opts.XsdFileName, false, !opts.NoXsd);
+        }
+
+        static private int VerbBaggages(BaggagesOptions opts)
+        {
+            WriteVersion();
+            string lBaggagesDir = opts.BaggagesDir;
+            string lWorkingDir = GetAbsWorkingDir(opts.BaggagesDir);
+            string lPrefix = opts.Prefix;
+            return ParseDocumentation.ExportBaggages(lWorkingDir, lBaggagesDir, opts.DocFileName, lPrefix);
         }
     }
 }

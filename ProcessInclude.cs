@@ -427,6 +427,31 @@ namespace OpenKNXproducer
             }
         }
 
+        void ProcessHelpContext(DefineContent iDefine, XmlNode iTargetNode, ProcessInclude iInclude)
+        {
+            XmlNodeList lNodes = iTargetNode.SelectNodes(@"//ParameterRefRef[@HelpContext]");
+            XmlNodeList lParameters = iTargetNode.SelectNodes(@"//Parameter[@Id]");
+            Dictionary<string, XmlNode> lParameterLookup = new();
+            // create lookup first (performance optimization)
+            foreach (XmlNode lNode in lParameters)
+            {
+                lParameterLookup.Add(lNode.NodeAttr("Id"), lNode);
+            }
+            foreach (XmlNode lNode in lNodes)
+            {
+                XmlNode lAttribute = lNode.Attributes.GetNamedItem("HelpContext");
+                if (lAttribute.Value == "%DOC%")
+                {
+                    string lId = lNode.NodeAttr("RefId").Split("_R-")[0];
+                    XmlNode lParameter = lParameterLookup[lId];
+                    string lText = lParameter.NodeAttr("Text");
+                    lText = ParseDocumentation.GetChapterId(lText, iDefine.prefix);
+                    // Console.WriteLine(lText);
+                    lAttribute.Value = lText;
+                }
+            }
+        }
+
         void ProcessParameter(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             //calculate new offset
@@ -845,22 +870,25 @@ namespace OpenKNXproducer
             {
                 foreach (XmlNode lBaggage in lBaggages.ChildNodes)
                 {
-                    // We need to create according Id from Baggage filename
-                    lPath = lBaggage.Attributes.GetNamedItem("TargetPath").Value;
-                    lFileName = lBaggage.Attributes.GetNamedItem("Name").Value;
-                    lIdNode = lBaggage.Attributes.GetNamedItem("Id");
-                    if (HandleZipFile("%FILE-HELP", ref lWithHelp)) continue;
-                    if (HandleZipFile("%FILE-ICONS", ref lWithIcons)) continue;
+                    if (lBaggage.NodeType != XmlNodeType.Comment)
+                    {
+                        // We need to create according Id from Baggage filename
+                        lPath = lBaggage.Attributes.GetNamedItem("TargetPath").Value;
+                        lFileName = lBaggage.Attributes.GetNamedItem("Name").Value;
+                        lIdNode = lBaggage.Attributes.GetNamedItem("Id");
+                        if (HandleZipFile("%FILE-HELP", ref lWithHelp)) continue;
+                        if (HandleZipFile("%FILE-ICONS", ref lWithIcons)) continue;
 
-                    string lBaggageId = string.Format("M-00FA_BG-{0}-{1}", Program.GetEncoded(lPath), Program.GetEncoded(lFileName));
-                    if (!mBaggageId.ContainsKey(lIdNode.Value))
-                        mBaggageId.Add(lIdNode.Value, lBaggageId);
-                    lIdNode.Value = lBaggageId;
-                    DateTime lFileCreation = File.GetCreationTimeUtc(Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName));
-                    string lIsoDateTime = lFileCreation.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
-                    XmlNode lTimeInfo = lBaggage.SelectSingleNode("FileInfo/@TimeInfo", nsmgr);
-                    if (lTimeInfo != null && lTimeInfo.Value == "%DATETIME%")
-                        lTimeInfo.Value = lIsoDateTime;
+                        string lBaggageId = string.Format("M-00FA_BG-{0}-{1}", Program.GetEncoded(lPath), Program.GetEncoded(lFileName));
+                        if (!mBaggageId.ContainsKey(lIdNode.Value))
+                            mBaggageId.Add(lIdNode.Value, lBaggageId);
+                        lIdNode.Value = lBaggageId;
+                        DateTime lFileCreation = File.GetCreationTimeUtc(Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName));
+                        string lIsoDateTime = lFileCreation.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+                        XmlNode lTimeInfo = lBaggage.SelectSingleNode("FileInfo/@TimeInfo", nsmgr);
+                        if (lTimeInfo != null && lTimeInfo.Value == "%DATETIME%")
+                            lTimeInfo.Value = lIsoDateTime;
+                    }
                 }
                 // duplicate zip-baggages are deleted
                 XmlNodeList lDeletes = lBaggages.SelectNodes(@"Baggage[@Id ='!!DELETE!!']", nsmgr);
@@ -1525,6 +1553,8 @@ namespace OpenKNXproducer
                 {
                     ReplaceDocumentStrings(mDocument, lInclude.ReplaceKeys[lCount], lInclude.ReplaceValues[lCount]);
                 }
+                // we replace all HelpContext Ids 
+                if (lHeaderPrefixName != "") ProcessHelpContext(lDefine, mDocument, lInclude);
                 // if (lHeaderPrefixName != "") ProcessIncludeFinish(lChildren);
                 //if this fails, something is wrong
             }
