@@ -10,10 +10,6 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
 using OpenKNXproducer.Signing;
-using System.ComponentModel.DataAnnotations;
-// using Knx.Ets.Xml.ObjectModel;
-
-//using Knx.Ets.Converter.ConverterEngine;
 
 namespace OpenKNXproducer
 {
@@ -111,7 +107,7 @@ namespace OpenKNXproducer
                 }
 
                 if (!string.IsNullOrEmpty(lResult))
-                    Console.WriteLine("Found namespace {1} in xml, will use {0} for conversion... (Path: {2})", lEts, lXmlns, lResult);
+                    Console.WriteLine("Found namespace {1} in xml, using {0} for conversion... (Path: {2})", lEts, lXmlns, lResult);
             }
             if (string.IsNullOrEmpty(lResult)) Console.WriteLine("No valid conversion engine available for xmlns {0}", lXmlns);
 
@@ -1024,6 +1020,8 @@ namespace OpenKNXproducer
             {
                 if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
 
+                Console.WriteLine("Generating knxprod file...");
+
                 XDocument xdoc = null;
                 string xmlContent = File.ReadAllText(lTempXmlFileName);
                 xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
@@ -1168,7 +1166,7 @@ namespace OpenKNXproducer
 
                 Directory.CreateDirectory(Path.Combine(localPath, "Masters"));
                 ns = ns.Substring(ns.LastIndexOf("/") + 1);
-                Console.WriteLine("localPath is {0}", localPath);
+                // Console.WriteLine("localPath is {0}", localPath);
                 if (!File.Exists(Path.Combine(localPath, "Masters", $"project-{ns}.xml")))
                 {
                     // var client = new System.Net.WebClient();
