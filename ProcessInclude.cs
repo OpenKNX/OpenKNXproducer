@@ -198,11 +198,15 @@ namespace OpenKNXproducer
             return lResult;
         }
 
+        private bool mSingletonDefinesAdded = false;
+
         public string HeaderGenerated
         {
             get
             {
-                mHeaderGenerated.Insert(0, @"
+                if (!mSingletonDefinesAdded)
+                {
+                    mHeaderGenerated.Insert(0, @"
 #define paramDelay(time) (uint32_t)( \
             (time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : \
             (time & 0xC000) == 0x0000 ? (time & 0x3FFF) * 1000 : \
@@ -211,7 +215,9 @@ namespace OpenKNXproducer
                                          (time & 0x3FFF) * 3600000 ) : 0 )
                                              
 ");
-                mHeaderGenerated.Insert(0, "#pragma once\n\n");
+                    mHeaderGenerated.Insert(0, "#pragma once\n\n");
+                    mSingletonDefinesAdded = true;
+                }
                 return mHeaderGenerated.ToString();
             }
         }

@@ -1410,10 +1410,11 @@ namespace OpenKNXproducer
             lXml.Save(lTempXmlFileName);
             // we check against old file content
             bool lIsEqual = false;
+            string lHeaderGenerated = lInclude.HeaderGenerated;
             if (File.Exists(lHeaderFileName))
             {
                 string lOldHeaderGenerated = File.ReadAllText(lHeaderFileName);
-                lIsEqual = (lOldHeaderGenerated == lInclude.HeaderGenerated);
+                lIsEqual = (lOldHeaderGenerated == lHeaderGenerated);
             }
             if (lIsEqual)
             {
@@ -1422,7 +1423,7 @@ namespace OpenKNXproducer
             else
             {
                 Console.WriteLine("Writing header file to {0}", lHeaderFileName);
-                File.WriteAllText(lHeaderFileName, lInclude.HeaderGenerated);
+                File.WriteAllText(lHeaderFileName, lHeaderGenerated);
             }
             string lOutputFileName = Path.ChangeExtension(opts.OutputFile, "knxprod");
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");

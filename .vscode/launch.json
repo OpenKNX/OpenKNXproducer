@@ -79,6 +79,8 @@
             "args": [
                 "create",
                 "--Debug",
+                "--HeaderFileName",
+                "../OAM-SensorModule/include/knxprod.h",
                 "../OAM-SensorModule/src/Sensormodul"
             ],
             "cwd": "${workspaceFolder}",
