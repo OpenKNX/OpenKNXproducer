@@ -2,6 +2,7 @@ using System.Xml;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OpenKNXproducer
 {
@@ -335,71 +336,73 @@ namespace OpenKNXproducer
             return lWithVersions;
         }
 
-        string ReplaceChannelTemplate(string iValue, int iChannel)
+        static string ReplaceChannelTemplate(string iValue, int iChannel)
         {
             string lResult = iValue;
-            Match lMatch = Regex.Match(iValue, @"%(C{1,3})%");
-            if (lMatch.Captures.Count > 0)
+            if (iValue.Contains('%'))
             {
-                int lLen = lMatch.Groups[1].Value.Length;
-                string lFormat = string.Format("D{0}", lLen);
-                lResult = iValue.Replace(lMatch.Value, iChannel.ToString(lFormat));
-            }
-
-            lMatch = Regex.Match(lResult, @"%(Z{1,3})%");
-            if (lMatch.Captures.Count > 0)
-            {
-                int lLen = lMatch.Groups[1].Value.Length;
-                string channelName = "";
-                int temp_Channel = iChannel - 1;
-                for (int i = 0; i < lLen; i++)
+                Match lMatch = Regex.Match(iValue, @"%(C{1,3})%");
+                if (lMatch.Captures.Count > 0)
                 {
-                    if (temp_Channel >= 0) channelName = Convert.ToChar((temp_Channel) % 26 + 65) + channelName;
-                    temp_Channel /= 26;
-                    temp_Channel--;
+                    int lLen = lMatch.Groups[1].Value.Length;
+                    string lFormat = string.Format("D{0}", lLen);
+                    lResult = iValue.Replace(lMatch.Value, iChannel.ToString(lFormat));
                 }
-                lResult = iValue.Replace(lMatch.Value, channelName);
+                lMatch = Regex.Match(lResult, @"%(Z{1,3})%");
+                if (lMatch.Captures.Count > 0)
+                {
+                    int lLen = lMatch.Groups[1].Value.Length;
+                    string channelName = "";
+                    int temp_Channel = iChannel - 1;
+                    for (int i = 0; i < lLen; i++)
+                    {
+                        if (temp_Channel >= 0) channelName = Convert.ToChar((temp_Channel) % 26 + 65) + channelName;
+                        temp_Channel /= 26;
+                        temp_Channel--;
+                    }
+                    lResult = iValue.Replace(lMatch.Value, channelName);
+                }
             }
-
             return lResult;
         }
 
-        string ReplaceKoTemplate(DefineContent iDefine, string iValue, int iChannel, ProcessInclude iInclude, bool iIsName)
+        static string ReplaceKoTemplate(DefineContent iDefine, string iValue, int iChannel, ProcessInclude iInclude, bool iIsName)
         {
             string lResult = iValue;
             int lBlockSize = 0;
             int lOffset = 0;
             if (iDefine.IsTemplate)
             {
-                if (iInclude != null)
+                if (iValue.Contains("%K"))
                 {
-                    lBlockSize = iInclude.mKoBlockSize;
-                    lOffset = iInclude.KoOffset;
-                }
-                // too slow!!!
-                // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
-                Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
-                if (lMatch.Captures.Count > 0)
-                {
-                    int lShift = 0;
-                    if (int.TryParse(lMatch.Groups[1].Value, out lShift))
+                    if (iInclude != null)
                     {
-                        int lKoNumber = ((iChannel - 1) * lBlockSize + lOffset + lShift);
-                        // we replace just in case it is numeric, otherwise an error message will appear during final document check                        
-                        lResult = iValue.Replace(lMatch.Value, lKoNumber.ToString());
-                        // remember the max replaced number
-                        sMaxKoNumber = (lKoNumber > sMaxKoNumber) ? lKoNumber : sMaxKoNumber;
-                        // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
-                        // a replacement happened 
-                        lResult = ReplaceKoTemplate(iDefine, lResult, iChannel, iInclude, iIsName);
+                        lBlockSize = iInclude.mKoBlockSize;
+                        lOffset = iInclude.KoOffset;
+                    }
+                    // too slow!!!
+                    // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
+                    Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
+                    if (lMatch.Captures.Count > 0)
+                    {
+                        if (int.TryParse(lMatch.Groups[1].Value, out int lShift))
+                        {
+                            int lKoNumber = (iChannel - 1) * lBlockSize + lOffset + lShift;
+                            // we replace just in case it is numeric, otherwise an error message will appear during final document check                        
+                            lResult = iValue.Replace(lMatch.Value, lKoNumber.ToString());
+                            // remember the max replaced number
+                            sMaxKoNumber = (lKoNumber > sMaxKoNumber) ? lKoNumber : sMaxKoNumber;
+                            // we want to replace all occurrences, but a match collection is to slow, so we call recursively just if 
+                            // a replacement happened 
+                            lResult = ReplaceKoTemplate(iDefine, lResult, iChannel, iInclude, iIsName);
+                        }
                     }
                 }
             }
             else if (iIsName)
             {
                 // iChannel is in this case KoSingleOffset
-                int lValue = 0;
-                if (int.TryParse(iValue, out lValue))
+                if (int.TryParse(iValue, out int lValue))
                 {
                     // we replace just in case it is numeric, otherwise an error message will appear during final document check
                     lResult = (lValue + iDefine.KoSingleOffset).ToString();
@@ -408,26 +411,33 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        void ProcessAttributes(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        static void ProcessAttribute(DefineContent iDefine, int iChannel, XmlAttribute iAttr, ProcessInclude iInclude)
+        {
+            // we have to mark ParameterBlock and ParameterSeparator for renumber processing
+            string lValue = iAttr.Value;
+            if (lValue.Contains("%T%"))
+            {
+                lValue = lValue.Replace("_PS-", "_PST-");
+                lValue = lValue.Replace("_PB-", "_PBT-");
+                lValue = lValue.Replace("%T%", iInclude.ModuleType.ToString());
+            }
+            lValue = ReplaceChannelTemplate(lValue, iChannel);
+            lValue = ReplaceKoTemplate(iDefine, lValue, iChannel, iInclude, iAttr.Name == "Number");
+            // lAttr.Value = lAttr.Value.Replace("%N%", mChannelCount.ToString());
+            if (iAttr.Name == "Name" && iAttr.OwnerElement.Name != "ParameterType")
+                lValue = iInclude.mHeaderPrefixName + lValue;
+            iAttr.Value = lValue;
+        }
+
+        static void ProcessAttributes(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             foreach (XmlAttribute lAttr in iTargetNode.Attributes)
             {
-                // we have to mark ParameterBlock and ParameterSeparator for renumber processing
-                if (lAttr.Value.Contains("%T%"))
-                {
-                    lAttr.Value = lAttr.Value.Replace("_PS-", "_PST-");
-                    lAttr.Value = lAttr.Value.Replace("_PB-", "_PBT-");
-                }
-                lAttr.Value = lAttr.Value.Replace("%T%", iInclude.ModuleType.ToString());
-                lAttr.Value = ReplaceChannelTemplate(lAttr.Value, iChannel);
-                lAttr.Value = ReplaceKoTemplate(iDefine, lAttr.Value, iChannel, iInclude, lAttr.Name == "Number");
-                // lAttr.Value = lAttr.Value.Replace("%N%", mChannelCount.ToString());
-                if (lAttr.Name == "Name" && iTargetNode.Name != "ParameterType")
-                    lAttr.Value = iInclude.mHeaderPrefixName + lAttr.Value;
+                ProcessAttribute(iDefine, iChannel, lAttr, iInclude);
             }
         }
 
-        void ProcessHelpContext(DefineContent iDefine, XmlNode iTargetNode, ProcessInclude iInclude)
+        static void ProcessHelpContext(DefineContent iDefine, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             XmlNodeList lNodes = iTargetNode.SelectNodes(@"//ParameterRefRef[@HelpContext]");
             XmlNodeList lParameters = iTargetNode.SelectNodes(@"//Parameter[@Id]");
@@ -452,7 +462,7 @@ namespace OpenKNXproducer
             }
         }
 
-        void ProcessParameter(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        static void ProcessParameter(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             //calculate new offset
             XmlNode lMemory = iTargetNode.SelectSingleNode("Memory");
@@ -466,7 +476,7 @@ namespace OpenKNXproducer
             }
         }
 
-        void ProcessUnion(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        static void ProcessUnion(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             //calculate new offset
             ProcessParameter(iChannel, iTargetNode, iInclude);
@@ -478,7 +488,7 @@ namespace OpenKNXproducer
             }
         }
 
-        void ProcessChannel(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        static void ProcessChannel(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             //attributes of the node
             if (iTargetNode.Attributes != null)
@@ -493,6 +503,14 @@ namespace OpenKNXproducer
                 ProcessChannel(iDefine, iChannel, lChild, iInclude);
             }
         }
+        // static void ProcessChannel(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        // {
+        //     XmlNodeList lAttrs = iTargetNode.SelectNodes("*/@*");
+        //     foreach (XmlAttribute lAttr in lAttrs)
+        //     {
+        //         ProcessAttribute(iDefine, iChannel, lAttr, iInclude);
+        //     }
+        // }
 
         void ProcessBaggage(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
@@ -600,22 +618,22 @@ namespace OpenKNXproducer
             }
         }
 
-        void ProcessIncludeFinish(XmlNode iTargetNode)
-        {
-            // set number of Channels
-            XmlNodeList lNodes = iTargetNode.SelectNodes("//*[@Value='%N%']");
-            foreach (XmlNode lNode in lNodes)
-            {
-                lNode.Attributes.GetNamedItem("Value").Value = ChannelCount.ToString();
-            }
-            lNodes = iTargetNode.SelectNodes("//*[@maxInclusive='%N%']");
-            foreach (XmlNode lNode in lNodes)
-            {
-                lNode.Attributes.GetNamedItem("maxInclusive").Value = ChannelCount.ToString();
-            }
-            // // set the max channel value
-            // ReplaceDocumentStrings(mDocument, "%N%", mChannelCount.ToString());
-        }
+        // void ProcessIncludeFinish(XmlNode iTargetNode)
+        // {
+        //     // set number of Channels
+        //     XmlNodeList lNodes = iTargetNode.SelectNodes("//*[@Value='%N%']");
+        //     foreach (XmlNode lNode in lNodes)
+        //     {
+        //         lNode.Attributes.GetNamedItem("Value").Value = ChannelCount.ToString();
+        //     }
+        //     lNodes = iTargetNode.SelectNodes("//*[@maxInclusive='%N%']");
+        //     foreach (XmlNode lNode in lNodes)
+        //     {
+        //         lNode.Attributes.GetNamedItem("maxInclusive").Value = ChannelCount.ToString();
+        //     }
+        //     // // set the max channel value
+        //     // ReplaceDocumentStrings(mDocument, "%N%", mChannelCount.ToString());
+        // }
 
         void ReplaceDocumentStrings(XmlNodeList iNodeList, string iSourceText, string iTargetText)
         {
@@ -1455,12 +1473,10 @@ namespace OpenKNXproducer
                     // we get rid of default namespace, but remember the original
                     lFileData = lFileData.Replace(" xmlns=\"", " oldxmlns=\"");
                 }
-                using (StringReader sr = new StringReader(lFileData))
-                {
-                    mDocument.Load(sr);
-                    mLoaded = true;
-                    ResolveIncludes(lCurrentDir);
-                }
+                using StringReader sr = new(lFileData);
+                mDocument.Load(sr);
+                mLoaded = true;
+                ResolveIncludes(lCurrentDir);
             }
         }
 
@@ -1496,9 +1512,9 @@ namespace OpenKNXproducer
                 lDefine.IsTemplate = (lIncludeNode.NodeAttr("type") == "template");
                 lDefine.IsParameter = (lIncludeNode.NodeAttr("type") == "parameter");
                 ProcessInclude lInclude = ProcessInclude.Factory(lIncludeName, lDefine.header, lHeaderPrefixName);
+                DateTime lStartTime = DateTime.Now;
                 string lTargetPath = Path.Combine(iCurrentDir, lIncludeName);
                 lInclude.LoadAdvanced(lTargetPath);
-
                 lHeaderPrefixName = lInclude.mHeaderPrefixName;
                 lDefine = DefineContent.GetDefineContent(lHeaderPrefixName.Trim('_'));
                 //...find include in real document...
@@ -1525,6 +1541,8 @@ namespace OpenKNXproducer
                         ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
                     }
                 }
+
+                DateTime lStart = DateTime.Now;
                 // here we do template processing and repeat the template as many times as
                 // the Channels parameter in header file
                 for (int lChannel = 1; lChannel <= lInclude.ChannelCount; lChannel++)
@@ -1543,6 +1561,9 @@ namespace OpenKNXproducer
                     }
                 }
                 lParent.RemoveChild(lIncludeNode);
+                var lDiff = DateTime.Now - lStart;
+                if (lDiff.Seconds > 0)
+                    Console.WriteLine("Multiply Channels of {1} took {0}", lDiff, lInclude.mHeaderPrefixName.Trim('_'));
                 if (lDefine.IsTemplate)
                 {
                     ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
@@ -1553,6 +1574,7 @@ namespace OpenKNXproducer
                 {
                     ReplaceDocumentStrings(mDocument, lInclude.ReplaceKeys[lCount], lInclude.ReplaceValues[lCount]);
                 }
+
                 // we replace all HelpContext Ids 
                 if (lHeaderPrefixName != "") ProcessHelpContext(lDefine, mDocument, lInclude);
                 // if (lHeaderPrefixName != "") ProcessIncludeFinish(lChildren);
