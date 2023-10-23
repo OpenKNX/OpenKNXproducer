@@ -1567,9 +1567,9 @@ namespace OpenKNXproducer
                     }
                 }
                 lParent.RemoveChild(lIncludeNode);
-                var lDiff = DateTime.Now - lStart;
-                if (lDiff.Seconds > 0)
-                    Console.WriteLine("Multiply Channels of {1} took {0}", lDiff, lInclude.mHeaderPrefixName.Trim('_'));
+                TimeSpan lDiff = DateTime.Now - lStart;
+                if (lDiff.Seconds > 0 && lDefine.IsTemplate)
+                    Console.WriteLine("Multiplying {2} channels of {1} took {0:0.##} seconds", lDiff.TotalSeconds, lInclude.mHeaderPrefixName.Trim('_'), lInclude.ChannelCount);
                 if (lDefine.IsTemplate)
                 {
                     ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
