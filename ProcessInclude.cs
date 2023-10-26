@@ -1200,7 +1200,7 @@ namespace OpenKNXproducer
             }
         }
 
-        string RemoveControlChars(string iText)
+        static string RemoveControlChars(string iText)
         {
             return iText.Replace("\n", "");
             // return new string(iText.Where(c => !char.IsControl(c)).ToArray());
@@ -1516,7 +1516,7 @@ namespace OpenKNXproducer
             }
         }
 
-        private static void ProcessConfig(XmlNode iNode)
+        public static void ProcessConfig(XmlNode iNode)
         {
             if (iNode.NodeType != XmlNodeType.Comment)
             {
@@ -1552,7 +1552,7 @@ namespace OpenKNXproducer
             {
                 ParseConfig(lConfigNodes);
             }
-            ProcessConfig(mDocument);
+            // ProcessConfig(mDocument);
 
             // process define node
             XmlNodeList lDefineNodes = mDocument.SelectNodes("//oknxp:define", nsmgr);

@@ -1443,6 +1443,7 @@ namespace OpenKNXproducer
             lInclude.ResetXsd();
             lInclude.SetToolAndVersion();
             XmlDocument lXml = lInclude.GetDocument();
+            ProcessInclude.ProcessConfig(lXml);
             bool lSuccess = ProcessSanityChecks(lInclude, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
