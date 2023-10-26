@@ -4,6 +4,7 @@ using System.Text;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml.Serialization;
+using System.Globalization;
 
 namespace OpenKNXproducer
 {
@@ -678,6 +679,7 @@ namespace OpenKNXproducer
         bool ProcessFinish(XmlNode iTargetNode)
         {
             Console.WriteLine("Processing merged file...");
+            ProcessConfig(iTargetNode);
             bool lWithVersions = false;
             XmlNode lApplicationProgramNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
             // evaluate oknxp:version, if available
@@ -688,16 +690,26 @@ namespace OpenKNXproducer
             if (lMcVersionNode != null)
             {
                 // found oknxp:version, we apply its attributes to knxprod-xml
-                int lOpenKnxId = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("OpenKnxId").Value, 16);
-                int lAppNumber = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("ApplicationNumber").Value, 10);
-                int lCalcAppNumber = (lAppNumber + (lOpenKnxId << 8));
+                int lOpenKnxId = 175;
+                string lValue = lMcVersionNode.Attributes.GetNamedItem("OpenKnxId").Value;
+                lValue = lValue.Replace("0x", "");
+                if (!int.TryParse(lValue, System.Globalization.NumberStyles.HexNumber, CultureInfo.InvariantCulture, out lOpenKnxId))
+                    Program.Message(true, "OpenKnxId could not be parsed, given value was {0}", lMcVersionNode.Attributes.GetNamedItem("OpenKnxId").Value);
+                int lAppNumber = 0;
+                if (!int.TryParse(lMcVersionNode.Attributes.GetNamedItem("ApplicationNumber").Value, out lAppNumber))
+                    Program.Message(true, "ApplicationNumber could not be parsed, given value was {0}", lMcVersionNode.Attributes.GetNamedItem("ApplicationNumber").Value);
+                int lCalcAppNumber = lAppNumber + (lOpenKnxId << 8);
                 lApplicationProgramNode.Attributes.GetNamedItem("ApplicationNumber").Value = lCalcAppNumber.ToString();
-                int lAppVersion = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("ApplicationVersion").Value, 10);
+                int lAppVersion = 1;
+                if (!int.TryParse(lMcVersionNode.Attributes.GetNamedItem("ApplicationVersion").Value, out lAppVersion))
+                    Program.Message(true, "ApplicationVersion could not be parsed, given value was {0}", lMcVersionNode.Attributes.GetNamedItem("ApplicationVersion").Value);
                 lApplicationProgramNode.Attributes.GetNamedItem("ApplicationVersion").Value = lAppVersion.ToString();
                 string lReplVersions = lMcVersionNode.Attributes.GetNamedItem("ReplacesVersions").Value;
                 if (lReplVersions == "") lReplVersions = "0";
                 lApplicationProgramNode.Attributes.GetNamedItem("ReplacesVersions").Value = lReplVersions;
-                int lAppRevision = Convert.ToInt32(lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value, 10);
+                int lAppRevision = 0;
+                if (!int.TryParse(lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value, out lAppRevision))
+                    Program.Message(true, "ApplicationRevision could not be parsed, given value was {0}", lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value);
                 // now we calculate according versioning verification string
                 int lDerivedVersion = lAppVersion - lAppRevision;
                 lInlineData = string.Format("0000{0:X4}{1:X2}00", lCalcAppNumber, lDerivedVersion);
@@ -772,9 +784,8 @@ namespace OpenKNXproducer
                 XmlNode lParameterType = lEnumeration.ParentNode.ParentNode;
                 lIdNode.Value = lParameterType.NodeAttr("Id") + "_EN-" + lEnumeration.NodeAttr("Value");
             }
-            Console.WriteLine("- ApplicationNumber: {0}, ApplicationVersion: {1}, old ID is: {3}, new (calculated) ID is: {2}", lApplicationNumber, lApplicationVersion, lNewId, lOldId);
+            Console.WriteLine("- ApplicationNumber: {0:X4} ({0}), ApplicationVersion: {1}, old ID is: {3}, new (calculated) ID is: {2}", lApplicationNumber, lApplicationVersion, lNewId, lOldId);
             if (lInlineData != "") Console.WriteLine("- Calculated InlineData for Versioning: {0}", lInlineData);
-
             // create registration entry
             XmlNode lHardwareNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Hardware/Hardware");
             int lHardwareVersion = 1;
@@ -1444,17 +1455,17 @@ namespace OpenKNXproducer
                     {
                         lResult = (iDefine.VerifyVersion == lVersionInt);
                         if (!lResult)
-                            Program.additionalMessages.Add(string.Format("You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt), true);
+                            Program.Message(true, "You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt);
                     }
                     else
                     {
                         // add warning
-                        Program.additionalMessages.Add(string.Format("Verify for module {0} was not specified or could not be parsed. You should enable this for consistent ETS Applications, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix), false);
+                        Program.Message(false, "Verify for module {0} was not specified or could not be parsed. You should enable this for consistent ETS Applications, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix);
                     }
                 }
                 catch (System.IO.FileNotFoundException)
                 {
-                    Program.additionalMessages.Add(string.Format("Version file {0} not found, please check name and path.", iDefine.VerifyFile), true);
+                    Program.Message(true, "Version file {0} not found, please check name and path.", iDefine.VerifyFile);
                     lResult = false;
                 }
             }

@@ -172,6 +172,13 @@ namespace OpenKNXproducer
 
         public static readonly Dictionary<string, bool> additionalMessages = new();
 
+#nullable enable
+        public static void Message(bool iIsError, string iFormat, params object?[] args)
+        {
+            additionalMessages.Add(string.Format(iFormat, args), iIsError);
+        }
+#nullable disable
+
         static bool ProcessSanityChecks(ProcessInclude iInclude, bool iWithVersions)
         {
 
@@ -1443,7 +1450,6 @@ namespace OpenKNXproducer
             lInclude.ResetXsd();
             lInclude.SetToolAndVersion();
             XmlDocument lXml = lInclude.GetDocument();
-            ProcessInclude.ProcessConfig(lXml);
             bool lSuccess = ProcessSanityChecks(lInclude, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
