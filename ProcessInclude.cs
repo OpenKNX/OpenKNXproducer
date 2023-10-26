@@ -3,13 +3,20 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Serialization;
 
 namespace OpenKNXproducer
 {
     public class ProcessInclude
     {
 
-        const string cOwnNamespace = "http://github.com/OpenKNX/OpenKNXproducer";
+        public const string cOwnNamespace = "http://github.com/OpenKNX/OpenKNXproducer";
+        public class ConfigEntry
+        {
+            public string ConfigValue;
+            public bool WasReplaced;
+        }
+        public static readonly Dictionary<string, ConfigEntry> Config = new();
         private class DefineContent
         {
             public string prefix;
@@ -588,12 +595,15 @@ namespace OpenKNXproducer
         private string DetermineBaggagePath(string iPath)
         {
             var lDirInfo = new DirectoryInfo(Path.Combine(mCurrentDir, "Baggages"));
-            var lSubDirInfos = lDirInfo.EnumerateDirectories("??");
-            if (lSubDirInfos != null && lSubDirInfos.Count() > 0)
+            if (lDirInfo.Exists)
             {
-                var lSubSubDirInfos = lSubDirInfos.First().EnumerateDirectories("??");
-                if (lSubSubDirInfos != null && lSubSubDirInfos.Count() > 0)
-                    iPath = Path.Combine(lSubDirInfos.First().Name, lSubSubDirInfos.First().Name);
+                var lSubDirInfos = lDirInfo.EnumerateDirectories("??");
+                if (lSubDirInfos != null && lSubDirInfos.Any())
+                {
+                    var lSubSubDirInfos = lSubDirInfos.First().EnumerateDirectories("??");
+                    if (lSubSubDirInfos != null && lSubSubDirInfos.Any())
+                        iPath = Path.Combine(lSubDirInfos.First().Name, lSubSubDirInfos.First().Name);
+                }
             }
             return iPath;
         }
@@ -978,10 +988,12 @@ namespace OpenKNXproducer
             // before the next PB is offered.
             int lPos = lAttr.Value.IndexOf("_PB-");
             string lValue = "";
-            if (lAttr.Value.Substring(lPos + 4).Contains("_"))
+            // if (lAttr.Value.Substring(lPos + 4).Contains('_'))
+            if (lAttr.Value[(lPos + 4)..].Contains('_'))
             {
                 // this is a subblock, we assume, that its main block was already renumbered
-                lValue = lAttr.Value.Substring(0, lAttr.Value.LastIndexOf("_"));
+                // lValue = lAttr.Value.Substring(0, lAttr.Value.LastIndexOf("_"));
+                lValue = lAttr.Value[..lAttr.Value.LastIndexOf("_")];
                 // lAttr.Value = lAttr.Value.Replace(lValue, mParameterBlockMap[lValue]);
                 lAttr.Value = lAttr.Value.Replace(lValue, mLastParameterBlockId);
             }
@@ -1486,6 +1498,46 @@ namespace OpenKNXproducer
             }
         }
 
+
+        public static void ParseConfig(XmlNodeList iConfigNodes)
+        {
+            // config consists of a list of name-value pairs to be replaced in document
+            foreach (XmlNode lNode in iConfigNodes)
+            {
+                if (lNode.NodeType == XmlNodeType.Comment) continue;
+                string lName = lNode.NodeAttr("name");
+                string lValue = lNode.NodeAttr("value");
+                lNode.ParentNode.RemoveChild(lNode);
+                if (lName != "" && !Config.ContainsKey(lName))
+                {
+                    lName = string.Format("%{0}%", lName.Trim('%'));
+                    Config[lName] = new() { ConfigValue = lValue }; ;
+                }
+            }
+        }
+
+        private static void ProcessConfig(XmlNode iNode)
+        {
+            if (iNode.NodeType != XmlNodeType.Comment)
+            {
+                // we check for all attributes of current node and all child nodes in the subtree
+                XmlNodeList lAttributes = iNode.SelectNodes("@*|*//@*");
+                ProcessConfig(lAttributes);
+            }
+        }
+
+        private static void ProcessConfig(XmlNodeList iNodes)
+        {
+            foreach (XmlAttribute lAttr in iNodes)
+                if (lAttr.Value.Contains('%'))
+                    foreach (var lConfig in Config)
+                    {
+                        string lNewValue = lAttr.Value.Replace(lConfig.Key, lConfig.Value.ConfigValue);
+                        if (!lConfig.Value.WasReplaced && lNewValue != lAttr.Value) lConfig.Value.WasReplaced = true;
+                        lAttr.Value = lNewValue;
+                    }
+        }
+
         /// <summary>
         /// Resolves Includes inside xml document
         /// </summary>
@@ -1494,6 +1546,14 @@ namespace OpenKNXproducer
         {
             nsmgr = new XmlNamespaceManager(mDocument.NameTable);
             nsmgr.AddNamespace("oknxp", cOwnNamespace);
+            // process config
+            XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
+            if (lConfigNodes != null && lConfigNodes.Count > 0)
+            {
+                ParseConfig(lConfigNodes);
+            }
+            ProcessConfig(mDocument);
+
             // process define node
             XmlNodeList lDefineNodes = mDocument.SelectNodes("//oknxp:define", nsmgr);
             if (lDefineNodes != null && lDefineNodes.Count > 0)
@@ -1527,6 +1587,11 @@ namespace OpenKNXproducer
                 XmlNode lParent = lIncludeNode.ParentNode;
                 string lXPath = lIncludeNode.NodeAttr("xpath");
                 XmlNodeList lChildren = lInclude.SelectNodes(lXPath);
+                // we replace config params before we multiply all channels (faster)
+                foreach (XmlNode lNode in lChildren)
+                {
+                    ProcessConfig(lNode);
+                }
                 string lHeaderFileName = Path.Combine(iCurrentDir, lDefine.header);
                 lInclude.ModuleType = lDefine.ModuleType;
                 if (lChildren.Count > 0 && "Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName))

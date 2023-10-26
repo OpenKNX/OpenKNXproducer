@@ -726,9 +726,37 @@ namespace OpenKNXproducer
             if (!lFailPart) WriteOK();
             lFail = lFail || lFailPart;
 
-            Console.Write("- Further messages during document processing...");
+            Console.Write("- Unused config entries...");
             lFailPart = false;
             bool lWarnPart = false;
+            foreach (var lConfig in ProcessInclude.Config)
+            {
+                if (!lConfig.Value.WasReplaced)
+                {
+                    WriteWarn(ref lWarnPart, "Config name {0} with value {1} was never replaced", lConfig.Key, lConfig.Value.ConfigValue);
+                }
+            }
+            if (!lWarnPart) WriteOK();
+
+            Console.Write("- Not replaced config entries...");
+            lFailPart = false;
+            lWarnPart = false;
+            lNodes = lXml.SelectNodes("//@*");
+            Regex lConfigName = new(@"%[A-Za-z0-9\-_]*%");
+            foreach (XmlAttribute lAttr in lNodes)
+            {
+                if (lAttr.Value.Contains('%'))
+                {
+                    Match lMatch = lConfigName.Match(lAttr.Value);
+                    if (lMatch.Success)
+                        WriteWarn(ref lWarnPart, "The value {0} of attribute {1} in node {2} might be an unreplaced config entry", lAttr.Value, lAttr.Name, lAttr.OwnerElement.Name);
+                }
+            }
+            if (!lWarnPart) WriteOK();
+
+            Console.Write("- Further messages during document processing...");
+            lFailPart = false;
+            lWarnPart = false;
             foreach (var lMessage in additionalMessages)
             {
                 if (lMessage.Value)
@@ -1293,6 +1321,8 @@ namespace OpenKNXproducer
             public bool NoRenumber { get; set; } = false;
             [Option('A', "AbsoluteSingleParameters", Required = false, HelpText = "Compatibility with 1.5.x: Parameters with single occurrence have an absolute address in xml")]
             public bool AbsoluteSingleParameters { get; set; } = false;
+            [Option('c', "ConfigFileName", Required = false, HelpText = "File containing additional configuration", MetaValue = "FILE")]
+            public string ConfigFileName { get; set; } = "";
         }
 
         [Verb("check", HelpText = "execute sanity checks on given xml file")]
@@ -1392,6 +1422,18 @@ namespace OpenKNXproducer
             ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
             ProcessInclude.Renumber = !opts.NoRenumber;
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
+            // additional configuration
+            if (opts.ConfigFileName != "")
+            {
+                XmlDocument lConfig = new();
+                lConfig.Load(opts.ConfigFileName);
+                XmlNamespaceManager nsmgr = new(lConfig.NameTable);
+                nsmgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
+                // process config
+                XmlNodeList lConfigNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
+                if (lConfigNodes != null && lConfigNodes.Count > 0)
+                    ProcessInclude.ParseConfig(lConfigNodes);
+            }
             string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
             // Directory.CreateDirectory(lBaggageDirName);
