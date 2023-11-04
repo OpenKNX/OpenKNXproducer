@@ -8,7 +8,7 @@ using System.Globalization;
 
 namespace OpenKNXproducer
 {
-    public class ProcessInclude
+    public partial class ProcessInclude
     {
 
         public const string cOwnNamespace = "http://github.com/OpenKNX/OpenKNXproducer";
@@ -18,120 +18,30 @@ namespace OpenKNXproducer
             public bool WasReplaced;
         }
         public static readonly Dictionary<string, ConfigEntry> Config = new();
-        private class DefineContent
-        {
-            public string prefix;
-            public int KoOffset;
-            public int KoSingleOffset;
-            public string[] ReplaceKeys = { };
-            public string[] ReplaceValues = { };
-            public int NumChannels;
-            public int ModuleType;
-            public string header;
-            public bool IsTemplate;
-            public bool IsParameter;
-            public string VerifyFile = "";
-            public string VerifyRegex = "";
-            public int VerifyVersion = -1;
-            private DefineContent(string iPrefix, string iHeader, int iKoOffset, int iKoSingleOffset, int iNumChannels, string iReplaceKeys, string iReplaceValues, int iModuleType, bool iIsParameter, string iVerifyFile, string iVerifyRegex, int iVerifyVersion)
-            {
-                prefix = iPrefix;
-                header = iHeader;
-                KoOffset = iKoOffset;
-                KoSingleOffset = iKoSingleOffset;
-                if (iReplaceKeys.Length > 0)
-                {
-                    ReplaceKeys = iReplaceKeys.Split(" ");
-                    ReplaceValues = iReplaceValues.Split(" ");
-                }
-                NumChannels = iNumChannels;
-                ModuleType = iModuleType;
-                IsParameter = iIsParameter;
-                VerifyFile = iVerifyFile;
-                VerifyRegex = iVerifyRegex;
-                VerifyVersion = iVerifyVersion;
-            }
-            public static DefineContent Factory(XmlNode iDefineNode)
-            {
-                DefineContent lResult;
-
-                int lChannelCount = 0;
-                int lKoOffset = 1;
-                int lKoSingleOffset = 0;
-                string lPrefix = "";
-                string lHeader = "";
-                string lReplaceKeys = "";
-                string lReplaceValues = "";
-                int lModuleType = 1;
-                string lVerifyFile = "";
-                string lVerifyRegex = "";
-                int lVerifyVersion = -1;
-                lPrefix = iDefineNode.NodeAttr("prefix");
-                if (lPrefix == "") lPrefix = "LOG"; // backward compatibility
-                if (sDefines.ContainsKey(lPrefix))
-                {
-                    lResult = sDefines[lPrefix];
-                }
-                else
-                {
-                    lHeader = iDefineNode.NodeAttr("header");
-                    if (!int.TryParse(iDefineNode.NodeAttr("NumChannels"), out lChannelCount)) lChannelCount = 0;
-                    if (!int.TryParse(iDefineNode.NodeAttr("KoOffset"), out lKoOffset)) lKoOffset = 1;
-                    if (!int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lKoSingleOffset)) lKoSingleOffset = 0;
-                    lReplaceKeys = iDefineNode.NodeAttr("ReplaceKeys");
-                    lReplaceValues = iDefineNode.NodeAttr("ReplaceValues");
-                    lModuleType = int.Parse(iDefineNode.NodeAttr("ModuleType"));
-                    XmlNode lVerify = iDefineNode.FirstChild;
-                    if (lVerify != null && lVerify.Name == "op:verify")
-                    {
-                        lVerifyFile = lVerify.NodeAttr("File");
-                        lVerifyRegex = lVerify.NodeAttr("Regex", "\\s\"version\":\\s\"(\\d{1,2}).(\\d{1,2}).*\",");
-                        int.TryParse(lVerify.NodeAttr("ModuleVersion", "-1"), out lVerifyVersion);
-                    }
-                    lResult = new DefineContent(lPrefix, lHeader, lKoOffset, lKoSingleOffset, lChannelCount, lReplaceKeys, lReplaceValues, lModuleType, false, lVerifyFile, lVerifyRegex, lVerifyVersion);
-                    sDefines.Add(lPrefix, lResult);
-                }
-                return lResult;
-            }
-
-            static public DefineContent Empty = new("LOG", "", 1, 0, 1, "", "", 1, true, "", "", -1);
-            public static DefineContent GetDefineContent(string iPrefix)
-            {
-                DefineContent lResult;
-                if (sDefines.ContainsKey(iPrefix))
-                {
-                    lResult = sDefines[iPrefix];
-                }
-                else
-                {
-                    lResult = Empty;
-                }
-                return lResult;
-            }
-        }
 
         private XmlNamespaceManager nsmgr;
-        private readonly XmlDocument mDocument = new();
+        private XmlDocument mDocument = new();
         private bool mLoaded = false;
         readonly StringBuilder mHeaderGenerated = new();
 
         private XmlNode mParameterTypesNode = null;
         private static readonly Dictionary<string, ProcessInclude> gIncludes = new Dictionary<string, ProcessInclude>();
-        private static readonly Dictionary<string, DefineContent> sDefines = new Dictionary<string, DefineContent>();
         private static int sMaxKoNumber = 0;
-        private string mXmlFileName;
-        private string mHeaderFileName;
-        private string mHeaderPrefixName;
+        private readonly string mXmlFileName;
+        private readonly string mHeaderFileName;
+        private readonly string mHeaderPrefixName;
         private bool mHeaderParameterStartGenerated;
         private bool mHeaderParameterBlockGenerated;
         private bool mHeaderKoStartGenerated;
         private bool mHeaderKoBlockGenerated;
         private int mChannelCount = 1;
+        public int OriginalChannelCount = 0;
         private int mParameterBlockOffset = 0;
         private int mParameterBlockSize = -1;
         private int mKoOffset = 0;
         private int mKoSingleOffset = 0;
         private int mModuleType = 1;
+        public bool IsScript = false;
         private string[] mReplaceKeys = { };
         private string[] mReplaceValues = { };
         private int mKoBlockSize = 0;
@@ -164,7 +74,11 @@ namespace OpenKNXproducer
         public int ChannelCount
         {
             get { return mChannelCount; }
-            set { mChannelCount = value; }
+            set
+            {
+                mChannelCount = value;
+                OriginalChannelCount = value;
+            }
         }
 
         public int KoOffset
@@ -345,6 +259,7 @@ namespace OpenKNXproducer
             // we use here an empty DefineContent, just for startup
             ExportHeader(DefineContent.Empty, mHeaderFileName, mHeaderPrefixName, this);
             // finally we do all processing necessary for the whole (resolved) document
+            // mDocument.Save("TemplateApplication.expanded.xml");
             bool lWithVersions = ProcessFinish(mDocument);
             // DocumentDebugOutput();
             return lWithVersions;
@@ -484,6 +399,7 @@ namespace OpenKNXproducer
             {
                 XmlNode lAttr = lMemory.Attributes.GetNamedItem("Offset");
                 int lOffset = int.Parse(lAttr.Value);
+                // if (iInclude.ChannelCount > (AbsoluteSingleParameters ? 1 : 0))
                 if (iInclude.ChannelCount > (AbsoluteSingleParameters ? 1 : 0))
                     lOffset += iInclude.ParameterBlockOffset + (iChannel - 1) * iInclude.ParameterBlockSize;
                 lAttr.Value = lOffset.ToString();
@@ -628,7 +544,7 @@ namespace OpenKNXproducer
                     ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
                 }
                 else
-                if (iTargetNode.Name == "Channel" || iTargetNode.Name == "ParameterBlock" || iTargetNode.Name == "choose")
+                if ("Channel,ParameterBlock,choose,ParameterCalculations".Contains(iTargetNode.Name))
                 {
                     ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
                 }
@@ -1502,10 +1418,20 @@ namespace OpenKNXproducer
                     // we get rid of default namespace, but remember the original
                     lFileData = lFileData.Replace(" xmlns=\"", " oldxmlns=\"");
                 }
-                using StringReader sr = new(lFileData);
-                mDocument.Load(sr);
                 mLoaded = true;
-                ResolveIncludes(lCurrentDir);
+                if (IsScript)
+                {
+                    // mDocument.CreateXmlDeclaration("1.0", "UTF-8", "no");
+                    XmlElement lElement = mDocument.CreateElement("Script");
+                    mDocument.AppendChild(lElement);
+                    lElement.AppendChild(mDocument.CreateTextNode(lFileData));
+                }
+                else
+                {
+                    using StringReader sr = new(lFileData);
+                    mDocument.Load(sr);
+                    ResolveIncludes(lCurrentDir);
+                }
             }
         }
 
@@ -1549,14 +1475,19 @@ namespace OpenKNXproducer
                     }
         }
 
+        private void InitNamespaceManager()
+        {
+            nsmgr = new XmlNamespaceManager(mDocument.NameTable);
+            nsmgr.AddNamespace("oknxp", cOwnNamespace);
+        }
+
         /// <summary>
         /// Resolves Includes inside xml document
         /// </summary>
         /// <param name="iCurrentDir">Directory to use for relative href expressions</param>
         public void ResolveIncludes(string iCurrentDir)
         {
-            nsmgr = new XmlNamespaceManager(mDocument.NameTable);
-            nsmgr.AddNamespace("oknxp", cOwnNamespace);
+            InitNamespaceManager();
             // process config
             XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
             if (lConfigNodes != null && lConfigNodes.Count > 0)
@@ -1576,6 +1507,16 @@ namespace OpenKNXproducer
                 }
             }
 
+            // process generate
+            XmlNodeList lGenerate = mDocument.SelectNodes("//generate");
+            if (lGenerate.Count > 0)
+            {
+                // generate application facade
+                TemplateApplication lTemplateApplication = new();
+                mDocument = lTemplateApplication.Generate(this, lGenerate[0]);
+                InitNamespaceManager();
+            }
+
             //find all XIncludes in a copy of the document
             XmlNodeList lIncludeNodes = mDocument.SelectNodes("//oknxp:include", nsmgr); // get all <include> nodes
 
@@ -1591,12 +1532,13 @@ namespace OpenKNXproducer
                 ProcessInclude lInclude = ProcessInclude.Factory(lIncludeName, lDefine.header, lHeaderPrefixName);
                 DateTime lStartTime = DateTime.Now;
                 string lTargetPath = Path.Combine(iCurrentDir, lIncludeName);
+                lInclude.IsScript = (lIncludeNode.NodeAttr("type") == "script");
                 lInclude.LoadAdvanced(lTargetPath);
                 lHeaderPrefixName = lInclude.mHeaderPrefixName;
                 lDefine = DefineContent.GetDefineContent(lHeaderPrefixName.Trim('_'));
                 //...find include in real document...
                 XmlNode lParent = lIncludeNode.ParentNode;
-                string lXPath = lIncludeNode.NodeAttr("xpath");
+                string lXPath = lIncludeNode.NodeAttr("xpath", "//*");
                 XmlNodeList lChildren = lInclude.SelectNodes(lXPath);
                 // we replace config params before we multiply all channels (faster)
                 foreach (XmlNode lNode in lChildren)
@@ -1620,6 +1562,7 @@ namespace OpenKNXproducer
                     }
                     else if (lDefine.IsParameter || "ComObject".Contains(lChildren[0].LocalName))
                     {
+                        lInclude.OriginalChannelCount = lDefine.NumChannels;
                         ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
                     }
                 }
@@ -1637,7 +1580,14 @@ namespace OpenKNXproducer
                             XmlNode lImportNode = lParent.OwnerDocument.ImportNode(lChild, true);
                             // for any Parameter node we do offset recalculation
                             // if there is no prefix name, we do no template replacement
-                            if (lHeaderPrefixName != "") ProcessTemplate(lDefine, lChannel, lImportNode, lInclude);
+                            if (lInclude.IsScript)
+                            {
+                                lImportNode = lImportNode.ChildNodes[0];
+                            }
+                            else
+                            {
+                                if (lHeaderPrefixName != "" && lChild.NodeType != XmlNodeType.Text) ProcessTemplate(lDefine, lChannel, lImportNode, lInclude);
+                            }
                             lParent.InsertBefore(lImportNode, lIncludeNode);
                         }
                     }
@@ -1646,11 +1596,17 @@ namespace OpenKNXproducer
                 TimeSpan lDiff = DateTime.Now - lStart;
                 if (lDiff.Seconds > 0 && lDefine.IsTemplate)
                     Console.WriteLine("Multiplying {2} channels of {1} took {0:0.##} seconds", lDiff.TotalSeconds, lInclude.mHeaderPrefixName.Trim('_'), lInclude.ChannelCount);
-                if (lDefine.IsTemplate)
-                {
-                    ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
-                    ReplaceDocumentStrings("%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
-                }
+                // if (lDefine.IsTemplate)
+                // {
+                //     ReplaceDocumentStrings("%N%", lInclude.ChannelCount.ToString());
+                // }
+                // else
+                // {
+                //     // DefineContent lDC = DefineContent.GetDefineContent(lInclude.mHeaderPrefixName.Trim('_'));
+                //     ReplaceDocumentStrings("%N%", lInclude.OriginalChannelCount.ToString());
+                // }
+                ReplaceDocumentStrings("%N%", lInclude.OriginalChannelCount.ToString());
+                ReplaceDocumentStrings("%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
                 // we replace also all additional replace key value pairs
                 for (int lCount = 0; lCount < lInclude.ReplaceKeys.Length; lCount++)
                 {

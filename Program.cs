@@ -114,31 +114,6 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        public static void WriteFail(ref bool iFail, string iFormat, params object[] iParams)
-        {
-            if (!iFail) Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("  --> " + iFormat, iParams);
-            Console.ResetColor();
-            iFail = true;
-        }
-
-        public static void WriteWarn(ref bool iWarn, string iFormat, params object[] iParams)
-        {
-            if (!iWarn) Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("  --> WARN: " + iFormat, iParams);
-            Console.ResetColor();
-            iWarn = true;
-        }
-
-        public static void WriteOK(string iOk = "OK")
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(" " + iOk);
-            Console.ResetColor();
-        }
-
         // Node cache
         static Dictionary<string, XmlNode> gIds = new Dictionary<string, XmlNode>();
 
@@ -184,44 +159,34 @@ namespace OpenKNXproducer
 
             Console.WriteLine();
             Console.WriteLine("Sanity checks... ");
-            bool lFail = false;
-            bool lFailPart = false;
+            CheckHelper lCheck = new();
             XmlDocument lXml = iInclude.GetDocument();
 
-            Console.Write("- Id-Homogeneity...");
-            lFailPart = false;
+            lCheck.Start("- Id-Homogeneity...");
             XmlNodeList lNodes = lXml.SelectNodes("//*[@Id]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
                 if (lId.Contains("%AID%"))
                 {
-                    WriteFail(ref lFailPart, "There are includes with new '%AID%' and with old 'M-00FA_A-0001-01-0000' notation, this cannot be mixed. No further checks possible until this is solved!");
+                    lCheck.WriteFail("There are includes with new '%AID%' and with old 'M-00FA_A-0001-01-0000' notation, this cannot be mixed. No further checks possible until this is solved!");
                     return false; // fail
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Id-Uniqueness...");
-            lFailPart = false;
+            lCheck.Start("- Id-Uniqueness...");
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
                 if (gIds.ContainsKey(lId))
-                {
-                    WriteFail(ref lFailPart, "{0} is a duplicate Id in {1}", lId, lNode.NodeAttr("Name"));
-                }
+                    lCheck.WriteFail("{0} is a duplicate Id in {1}", lId, lNode.NodeAttr("Name"));
                 else
-                {
                     gIds.Add(lId, lNode);
-                }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Id-R_Suffix-Uniqueness...");
-            lFailPart = false;
+            lCheck.Start("- Id-R_Suffix-Uniqueness...");
             Dictionary<string, bool> lParameterSuffixes = new Dictionary<string, bool>();
             Dictionary<string, bool> lComObjectSuffixes = new Dictionary<string, bool>();
             foreach (XmlNode lNode in lNodes)
@@ -239,21 +204,15 @@ namespace OpenKNXproducer
                     {
                         string lSuffix = lId.Substring(lPos + 3);
                         if (lSuffixes.ContainsKey(lSuffix))
-                        {
-                            WriteFail(ref lFailPart, "{0} is a duplicate _R-Suffix in {1}", lId, lNode.Name);
-                        }
+                            lCheck.WriteFail("{0} is a duplicate _R-Suffix in {1}", lId, lNode.Name);
                         else
-                        {
                             lSuffixes.Add(lSuffix, false);
-                        }
                     }
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- RefId-Integrity...");
+            lCheck.Start("- RefId-Integrity...");
             lNodes = lXml.SelectNodes("//*[@RefId]");
             foreach (XmlNode lNode in lNodes)
             {
@@ -261,20 +220,14 @@ namespace OpenKNXproducer
                 {
                     string lRefId = lNode.Attributes.GetNamedItem("RefId").Value;
                     if (!gIds.ContainsKey(lRefId))
-                    {
-                        WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lRefId, lNode.Name, lNode.NodeAttr("Name"));
-                    }
+                        lCheck.WriteFail("{0} is referenced in {1} {2}, but not defined", lRefId, lNode.Name, lNode.NodeAttr("Name"));
                     else if (lRefId.Contains("_R"))
-                    {
                         CreateComment(lXml, lNode, lRefId);
-                    }
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- ParamRefId-Integrity...");
+            lCheck.Start("- ParamRefId-Integrity...");
             lNodes = lXml.SelectNodes("//*[@ParamRefId]");
             foreach (XmlNode lNode in lNodes)
             {
@@ -282,121 +235,83 @@ namespace OpenKNXproducer
                 {
                     string lParamRefId = lNode.Attributes.GetNamedItem("ParamRefId").Value;
                     if (!gIds.ContainsKey(lParamRefId))
-                    {
-                        WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lParamRefId, lNode.Name, lNode.NodeAttr("Name"));
-                    }
+                        lCheck.WriteFail("{0} is referenced in {1} {2}, but not defined", lParamRefId, lNode.Name, lNode.NodeAttr("Name"));
                     else
-                    {
                         CreateComment(lXml, lNode, lParamRefId);
-                    }
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- TextParameterRefId-Integrity...");
+            lCheck.Start("- TextParameterRefId-Integrity...");
             lNodes = lXml.SelectNodes("//*[@TextParameterRefId]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lTextParamRefId = lNode.Attributes.GetNamedItem("TextParameterRefId").Value;
                 if (!gIds.ContainsKey(lTextParamRefId))
-                {
-                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lTextParamRefId, lNode.Name, lNode.NodeAttr("Name"));
-                }
+                    lCheck.WriteFail("{0} is referenced in {1} {2}, but not defined", lTextParamRefId, lNode.Name, lNode.NodeAttr("Name"));
                 else
-                {
                     CreateComment(lXml, lNode, lTextParamRefId);
-                }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- SourceParamRefRef-Integrity...");
+            lCheck.Start("- SourceParamRefRef-Integrity...");
             lNodes = lXml.SelectNodes("//*[@SourceParamRefRef]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lSourceParamRefRef = lNode.Attributes.GetNamedItem("SourceParamRefRef").Value;
                 if (!gIds.ContainsKey(lSourceParamRefRef))
-                {
-                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lSourceParamRefRef, lNode.Name, lNode.NodeAttr("Name"));
-                }
+                    lCheck.WriteFail("{0} is referenced in {1} {2}, but not defined", lSourceParamRefRef, lNode.Name, lNode.NodeAttr("Name"));
                 else
-                {
                     CreateComment(lXml, lNode, lSourceParamRefRef, "-Source");
-                }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- TargetParamRefRef-Integrity...");
+            lCheck.Start("- TargetParamRefRef-Integrity...");
             lNodes = lXml.SelectNodes("//*[@TargetParamRefRef]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lTargetParamRefRef = lNode.Attributes.GetNamedItem("TargetParamRefRef").Value;
                 if (!gIds.ContainsKey(lTargetParamRefRef))
-                {
-                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lTargetParamRefRef, lNode.Name, lNode.NodeAttr("Name"));
-                }
+                    lCheck.WriteFail("{0} is referenced in {1} {2}, but not defined", lTargetParamRefRef, lNode.Name, lNode.NodeAttr("Name"));
                 else
-                {
                     CreateComment(lXml, lNode, lTargetParamRefRef, "-Target");
-                }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- ParameterType-Integrity...");
+            lCheck.Start("- ParameterType-Integrity...");
             lNodes = lXml.SelectNodes("//*[@ParameterType]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lParameterType = lNode.Attributes.GetNamedItem("ParameterType").Value;
                 if (!gIds.ContainsKey(lParameterType))
-                {
-                    WriteFail(ref lFailPart, "{0} is referenced in {1} {2}, but not defined", lParameterType, lNode.Name, lNode.NodeAttr("Name"));
-                }
+                    lCheck.WriteFail("{0} is referenced in {1} {2}, but not defined", lParameterType, lNode.Name, lNode.NodeAttr("Name"));
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- Union-Integrity...");
+            lCheck.Start("- Union-Integrity...");
             lNodes = lXml.SelectNodes("//Union");
             foreach (XmlNode lNode in lNodes)
             {
                 string lSize = lNode.NodeAttr("SizeInBit");
                 if (lSize == "")
-                {
-                    WriteFail(ref lFailPart, "Union without SizeInBit-Attribute found");
-                }
+                    lCheck.WriteFail("Union without SizeInBit-Attribute found");
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Parameter-Name-Uniqueness...");
-            lFailPart = false;
+            lCheck.Start("- Parameter-Name-Uniqueness...");
             lNodes = lXml.SelectNodes("//Parameter[@Name]");
             Dictionary<string, bool> lParameterNames = new Dictionary<string, bool>();
             foreach (XmlNode lNode in lNodes)
             {
                 string lName = lNode.Attributes.GetNamedItem("Name").Value;
                 if (lParameterNames.ContainsKey(lName))
-                {
-                    WriteFail(ref lFailPart, "{0} is a duplicate Name in Parameter '{1}'", lName, lNode.NodeAttr("Text"));
-                }
+                    lCheck.WriteFail("{0} is a duplicate Name in Parameter '{1}'", lName, lNode.NodeAttr("Text"));
                 else
-                {
                     lParameterNames.Add(lName, true);
-                }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- Parameter-Value-Integrity...");
+            lCheck.Start("- Parameter-Value-Integrity...");
             lNodes = lXml.SelectNodes("//Parameter");
             foreach (XmlNode lNode in lNodes)
             {
@@ -406,16 +321,14 @@ namespace OpenKNXproducer
                 string lParameterValue = lNode.NodeAttr("Value", null);
                 if (lParameterValue == null)
                 {
-                    WriteFail(ref lFailPart, "{0} has no Value attribute", lMessage);
+                    lCheck.WriteFail("{0} has no Value attribute", lMessage);
                 }
-                lFailPart = CheckParameterValueIntegrity(lXml, lFailPart, lNode, lParameterValue, lMessage);
+                CheckParameterValueIntegrity(lXml, lCheck, lNode, lParameterValue, lMessage);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
             bool lSkipTest = false;
-            Console.Write("- ParameterRef-Value-Integrity...");
+            lCheck.Start("- ParameterRef-Value-Integrity...");
             lNodes = lXml.SelectNodes("//ParameterRef[@Value]");
             foreach (XmlNode lNode in lNodes)
             {
@@ -428,36 +341,26 @@ namespace OpenKNXproducer
                     break;
                 }
                 string lMessage = string.Format("ParameterRef {0}, referencing Parameter {1},", lNode.NodeAttr("Id"), lParameterNode.NodeAttr("Name"));
-                lFailPart = CheckParameterValueIntegrity(lXml, lFailPart, lParameterNode, lParameterRefValue, lMessage);
+                CheckParameterValueIntegrity(lXml, lCheck, lParameterNode, lParameterRefValue, lMessage);
             }
             if (lSkipTest)
-            {
-                WriteFail(ref lFailPart, "Test not possible due to Errors in ParameterRef definitions (sove above problems first)");
-            }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+                lCheck.WriteFail("Test not possible due to Errors in ParameterRef definitions (sove above problems first)");
+            lCheck.Finish();
 
-            Console.Write("- ComObject-Name-Uniqueness...");
-            lFailPart = false;
+            lCheck.Start("- ComObject-Name-Uniqueness...");
             lNodes = lXml.SelectNodes("//ComObject[@Name]");
             Dictionary<string, bool> lKoNames = new Dictionary<string, bool>();
             foreach (XmlNode lNode in lNodes)
             {
                 string lName = lNode.Attributes.GetNamedItem("Name").Value;
                 if (lKoNames.ContainsKey(lName))
-                {
-                    WriteFail(ref lFailPart, "{0} is a duplicate Name in ComObject number {1}", lName, lNode.NodeAttr("Number"));
-                }
+                    lCheck.WriteFail("{0} is a duplicate Name in ComObject number {1}", lName, lNode.NodeAttr("Number"));
                 else
-                {
                     lKoNames.Add(lName, true);
-                }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- ComObject-Number-Uniqueness...");
-            lFailPart = false;
+            lCheck.Start("- ComObject-Number-Uniqueness...");
             lNodes = lXml.SelectNodes("//ComObject[@Number]");
             Dictionary<int, bool> lKoNumbers = new Dictionary<int, bool>();
             foreach (XmlNode lNode in lNodes)
@@ -467,30 +370,20 @@ namespace OpenKNXproducer
                 if (lIsInt)
                 {
                     if (lNumber == 0)
-                    {
-                        WriteFail(ref lFailPart, "ComObject Number 0 is not allowed in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
-                    }
+                        lCheck.WriteFail("ComObject Number 0 is not allowed in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
                     else if (lKoNumbers.ContainsKey(lNumber))
-                    {
-                        WriteFail(ref lFailPart, "{0} is a duplicate Number in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
-                    }
+                        lCheck.WriteFail("{0} is a duplicate Number in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
                     else
-                    {
                         lKoNumbers.Add(lNumber, true);
-                    }
                 }
                 else
-                {
-                    WriteFail(ref lFailPart, "ComObject.Number is not an Integer in ComObject with name {0}", lNode.NodeAttr("Name"));
-                }
+                    lCheck.WriteFail("ComObject.Number is not an Integer in ComObject with name {0}", lNode.NodeAttr("Name"));
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- RefId-Id-Comparison...");
-            lFailPart = false;
+            lCheck.Start("- RefId-Id-Comparison...");
             lNodes = lXml.SelectNodes("//ParameterRef|//ComObjectRef");
-            Regex regex = new Regex("(_O-|_UP-|_P-|_R-)");
+            Regex regex = new("(_O-|_UP-|_P-|_R-)");
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
@@ -501,19 +394,15 @@ namespace OpenKNXproducer
                 {
                     // seems to be OpenKNX naming convention
                     if (lIds[2] != lRefIds[2])
-                    {
-                        WriteFail(ref lFailPart, "{0} {1}: The first Id-Part {2}{3} should fit to the RefId-Part {2}{4} (OpenKNX naming convention)", lNode.Name, lId, lIds[1], lIds[2], lRefIds[2]);
-                    }
+                        lCheck.WriteFail("{0} {1}: The first Id-Part {2}{3} should fit to the RefId-Part {2}{4} (OpenKNX naming convention)", lNode.Name, lId, lIds[1], lIds[2], lRefIds[2]);
                     // if (!lIds[4].StartsWith(lIds[2])) {
-                    //     WriteFail(ref lFailPart, "{0} {1}: The first Id-Part {2} should fit to the second Id-Part {3} (OpenKNX naming convention)", lNode.Name, lId, lIds[2], lIds[4]);
+                    //     lCheck.WriteFail("{0} {1}: The first Id-Part {2} should fit to the second Id-Part {3} (OpenKNX naming convention)", lNode.Name, lId, lIds[2], lIds[4]);
                     // }    
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- RefId-RefRef-Comparison...");
-            lFailPart = false;
+            lCheck.Start("- RefId-RefRef-Comparison...");
             lNodes = lXml.SelectNodes("//ParameterRefRef|//ComObjectRefRef");
             Regex regex1 = new Regex("(_UP-|_P-)");
             foreach (XmlNode lNode in lNodes)
@@ -522,24 +411,18 @@ namespace OpenKNXproducer
                 if (lNode.Name == "ParameterRefRef")
                 {
                     if (!regex1.IsMatch(lId))
-                    {
-                        WriteFail(ref lFailPart, "{0} {1}: Referenced Id is not a Parameter", lNode.Name, lId);
-                    }
+                        lCheck.WriteFail("{0} {1}: Referenced Id is not a Parameter", lNode.Name, lId);
                 }
                 else if (lNode.Name == "ComObjectRefRef")
                 {
                     if (!lId.Contains("_O-"))
-                    {
-                        WriteFail(ref lFailPart, "{0} {1}: Referenced Id is not a ComObject", lNode.Name, lId);
-                    }
+                        lCheck.WriteFail("{0} {1}: Referenced Id is not a ComObject", lNode.Name, lId);
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Id-Namespace...");
+            lCheck.Start("- Id-Namespace...");
             // find refid
-            lFailPart = false;
             XmlNode lApplicationProgramNode = lXml.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
             string lApplicationId = lApplicationProgramNode.Attributes.GetNamedItem("Id").Value;
             string lRefNs = lApplicationId; //.Replace("M-00FA_A", "");
@@ -556,17 +439,15 @@ namespace OpenKNXproducer
                         if (lMatch.Value != lRefNs)
                         {
                             XmlElement lElement = ((XmlAttribute)lNode).OwnerElement;
-                            WriteFail(ref lFailPart, "{0} of node {2} {3} is in a different namespace than application namespace {1}", lMatch.Value, lRefNs, lElement.Name, lElement.NodeAttr("Name"));
+                            lCheck.WriteFail("{0} of node {2} {3} is in a different namespace than application namespace {1}", lMatch.Value, lRefNs, lElement.Name, lElement.NodeAttr("Name"));
                         }
                     }
                 }
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Id-Format...");
+            lCheck.Start("- Id-Format...");
             // An id has to fulfill a specific format
-            lFailPart = false;
             string lIdPart = "";
             foreach (var lKeyValuePair in gIds)
             {
@@ -631,94 +512,66 @@ namespace OpenKNXproducer
                         break;
                 }
                 if (lIdPart != "" && !lId.StartsWith(lIdPart))
-                {
-                    WriteFail(ref lFailPart, "{0} {1} has the Id={2}, but this Id is missing the required part {3}", lElement.Name, lElement.NodeAttr("Name"), lKeyValuePair.Key, lIdPart);
-                }
+                    lCheck.WriteFail("{0} {1} has the Id={2}, but this Id is missing the required part {3}", lElement.Name, lElement.NodeAttr("Name"), lKeyValuePair.Key, lIdPart);
                 if (iWithVersions && lIdMatch != "" && !Regex.IsMatch(lId, lIdMatch))
-                {
-                    WriteFail(ref lFailPart, "{0} {1} has the Id={2}, but this Id has not the OpenKNX-Format {3}", lElement.Name, lElement.NodeAttr("Name"), lKeyValuePair.Key, lIdMatchReadable);
-                }
+                    lCheck.WriteFail("{0} {1} has the Id={2}, but this Id has not the OpenKNX-Format {3}", lElement.Name, lElement.NodeAttr("Name"), lKeyValuePair.Key, lIdMatchReadable);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- Serial number...");
+            lCheck.Start("- Serial number...");
             lNodes = lXml.SelectNodes("//*[@SerialNumber]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lSerialNumber = lNode.Attributes.GetNamedItem("SerialNumber").Value;
                 if (lSerialNumber.Contains("-"))
-                {
-                    WriteFail(ref lFailPart, "Hardware.SerialNumber={0}, it contains a dash (-), this will cause problems in knxprod.", lSerialNumber);
-                }
+                    lCheck.WriteFail("Hardware.SerialNumber={0}, it contains a dash (-), this will cause problems in knxprod.", lSerialNumber);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- HelpContext-Ids...");
-            lFailPart = false;
+            lCheck.Start("- HelpContext-Ids...");
             lNodes = lXml.SelectNodes("//*/@HelpContext");
             foreach (XmlNode lNode in lNodes)
             {
                 if (!iInclude.IsHelpContextId(lNode.Value))
-                {
-                    WriteFail(ref lFailPart, "HelpContext {0} not found in HelpContext baggage", lNode.Value);
-                }
+                    lCheck.WriteFail("HelpContext {0} not found in HelpContext baggage", lNode.Value);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Icon-Ids...");
-            lFailPart = false;
+            lCheck.Start("- Icon-Ids...");
             lNodes = lXml.SelectNodes("//*/@Icon");
             foreach (XmlNode lNode in lNodes)
             {
                 if (!iInclude.IsIconId(lNode.Value))
-                {
-                    WriteFail(ref lFailPart, "Icon {0} not found in HelpContext baggage", lNode.Value);
-                }
+                    lCheck.WriteFail("Icon {0} not found in HelpContext baggage", lNode.Value);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Baggage-File-Existence...");
-            lFailPart = false;
+            lCheck.Start("- Baggage-File-Existence...");
             lNodes = lXml.SelectNodes("//Baggage[@TargetPath]");
             foreach (XmlNode lNode in lNodes)
             {
                 string lFileName = Path.Combine(iInclude.BaggagesName, lNode.NodeAttr("TargetPath"), lNode.NodeAttr("Name"));
                 if (!File.Exists(Path.Combine(iInclude.CurrentDir, lFileName)))
-                {
-                    WriteFail(ref lFailPart, "File {0} not found in baggage dir", lFileName);
-                }
+                    lCheck.WriteFail("File {0} not found in baggage dir", lFileName);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- Application data...");
+            lCheck.Start("- Application data...");
             lNodes = lXml.SelectNodes("//ApplicationProgram");
             foreach (XmlNode lNode in lNodes)
             {
                 int lNumber = -1;
                 bool lIsInt = int.TryParse(lNode.Attributes.GetNamedItem("ApplicationNumber").Value, out lNumber);
                 if (!lIsInt || lNumber < 0)
-                {
-                    WriteFail(ref lFailPart, "ApplicationProgram.ApplicationNumber is incorrect or could not be parsed");
-                }
+                    lCheck.WriteFail("ApplicationProgram.ApplicationNumber is incorrect or could not be parsed");
                 lNumber = -1;
                 lIsInt = int.TryParse(lNode.Attributes.GetNamedItem("ApplicationVersion").Value, out lNumber);
                 if (!lIsInt || lNumber < 0)
-                {
-                    WriteFail(ref lFailPart, "ApplicationProgram.ApplicationVersion is incorrect or could not be parsed");
-                }
+                    lCheck.WriteFail("ApplicationProgram.ApplicationVersion is incorrect or could not be parsed");
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            lFailPart = false;
-            Console.Write("- Memory size...");
+            lCheck.Start("- Memory size...");
             lNodes = lXml.SelectNodes("//*[self::RelativeSegment or self::LdCtrlRelSegment or self::LdCtrlWriteRelMem][@Size]");
             foreach (XmlNode lNode in lNodes)
             {
@@ -726,28 +579,21 @@ namespace OpenKNXproducer
                 string lValue = lNode.Attributes.GetNamedItem("Size").Value;
                 bool lIsInt = int.TryParse(lValue, out lNumber);
                 if (!lIsInt || lNumber <= 0)
-                {
-                    WriteFail(ref lFailPart, "Size-Attribute of {0} is incorrect ({1}), are you missing %MemorySize% replacement?", lNode.Name, lValue);
-                }
+                    lCheck.WriteFail("Size-Attribute of {0} is incorrect ({1}), are you missing %MemorySize% replacement?", lNode.Name, lValue);
             }
-            if (!lFailPart) WriteOK();
-            lFail = lFail || lFailPart;
+            lCheck.Finish();
 
-            Console.Write("- Unused config entries...");
-            lFailPart = false;
-            bool lWarnPart = false;
+            lCheck.Start("- Unused config entries...");
             foreach (var lConfig in ProcessInclude.Config)
             {
                 if (!lConfig.Value.WasReplaced)
                 {
-                    WriteWarn(ref lWarnPart, "Config name {0} with value {1} was never replaced", lConfig.Key, lConfig.Value.ConfigValue);
+                    lCheck.WriteWarn("Config name {0} with value {1} was never replaced", lConfig.Key, lConfig.Value.ConfigValue);
                 }
             }
-            if (!lWarnPart) WriteOK();
+            lCheck.Finish();
 
-            Console.Write("- Not replaced config entries...");
-            lFailPart = false;
-            lWarnPart = false;
+            lCheck.Start("- Not replaced config entries...");
             lNodes = lXml.SelectNodes("//@*");
             Regex lConfigName = new(@"%[A-Za-z0-9\-_]*%");
             foreach (XmlAttribute lAttr in lNodes)
@@ -756,34 +602,58 @@ namespace OpenKNXproducer
                 {
                     Match lMatch = lConfigName.Match(lAttr.Value);
                     if (lMatch.Success)
-                        WriteWarn(ref lWarnPart, "The value {0} of attribute {1} in node {2} might be an unreplaced config entry", lAttr.Value, lAttr.Name, lAttr.OwnerElement.Name);
+                        lCheck.WriteWarn("The value {0} of attribute {1} in node {2} might be an unreplaced config entry", lAttr.Value, lAttr.Name, lAttr.OwnerElement.Name);
                 }
             }
-            if (!lWarnPart) WriteOK();
+            lCheck.Finish();
 
-            Console.Write("- Further messages during document processing...");
-            lFailPart = false;
-            lWarnPart = false;
+            lCheck.Start("- Integrity of script methods...");
+            XmlNode lScript = lXml.SelectSingleNode("//Script");
+            if (lScript != null)
+            {
+                Regex lFindFunctions = new(@"function\s*([A-Za-z0-9_]*)\s*\(");
+                MatchCollection lFunctions = lFindFunctions.Matches(lScript.InnerText);
+                XmlNodeList lAttributes = lXml.SelectNodes("//Button/@EventHandler|//ParameterCalculation/@LRTransformationFunc|//ParameterCalculation/@RLTransformationFunc");
+                // speedup: transfer function call into a Hashtable
+                Dictionary<string, bool> lFunctionCalls = new();
+                foreach (XmlNode lAttribute in lAttributes)
+                    if (!lFunctionCalls.ContainsKey(lAttribute.Value))
+                        lFunctionCalls[lAttribute.Value] = false;
+                // check unused javascript functions
+                foreach (Match lFunction in lFunctions.Cast<Match>())
+                {
+                    string lFunctionName = lFunction.Groups[1].Value;
+                    if (lFunctionCalls.ContainsKey(lFunctionName))
+                        lFunctionCalls[lFunctionName] = true;
+                    else
+                        lCheck.WriteWarn("Function with name {0} was never called form xml", lFunctionName);
+                }
+                foreach (var lFunctionCall in lFunctionCalls)
+                    if (!lFunctionCall.Value)
+                        lCheck.WriteFail("Function with name {0} is missing in <Script> definitions", lFunctionCall.Key);
+            }
+            lCheck.Finish();
+
+            lCheck.Start("- Further messages during document processing...");
             foreach (var lMessage in additionalMessages)
             {
                 if (lMessage.Value)
-                    WriteFail(ref lFailPart, lMessage.Key, "");
+                    lCheck.WriteFail(lMessage.Key, "");
                 else
-                    WriteWarn(ref lWarnPart, lMessage.Key, "");
+                    lCheck.WriteWarn(lMessage.Key, "");
             }
-            if (!lFailPart && !lWarnPart) WriteOK("NONE");
-            lFail = lFail || lFailPart;
+            lCheck.Finish("NONE");
 
             Console.WriteLine();
-            return !lFail;
+            return !lCheck.IsFail;
         }
 
-        private static bool CheckParameterValueIntegrity(XmlNode iTargetNode, bool iFailPart, XmlNode iParameterNode, string iValue, string iMessage)
+        private static void CheckParameterValueIntegrity(XmlNode iTargetNode, CheckHelper iCheck, XmlNode iParameterNode, string iValue, string iMessage)
         {
             string lParameterType = iParameterNode.NodeAttr("ParameterType");
             if (lParameterType == "")
             {
-                WriteFail(ref iFailPart, "Parameter {0} has no ParameterType attribute", iParameterNode.NodeAttr("Name"));
+                iCheck.WriteFail("Parameter {0} has no ParameterType attribute", iParameterNode.NodeAttr("Name"));
             }
             if (iValue != null && lParameterType != "")
             {
@@ -802,7 +672,7 @@ namespace OpenKNXproducer
                     {
                         case "TypeText":
                             if (!int.TryParse(lChild.Attributes["SizeInBit"]?.Value, out sizeInBit))
-                                WriteFail(ref iFailPart, "SizeInBit of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["SizeInBit"]?.Value ?? "empty");
+                                iCheck.WriteFail("SizeInBit of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["SizeInBit"]?.Value ?? "empty");
                             else
                                 maxSize = sizeInBit / 8;
                             break;
@@ -819,9 +689,13 @@ namespace OpenKNXproducer
                             //There is no SizeInBit attribute
                             break;
 
+                        case "TypeRawData":
+                            //There is no SizeInBit attribute
+                            break;
+
                         default:
                             if (!int.TryParse(lChild.Attributes["SizeInBit"]?.Value, out sizeInBit))
-                                WriteFail(ref iFailPart, "SizeInBit of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["SizeInBit"]?.Value ?? "empty");
+                                iCheck.WriteFail("SizeInBit of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["SizeInBit"]?.Value ?? "empty");
                             else
                                 maxSize = Convert.ToInt64(Math.Pow(2, int.Parse(lChild.Attributes["SizeInBit"]?.Value ?? "0")));
                             break;
@@ -835,27 +709,27 @@ namespace OpenKNXproducer
                             bool lSuccess = long.TryParse(iValue, out lDummyLong);
                             if (!lSuccess)
                             {
-                                WriteFail(ref iFailPart, "Value of {0} cannot be converted to a number, value is '{1}'", iMessage, iValue);
+                                iCheck.WriteFail("Value of {0} cannot be converted to a number, value is '{1}'", iMessage, iValue);
                             }
                             if (!long.TryParse(lChild.Attributes["minInclusive"]?.Value, out min))
-                                WriteFail(ref iFailPart, "MinInclusive of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["minInclusive"]?.Value ?? "empty");
+                                iCheck.WriteFail("MinInclusive of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["minInclusive"]?.Value ?? "empty");
                             if (!long.TryParse(lChild.Attributes["maxInclusive"]?.Value, out max))
-                                WriteFail(ref iFailPart, "MaxInclusive of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["minInclusive"]?.Value ?? "empty");
+                                iCheck.WriteFail("MaxInclusive of {0} cannot be converted to a number, value is '{1}'", iMessage, lChild.Attributes["minInclusive"]?.Value ?? "empty");
 
                             switch (lChild.Attributes["Type"]?.Value)
                             {
                                 case "unsignedInt":
                                     if (min < 0)
-                                        WriteFail(ref iFailPart, "MinInclusive of {0} cannot be smaller than 0, value is '{1}'", iMessage, min);
+                                        iCheck.WriteFail("MinInclusive of {0} cannot be smaller than 0, value is '{1}'", iMessage, min);
                                     if (max >= maxSize)
-                                        WriteFail(ref iFailPart, "MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, maxSize - 1, max);
+                                        iCheck.WriteFail("MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, maxSize - 1, max);
                                     break;
 
                                 case "signedInt":
                                     if (min < ((maxSize / 2) * (-1)))
-                                        WriteFail(ref iFailPart, "MinInclusive of {0} cannot be smaller than {1}, value is '{2}'", iMessage, ((maxSize / 2) * (-1)), min);
+                                        iCheck.WriteFail("MinInclusive of {0} cannot be smaller than {1}, value is '{2}'", iMessage, ((maxSize / 2) * (-1)), min);
                                     if (max >= ((maxSize / 2)))
-                                        WriteFail(ref iFailPart, "MinInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, ((maxSize / 2) - 1), max);
+                                        iCheck.WriteFail("MinInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, ((maxSize / 2) - 1), max);
                                     break;
                             }
                             //TODO check value
@@ -865,7 +739,7 @@ namespace OpenKNXproducer
                             lSuccess = float.TryParse(iValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lDummyFloat);
                             if (!lSuccess || iValue.Contains(","))
                             {
-                                WriteFail(ref iFailPart, "Value of {0} cannot be converted to a float, value is '{1}'", iMessage, iValue);
+                                iCheck.WriteFail("Value of {0} cannot be converted to a float, value is '{1}'", iMessage, iValue);
                             }
                             //TODO check value
                             break;
@@ -882,7 +756,7 @@ namespace OpenKNXproducer
                                     }
                                     int enumValue = 0;
                                     if (!int.TryParse(lEnumeration.Attributes["Value"]?.Value, out enumValue))
-                                        WriteFail(ref iFailPart, "Enum Value of {2} in {0} cannot be converted to an int, value is '{1}'", iMessage, iValue, lParameterType);
+                                        iCheck.WriteFail("Enum Value of {2} in {0} cannot be converted to an int, value is '{1}'", iMessage, iValue, lParameterType);
                                     else
                                     {
                                         if (enumValue > maxEnumValue)
@@ -892,23 +766,21 @@ namespace OpenKNXproducer
                             }
                             if (!lSuccess)
                             {
-                                WriteFail(ref iFailPart, "Value of {0} is not contained in enumeration {2}, value is '{1}'", iMessage, iValue, lParameterType);
+                                iCheck.WriteFail("Value of {0} is not contained in enumeration {2}, value is '{1}'", iMessage, iValue, lParameterType);
                             }
                             if (maxEnumValue >= maxSize)
-                                WriteFail(ref iFailPart, "Max Enum Value of {0} can not be greater than {2}, value is '{1}'", iMessage, maxEnumValue, maxSize);
+                                iCheck.WriteFail("Max Enum Value of {0} can not be greater than {2}, value is '{1}'", iMessage, maxEnumValue, maxSize);
                             break;
                         case "TypeText":
                             //TODO add string length validation
                             if (iValue.Length > maxSize)
-                                WriteFail(ref iFailPart, "String Length of {0} can not be greater than {2}, length is '{1}'", iMessage, maxSize, iValue.Length);
+                                iCheck.WriteFail("String Length of {0} can not be greater than {2}, length is '{1}'", iMessage, maxSize, iValue.Length);
                             break;
                         default:
                             break;
                     }
                 }
             }
-
-            return iFailPart;
         }
 
         #region Reflection
