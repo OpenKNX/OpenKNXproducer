@@ -27,8 +27,8 @@ if ($?) {
         $os = "Mac OS"
         $setExecutable = 1
         Copy-Item tools/OpenKNXproducer-osx64.exe ~/bin/OpenKNXproducer
-    } elseif ($IsMacOS) {
-        $os = "Linux OS"
+    } elseif ($IsLinux) {
+        $os = "Linux"
         $setExecutable = 1
         Copy-Item tools/OpenKNXproducer-linux64.exe ~/bin/OpenKNXproducer
     }
