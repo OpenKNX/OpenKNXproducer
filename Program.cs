@@ -523,7 +523,7 @@ namespace OpenKNXproducer
             foreach (XmlNode lNode in lNodes)
             {
                 string lSerialNumber = lNode.Attributes.GetNamedItem("SerialNumber").Value;
-                if (lSerialNumber.Contains("-"))
+                if (lSerialNumber.Contains('-'))
                     lCheck.WriteFail("Hardware.SerialNumber={0}, it contains a dash (-), this will cause problems in knxprod.", lSerialNumber);
             }
             lCheck.Finish();
@@ -587,9 +587,7 @@ namespace OpenKNXproducer
             foreach (var lConfig in ProcessInclude.Config)
             {
                 if (!lConfig.Value.WasReplaced)
-                {
                     lCheck.WriteWarn("Config name {0} with value {1} was never replaced", lConfig.Key, lConfig.Value.ConfigValue);
-                }
             }
             lCheck.Finish();
 
@@ -737,7 +735,7 @@ namespace OpenKNXproducer
                         case "TypeFloat":
                             float lDummyFloat;
                             lSuccess = float.TryParse(iValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lDummyFloat);
-                            if (!lSuccess || iValue.Contains(","))
+                            if (!lSuccess || iValue.Contains(','))
                             {
                                 iCheck.WriteFail("Value of {0} cannot be converted to a float, value is '{1}'", iMessage, iValue);
                             }
@@ -1267,7 +1265,7 @@ namespace OpenKNXproducer
             // create initial xml file
             string lXmlFile = "";
             var assembly = Assembly.GetEntryAssembly();
-            var resourceStream = assembly.GetManifestResourceStream("OpenKNXproducer.NewDevice.xml");
+            var resourceStream = assembly.GetManifestResourceStream("OpenKNXproducer.xml.NewDevice.xml");
             using (var reader = new StreamReader(resourceStream, Encoding.UTF8))
             {
                 lXmlFile = reader.ReadToEnd();

@@ -9,7 +9,7 @@
         </CatalogSection>
       </Catalog>
       <ApplicationPrograms>
-        <ApplicationProgram Id="%AID%" ProgramType="ApplicationProgram" MaskVersion="MV-07B0" Name="OpenKNX-%ApplicationName%%BuildSuffix%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="4.0" ContextHelpFile="%FILE-HELP-de%" IconFile="%FILE-ICONS%" ApplicationNumber="0" ApplicationVersion="0" ReplacesVersions="0">
+        <ApplicationProgram Id="%AID%" ProgramType="ApplicationProgram" MaskVersion="MV-07B0" Name="OpenKNX-%ApplicationName%%BuildSuffix%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="5.0" ContextHelpFile="%FILE-HELP-de%" IconFile="%FILE-ICONS%" ApplicationNumber="0" ApplicationVersion="0" ReplacesVersions="0">
           <Static>
             <Code>
                 <RelativeSegment Id="%AID%_RS-04-00000" Name="Parameters" Offset="0" Size="%MemorySize%" LoadStateMachine="4" />
@@ -29,6 +29,10 @@
                 <op:includetemplate href="%share%" xpath="//ParameterCalculations/ParameterCalculation" prefix="%prefix%" />
                 <op:includetemplate href="%templ%" xpath="//ParameterCalculations/ParameterCalculation" type="template" prefix="%prefix%" />
             </ParameterCalculations>
+            <ParameterValidations>
+                <op:includetemplate href="%share%" xpath="//ParameterValidations/ParameterValidation" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ParameterValidations/ParameterValidation" type="template" prefix="%prefix%" />
+            </ParameterValidations>
             <ComObjectTable>
                 <op:includetemplate href="%share%" xpath="//ComObjectTable/ComObject" prefix="%prefix%" />
                 <op:includetemplate href="%templ%" xpath="//ComObjectTable/ComObject" type="template" prefix="%prefix%" />
@@ -40,43 +44,46 @@
             <AddressTable MaxEntries="2047" />
             <AssociationTable MaxEntries="2047" />
             <LoadProcedures>
-                <LoadProcedure MergeId="1">
-                    <LdCtrlCompareProp InlineData="%VersionCheck%" ObjIdx="0" PropId="78">
-                        <OnError Cause="CompareMismatch" MessageRef="%AID%_M-1" />
-                    </LdCtrlCompareProp>
-                </LoadProcedure>
-                <LoadProcedure MergeId="2">
-                    <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="1" Fill="0" AppliesTo="full" />
-                    <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="0" Fill="0" AppliesTo="par" />
-                </LoadProcedure>
-                <LoadProcedure MergeId="4">
-                    <LdCtrlWriteRelMem ObjIdx="4" Offset="0" Size="%MemorySize%" Verify="true" AppliesTo="full,par" />
-                </LoadProcedure>
-                <LoadProcedure MergeId="7">
-                    <LdCtrlLoadImageProp ObjIdx="1" PropId="27" />
-                    <LdCtrlLoadImageProp ObjIdx="2" PropId="27" />
-                    <LdCtrlLoadImageProp ObjIdx="3" PropId="27" />
-                    <LdCtrlLoadImageProp ObjIdx="4" PropId="27" />
-                </LoadProcedure>
+              <LoadProcedure MergeId="1">
+                  <LdCtrlCompareProp InlineData="%VersionCheck%" ObjIdx="0" PropId="78">
+                      <OnError Cause="CompareMismatch" MessageRef="%AID%_M-1" />
+                  </LdCtrlCompareProp>
+              </LoadProcedure>
+              <LoadProcedure MergeId="2">
+                  <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="1" Fill="0" AppliesTo="full" />
+                  <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="0" Fill="0" AppliesTo="par" />
+              </LoadProcedure>
+              <LoadProcedure MergeId="4">
+                  <LdCtrlWriteRelMem ObjIdx="4" Offset="0" Size="%MemorySize%" Verify="true" AppliesTo="full,par" />
+              </LoadProcedure>
+              <LoadProcedure MergeId="7">
+                  <LdCtrlLoadImageProp ObjIdx="1" PropId="27" />
+                  <LdCtrlLoadImageProp ObjIdx="2" PropId="27" />
+                  <LdCtrlLoadImageProp ObjIdx="3" PropId="27" />
+                  <LdCtrlLoadImageProp ObjIdx="4" PropId="27" />
+              </LoadProcedure>
             </LoadProcedures>
+            <Extension />
             <Messages>
-                <Message Id="%AID%_M-1" Name="VersionMismatch" Text="Diese Applikaiton und die Firmware passen nicht zusammen" />
+              <Message Id="%AID%_M-1" Name="VersionMismatch" Text="Diese Applikaiton und die Firmware passen nicht zusammen" />
             </Messages>
             <Script>
-                <op:includetemplate href="%share%" xpath="//Script/text()" prefix="%prefix%" />
+              <op:includetemplate href="%share%" xpath="//Script/text()" prefix="%prefix%" />
             </Script>
             <Options />
           </Static>
           <Dynamic>
+            <!-- <op:includetemplate href="%share%" xpath="//Dynamic/Channel/*" prefix="%prefix%" /> -->
+            <!-- <op:includetemplate href="%templ%" xpath="//Dynamic/ChannelIndependentBlock/*" type="template" prefix="%prefix%" /> -->
           </Dynamic>
         </ApplicationProgram>
       </ApplicationPrograms>
       <Baggages>
-        <op:include href="../lib/OGM-Common/src/Common.share.xml" xpath="//Baggages/*" prefix="LOG" />
         <op:includetemplate href="%share%" xpath="//Baggages/*" prefix="%prefix%" />
+        <op:include href="../lib/OGM-Common/src/Common.share.xml" xpath="//Baggages/*" prefix="LOG" />
       </Baggages>
       <Hardware>
-        <Hardware Id="%HardwareId%" Name="OpenKNX-%HardwareName%%BuildSuffix%" SerialNumber="%SerialNumber%" VersionNumber="1" BusCurrent="10" HasIndividualAddress="true" HasApplicationProgram="true">
+        <Hardware Id="%HardwareId%" Name="OpenKNX-%HardwareName%%BuildSuffix%" SerialNumber="%SerialNumber%" VersionNumber="1" BusCurrent="%BusCurrent%" HasIndividualAddress="true" HasApplicationProgram="true">
           <Products>
             <Product Id="%ProductId%" Text="OpenKNX: %ProductName%%BuildSuffix%" OrderNumber="%OrderNumber%" IsRailMounted="false" DefaultLanguage="de">
               <RegistrationInfo RegistrationStatus="Registered" />

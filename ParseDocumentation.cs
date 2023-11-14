@@ -176,11 +176,11 @@ namespace OpenKNXproducer
                 else if (lActiveDoc > 0)
                 {
                     lMatch = lRegexDocEnd.Match(lLine);
-                    if (lMatch.Success || (lLine.StartsWith("#") && lActiveDoc >= CountCharAtStart(lLine, '#')))
+                    if (lFile.EndOfStream || lMatch.Success || (lLine.StartsWith("#") && lActiveDoc >= CountCharAtStart(lLine, '#')))
                     {
                         // chapter is ended
                         lActiveDoc = 0;
-                        Console.WriteLine("\n\n", lBaggageFileName);
+                        Console.WriteLine("\n\n");
                         WriteBaggage(iBaggageDir, lBaggageFileName, lBaggage);
                         lBaggage.Clear();
                         continue;

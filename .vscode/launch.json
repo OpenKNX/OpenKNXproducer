@@ -37,6 +37,25 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug Dummy Doku",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "baggages",
+                "-d",
+                "../OAM-Dummy/doc/Applikationsbeschreibung.md",
+                "-b",
+                "../OAM-Dummy/src/Baggages/Help_de",
+                "--Prefix",
+                "DMY"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug SOM-UP",
             "type": "coreclr",
             "request": "launch",

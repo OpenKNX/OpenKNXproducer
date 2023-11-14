@@ -14,8 +14,8 @@
     <Content Remove="TemplateApplication.xml" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="NewDevice.xml" />
-    <EmbeddedResource Include="TemplateApplication.xml" />
+    <EmbeddedResource Include="xml/NewDevice.xml" />
+    <EmbeddedResource Include="xml/TemplateApplication.xml" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>

@@ -8,7 +8,7 @@
         </CatalogSection>
       </Catalog>
       <ApplicationPrograms>
-        <ApplicationProgram Id="%AID%" ApplicationNumber="%ApplicationNumber%" ApplicationVersion="%ApplicationVersion%" ReplacesVersions="0" ProgramType="ApplicationProgram" MaskVersion="%MaskVersion%" Name="%ApplicationName%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="4.0">
+        <ApplicationProgram Id="%AID%" ApplicationNumber="%ApplicationNumber%" ApplicationVersion="%ApplicationVersion%" ReplacesVersions="0" ProgramType="ApplicationProgram" MaskVersion="%MaskVersion%" Name="%ApplicationName%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="5.0">
           <Static>
             <Code>
               <RelativeSegment Id="%AID%_RS-04-00000" Name="Parameters" Offset="0" Size="%MemorySize%" LoadStateMachine="4" />
