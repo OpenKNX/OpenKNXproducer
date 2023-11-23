@@ -68,6 +68,7 @@ namespace OpenKNXproducer
             Regex lRegexCommentStart = new("^(?=\\s*<!--\\s)(?:(?!DOC).)*$");
             Regex lRegexCommentEnd = new(".*-->\\s*");
             bool lActiveComment = false;
+            Regex lRegexCleanupTitle = new(@"##(#?#?#?)\s*\*\*(.*)\*\*");
 
             string lLine = "";
             while (!lFile.EndOfStream)
@@ -167,7 +168,7 @@ namespace OpenKNXproducer
                     }
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
                     Console.WriteLine("--> {0}.md\n", lBaggageFileName);
-                    string lChapterNameFormatted = string.Format("### **{0}**\n", lChapterName);
+                    string lChapterNameFormatted = $"### {lChapterName}\n";
                     lBaggage.AppendLine(lChapterNameFormatted);
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine(lChapterNameFormatted);
@@ -207,6 +208,9 @@ namespace OpenKNXproducer
 
                 if (lActiveDoc > 0 && lActiveSkip == 0)
                 {
+                    lMatch = lRegexCleanupTitle.Match(lLine);
+                    if (lMatch.Success)
+                        lLine = lLine.Replace("**", "");
                     lBaggage.AppendLine(lLine);
                     Console.WriteLine(lLine);
                 }

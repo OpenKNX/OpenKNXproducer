@@ -68,7 +68,8 @@ namespace OpenKNXproducer
                 {
                     lResult.VerifyFile = lVerify.NodeAttr("File");
                     lResult.VerifyRegex = lVerify.NodeAttr("Regex", "\\s\"version\":\\s\"(\\d{1,2}).(\\d{1,2}).*\",");
-                    int.TryParse(lVerify.NodeAttr("ModuleVersion", "-1"), out lResult.VerifyVersion);
+                    lResult.VerifyVersion = TemplateApplication.ParseNumberValue("ModuleVersion", lVerify.NodeAttr("ModuleVersion", "-1"));
+                    // int.TryParse(lVerify.NodeAttr("ModuleVersion", "-1"), out lResult.VerifyVersion);
                 }
                 lResult.share = iDefineNode.NodeAttr("share");
                 lResult.template = iDefineNode.NodeAttr("template");
@@ -83,14 +84,33 @@ namespace OpenKNXproducer
         {
             DefineContent lResult;
             lResult = sDefines.ContainsKey(iPrefix) ? sDefines[iPrefix] : Empty;
-            // if (sDefines.ContainsKey(iPrefix))
-            // {
-            //     lResult = sDefines[iPrefix];
-            // }
-            // else
-            // {
-            //     lResult = Empty;
-            // }
+            return lResult;
+        }
+
+        public static bool ValidateDefines()
+        {
+            bool lResult = false;
+            int[] lModuleTypes = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            foreach (var lDefineEntry in sDefines)
+            {
+                DefineContent lDefine = lDefineEntry.Value;
+                int lModuleTypeLen = lDefine.ModuleType.ToString().Length;
+                int lModuleTypeIndex = lDefine.ModuleType < 10 ? lDefine.ModuleType : lDefine.ModuleType / 10;
+                switch (lModuleTypes[lModuleTypeIndex])
+                {
+                    case 1:
+                        if (lModuleTypeLen == 2)
+                            Program.Message(true, "Inconsistent ModuleType definitions found: {0} and {1}. Use always 2-digit ModuleTypes except you know what you are doing!", lModuleTypeIndex, lDefine.ModuleType);
+                        break;
+                    case 2:
+                        if (lModuleTypeLen == 1)
+                            Program.Message(true, "Inconsistent ModuleType definitions found: {0}x and {0}. Use always 2-digit ModuleTypes except you know what you are doing!", lModuleTypeIndex);
+                        break;
+                    default:
+                        lModuleTypes[lModuleTypeIndex] = lModuleTypeLen;
+                        break;
+                }
+            }
             return lResult;
         }
 

@@ -173,6 +173,25 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug Logicmodule Doku",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "baggages",
+                "-d",
+                "../OFM-LogicModule/doc/Applikationsbeschreibung-Logik.md",
+                "-b",
+                "../OFM-LogicModule/src/Baggages/Help_de",
+                "--Prefix",
+                "LOG"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug Matrix",
             "type": "coreclr",
             "request": "launch",

@@ -587,7 +587,7 @@ namespace OpenKNXproducer
             foreach (var lConfig in ProcessInclude.Config)
             {
                 if (!lConfig.Value.WasReplaced)
-                    lCheck.WriteWarn("Config name {0} with value {1} was never replaced", lConfig.Key, lConfig.Value.ConfigValue);
+                    lCheck.WriteWarn(1, "Config name {0} with value {1} was never replaced", lConfig.Key, lConfig.Value.ConfigValue);
             }
             lCheck.Finish();
 
@@ -600,7 +600,7 @@ namespace OpenKNXproducer
                 {
                     Match lMatch = lConfigName.Match(lAttr.Value);
                     if (lMatch.Success)
-                        lCheck.WriteWarn("The value {0} of attribute {1} in node {2} might be an unreplaced config entry", lAttr.Value, lAttr.Name, lAttr.OwnerElement.Name);
+                        lCheck.WriteWarn(2, "The value {0} of attribute {1} in node {2} might be an unreplaced config entry", lAttr.Value, lAttr.Name, lAttr.OwnerElement.Name);
                 }
             }
             lCheck.Finish();
@@ -624,7 +624,7 @@ namespace OpenKNXproducer
                     if (lFunctionCalls.ContainsKey(lFunctionName))
                         lFunctionCalls[lFunctionName] = true;
                     else
-                        lCheck.WriteWarn("Function with name {0} was never called form xml", lFunctionName);
+                        lCheck.WriteWarn(3, "Function with name {0} was never called form xml", lFunctionName);
                 }
                 foreach (var lFunctionCall in lFunctionCalls)
                     if (!lFunctionCall.Value)
@@ -638,7 +638,7 @@ namespace OpenKNXproducer
                 if (lMessage.Value)
                     lCheck.WriteFail(lMessage.Key, "");
                 else
-                    lCheck.WriteWarn(lMessage.Key, "");
+                    lCheck.WriteWarn(0, lMessage.Key, "");
             }
             lCheck.Finish("NONE");
 
@@ -688,6 +688,10 @@ namespace OpenKNXproducer
                             break;
 
                         case "TypeRawData":
+                            //There is no SizeInBit attribute
+                            break;
+
+                        case "TypeIPAddress":
                             //There is no SizeInBit attribute
                             break;
 
@@ -773,6 +777,11 @@ namespace OpenKNXproducer
                             //TODO add string length validation
                             if (iValue.Length > maxSize)
                                 iCheck.WriteFail("String Length of {0} can not be greater than {2}, length is '{1}'", iMessage, maxSize, iValue.Length);
+                            break;
+                        case "TypeIPAddress":
+                            Regex lRegex = new(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}");
+                            if (!lRegex.IsMatch(iValue))
+                                iCheck.WriteFail($"Value {iValue} for IPAddress is not in the expected format xxx.xxx.xxx.xxx");
                             break;
                         default:
                             break;

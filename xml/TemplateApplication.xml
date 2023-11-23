@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-model href="../../Organization/knxprod-support/knx_project_20/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
-<KNX xmlns="http://knx.org/xml/project/20" xmlns:op="http://github.com/OpenKNX/OpenKNXproducer">
+<?xml-model href="../../Organization/knxprod-support/knx_project_%etsversion%/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<KNX xmlns="http://knx.org/xml/project/%etsversion%" xmlns:op="http://github.com/OpenKNX/OpenKNXproducer">
   <ManufacturerData>
     <Manufacturer RefId="M-00FA">
       <Catalog>
         <CatalogSection Id="M-00FA_CS-OpenKNX" Name="OpenKNX" Number="OpenKNX" DefaultLanguage="de">
-          <CatalogItem Id="%CatalogItemId%" Name="OpenKNX: %CatalogName%%BuildSuffix%" Number="1" ProductRefId="%ProductId%" Hardware2ProgramRefId="%Hardware2ProgramId%" DefaultLanguage="de" />
+          <CatalogItem Id="%CatalogItemId%" Name="OpenKNX: %CatalogName%%BuildSuffixText%" Number="1" ProductRefId="%ProductId%" Hardware2ProgramRefId="%Hardware2ProgramId%" DefaultLanguage="de" />
         </CatalogSection>
       </Catalog>
       <ApplicationPrograms>
-        <ApplicationProgram Id="%AID%" ProgramType="ApplicationProgram" MaskVersion="MV-07B0" Name="OpenKNX-%ApplicationName%%BuildSuffix%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="5.0" ContextHelpFile="%FILE-HELP-de%" IconFile="%FILE-ICONS%" ApplicationNumber="0" ApplicationVersion="0" ReplacesVersions="0">
+        <op:version OpenKnxId="%OpenKnxId%" ApplicationNumber="%ApplicationNumber%" ApplicationVersion="%ApplicationVersion%" ReplacesVersions="%ReplacesVersions%" ApplicationRevision="%ApplicationRevision%" />
+        <ApplicationProgram Id="%AID%" ProgramType="ApplicationProgram" MaskVersion="MV-07B0" Name="%ApplicationName%%BuildSuffix%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="5.0" ContextHelpFile="%FILE-HELP-de%" IconFile="%FILE-ICONS%" ApplicationNumber="0" ApplicationVersion="0" ReplacesVersions="0">
           <Static>
             <Code>
                 <RelativeSegment Id="%AID%_RS-04-00000" Name="Parameters" Offset="0" Size="%MemorySize%" LoadStateMachine="4" />
@@ -80,12 +81,11 @@
       </ApplicationPrograms>
       <Baggages>
         <op:includetemplate href="%share%" xpath="//Baggages/*" prefix="%prefix%" />
-        <op:include href="../lib/OGM-Common/src/Common.share.xml" xpath="//Baggages/*" prefix="LOG" />
       </Baggages>
       <Hardware>
-        <Hardware Id="%HardwareId%" Name="OpenKNX-%HardwareName%%BuildSuffix%" SerialNumber="%SerialNumber%" VersionNumber="1" BusCurrent="%BusCurrent%" HasIndividualAddress="true" HasApplicationProgram="true">
+        <Hardware Id="%HardwareId%" Name="OpenKNX-%HardwareName%%BuildSuffix%" SerialNumber="%SerialNumber%" VersionNumber="1" BusCurrent="%BusCurrent%" IsIPEnabled="%IsIPEnabled%" HasIndividualAddress="true" HasApplicationProgram="true">
           <Products>
-            <Product Id="%ProductId%" Text="OpenKNX: %ProductName%%BuildSuffix%" OrderNumber="%OrderNumber%" IsRailMounted="false" DefaultLanguage="de">
+            <Product Id="%ProductId%" Text="OpenKNX: %ProductName%%BuildSuffixText%" OrderNumber="%OrderNumber%" IsRailMounted="%IsRailMounted%" DefaultLanguage="de">
               <RegistrationInfo RegistrationStatus="Registered" />
             </Product>
           </Products>
