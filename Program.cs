@@ -187,18 +187,19 @@ namespace OpenKNXproducer
             lCheck.Finish();
 
             lCheck.Start("- Id-R_Suffix-Uniqueness...");
-            Dictionary<string, bool> lParameterSuffixes = new Dictionary<string, bool>();
-            Dictionary<string, bool> lComObjectSuffixes = new Dictionary<string, bool>();
+            Dictionary<string, bool> lParameterSuffixes = new();
+            Dictionary<string, bool> lComObjectSuffixes = new();
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
                 int lPos = lId.LastIndexOf("_R-");
+                if (lId.Contains("_MD-")) lPos = 0;
                 Dictionary<string, bool> lSuffixes = null;
                 if (lPos > 0)
                 {
-                    if (lId.Substring(0, lPos).Contains("_P-"))
+                    if (lId[..lPos].Contains("_P-"))
                         lSuffixes = lParameterSuffixes;
-                    else if (lId.Substring(0, lPos).Contains("_O-"))
+                    else if (lId[..lPos].Contains("_O-"))
                         lSuffixes = lComObjectSuffixes;
                     if (lSuffixes != null)
                     {
@@ -455,6 +456,17 @@ namespace OpenKNXproducer
                 string lIdMatch = "";
                 string lIdMatchReadable = "";
                 lId = lId.Replace(lApplicationId, "");
+                // Module check
+                if (lId.StartsWith("_MD-"))
+                {
+                    Regex lModule = new(@"_MD-[1-3]?\d\d{6}");
+                    Match lMatch = lModule.Match(lId);
+                    if (lMatch.Success)
+                    {
+                        lId = lId.Replace(lMatch.Value, "");
+                        if (lId.Length == 0) continue;
+                    }
+                }
                 XmlNode lElement = lKeyValuePair.Value;
                 switch (lElement.Name)
                 {
@@ -1305,7 +1317,7 @@ namespace OpenKNXproducer
             string lHeaderFileName = Path.ChangeExtension(opts.XmlFileName, "h");
             if (opts.HeaderFileName != "") lHeaderFileName = opts.HeaderFileName;
             Console.WriteLine("Processing xml file {0}", opts.XmlFileName);
-            ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, lHeaderFileName, opts.Prefix);
+            ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, opts.Prefix);
             ProcessInclude.Renumber = !opts.NoRenumber;
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
             // additional configuration
@@ -1377,7 +1389,7 @@ namespace OpenKNXproducer
             string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string lFileName = Path.ChangeExtension(opts.XmlFileName, "xml");
             Console.WriteLine("Reading and resolving xml file {0}", lFileName);
-            ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, "", "");
+            ProcessInclude lInclude = ProcessInclude.Factory(opts.XmlFileName, "");
             // ProcessInclude.Renumber = !opts.NoRenumber;
             lInclude.LoadAdvanced(lFileName);
             lInclude.SetNamespace();

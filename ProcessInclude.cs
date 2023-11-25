@@ -28,7 +28,6 @@ namespace OpenKNXproducer
         private static readonly Dictionary<string, ProcessInclude> gIncludes = new();
         private static int sMaxKoNumber = 0;
         private readonly string mXmlFileName;
-        private readonly string mHeaderFileName;
         private readonly string mHeaderPrefixName;
         private bool mHeaderParameterStartGenerated;
         private bool mHeaderParameterBlockGenerated;
@@ -91,7 +90,7 @@ namespace OpenKNXproducer
             }
         }
 
-        public static ProcessInclude Factory(string iXmlFileName, string iHeaderFileName, string iHeaderPrefixName)
+        public static ProcessInclude Factory(string iXmlFileName, string iHeaderPrefixName)
         {
             ProcessInclude lInclude = null;
             if (gIncludes.ContainsKey(iXmlFileName))
@@ -101,16 +100,15 @@ namespace OpenKNXproducer
             else
             {
                 Console.WriteLine("Processing include {0}", iXmlFileName);
-                lInclude = new ProcessInclude(iXmlFileName, iHeaderFileName, iHeaderPrefixName);
+                lInclude = new ProcessInclude(iXmlFileName, iHeaderPrefixName);
                 gIncludes.Add(iXmlFileName, lInclude);
             }
             return lInclude;
         }
 
-        private ProcessInclude(string iXmlFileName, string iHeaderFileName, string iHeaderPrefixName)
+        private ProcessInclude(string iXmlFileName, string iHeaderPrefixName)
         {
             mXmlFileName = iXmlFileName;
-            mHeaderFileName = iHeaderFileName;
             mBaggagesName = Path.GetFileName(iXmlFileName).Replace(".xml", ".baggages");
             if (iHeaderPrefixName != "" && !iHeaderPrefixName.EndsWith('_')) iHeaderPrefixName += "_";
             mHeaderPrefixName = iHeaderPrefixName;
@@ -127,21 +125,6 @@ namespace OpenKNXproducer
             }
             return lResult;
         }
-
-        // bool ParseHeaderFile(string iHeaderFileName) {
-        //     if (File.Exists(iHeaderFileName)) {
-        //         StreamReader lHeaderFile = File.OpenText(iHeaderFileName);
-        //         string lHeaderFileContent = lHeaderFile.ReadToEnd();
-        //         lHeaderFile.Close();
-        //         mChannelCount = GetHeaderParameter(lHeaderFileContent, mHeaderPrefixName + "Channels");
-        //         mKoOffset = GetHeaderParameter(lHeaderFileContent, mHeaderPrefixName + "KoOffset");
-        //     } else {
-        //         mChannelCount = 1;
-        //         mKoOffset = 1;
-        //     }
-        //     // mKoBlockSize = GetHeaderParameter(lHeaderFileContent, mHeaderPrefixName + "KoBlockSize");
-        //     return (mChannelCount >= 0) && (mKoOffset > 0);
-        // }
 
         public XmlNodeList SelectNodes(string iXPath)
         {
@@ -207,7 +190,7 @@ namespace OpenKNXproducer
             // here we recursively process all includes and all channel repetitions
             LoadAdvanced(mXmlFileName);
             // we use here an empty DefineContent, just for startup
-            ExportHeader(DefineContent.Empty, mHeaderFileName, mHeaderPrefixName, this);
+            ExportHeader(DefineContent.Empty, mHeaderPrefixName, this);
             // finally we do all processing necessary for the whole (resolved) document
             // mDocument.Save("TemplateApplication.expanded.xml");
             bool lWithVersions = ProcessFinish(mDocument);
@@ -298,8 +281,8 @@ namespace OpenKNXproducer
             string lValue = iAttr.Value;
             if (lValue.Contains("%T%") || lValue.Contains("%TT%"))
             {
-                lValue = lValue.Replace("_PS-", "_PST-");
-                lValue = lValue.Replace("_PB-", "_PBT-");
+                // lValue = lValue.Replace("_PS-", "_PST-");
+                // lValue = lValue.Replace("_PB-", "_PBT-");
                 string lModuleType = iInclude.ModuleType.ToString();
                 if (lValue.Contains("%TT%"))
                 {
@@ -513,7 +496,7 @@ namespace OpenKNXproducer
                     ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
                 }
                 else
-                if ("Channel,ChannelIndependentBlock,ParameterBlock,choose,ParameterCalculations,ParameterValidations".Contains(iTargetNode.Name))
+                if ("Channel,ChannelIndependentBlock,ParameterBlock,choose,ParameterCalculations,ParameterValidations,ModuleDefs".Contains(iTargetNode.Name))
                 {
                     ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
                 }
@@ -556,9 +539,10 @@ namespace OpenKNXproducer
             ReplaceDocumentStrings(iNode.ChildNodes, iSourceText, iTargetText);
         }
 
-        void ReplaceDocumentStrings(string iSourceText, string iTargetText)
+        void ReplaceDocumentStrings(string iSourceText, string iTargetText, XmlDocument iDocument = null)
         {
-            ReplaceDocumentStrings(mDocument.ChildNodes, iSourceText, iTargetText);
+            iDocument ??= mDocument;
+            ReplaceDocumentStrings(iDocument.ChildNodes, iSourceText, iTargetText);
         }
 
         bool ProcessFinish(XmlNode iTargetNode)
@@ -635,7 +619,7 @@ namespace OpenKNXproducer
             ReplaceBaggages(iTargetNode);
             ReplaceExtensions(iTargetNode);
             XmlNodeList lAttrs;
-            lAttrs = iTargetNode.SelectNodes("//*/@*[starts-with(.,'%AID%')]");
+            lAttrs = iTargetNode.SelectNodes("//*/@*[contains(.,'%AID%')]");
             if (lAttrs.Count == 0)
                 lAttrs = iTargetNode.SelectNodes("//*/@*[string-length() > '13']");
             foreach (XmlNode lAttr in lAttrs)
@@ -657,8 +641,8 @@ namespace OpenKNXproducer
                             lParameterBlockCount = RenumberParameterBlock(lParameterBlockCount, lAttr);
                         }
                     }
-                    lAttr.Value = lAttr.Value.Replace("_PST-", "_PS-");
-                    lAttr.Value = lAttr.Value.Replace("_PBT-", "_PB-");
+                    // lAttr.Value = lAttr.Value.Replace("_PST-", "_PS-");
+                    // lAttr.Value = lAttr.Value.Replace("_PBT-", "_PB-");
                 }
             }
             // remove empty elements (without attributes and without children)
@@ -1305,6 +1289,7 @@ namespace OpenKNXproducer
 
         public bool IsHelpContextId(string iId)
         {
+            if (iId.Contains("{{")) return true;
             return mBaggageHelpId.Contains(iId);
         }
 
@@ -1549,7 +1534,7 @@ namespace OpenKNXproducer
                 DefineContent lDefine = DefineContent.GetDefineContent(lHeaderPrefixName);
                 lDefine.IsTemplate = (lIncludeNode.NodeAttr("type") == "template");
                 lDefine.IsParameter = (lIncludeNode.NodeAttr("type") == "parameter");
-                ProcessInclude lInclude = ProcessInclude.Factory(lIncludeName, lDefine.header, lHeaderPrefixName);
+                ProcessInclude lInclude = ProcessInclude.Factory(lIncludeName, lHeaderPrefixName);
                 lInclude.IsInnerInclude = lIncludeNode.NodeAttr("IsInner") == "true";
                 DateTime lStartTime = DateTime.Now;
                 string lTargetPath = Path.Combine(iCurrentDir, lIncludeName);
@@ -1564,11 +1549,12 @@ namespace OpenKNXproducer
                 // we replace config params before we multiply all channels (faster)
                 foreach (XmlNode lNode in lChildren)
                     ProcessConfig(lNode);
-                string lHeaderFileName = Path.Combine(iCurrentDir, lDefine.header);
                 lInclude.ModuleType = lDefine.ModuleType;
-                if (lChildren.Count > 0 && ("Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
+                if (lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
                 {
-                    if (lDefine.IsTemplate)
+                    if ("ParameterType" == lChildren[0].LocalName)
+                        lInclude.OriginalChannelCount = lDefine.NumChannels;
+                    else if (lDefine.IsTemplate)
                     {
                         // at this point we are including a template file
                         // ChannelCount and KoOffset are taken from correct prefix
@@ -1577,14 +1563,17 @@ namespace OpenKNXproducer
                         lInclude.KoSingleOffset = lDefine.KoSingleOffset;
                         lInclude.ReplaceKeys = lDefine.ReplaceKeys;
                         lInclude.ReplaceValues = lDefine.ReplaceValues;
-                        ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
+                        ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
                     }
                     else if (lDefine.IsParameter || "ComObject".Contains(lChildren[0].LocalName))
                     {
                         lInclude.OriginalChannelCount = lDefine.NumChannels;
-                        ExportHeader(lDefine, lHeaderFileName, lHeaderPrefixName, lInclude, lChildren);
+                        ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
                     }
                 }
+
+                if (!lInclude.IsInnerInclude && !lInclude.IsScript && lInclude.OriginalChannelCount > 0)
+                    ReplaceDocumentStrings("%N%", lInclude.OriginalChannelCount.ToString(), lInclude.mDocument);
 
                 DateTime lStart = DateTime.Now;
                 // here we do template processing and repeat the template as many times as
@@ -1611,8 +1600,6 @@ namespace OpenKNXproducer
                 TimeSpan lDiff = DateTime.Now - lStart;
                 if (lDiff.Seconds > 0 && lDefine.IsTemplate)
                     Console.WriteLine("Multiplying {2} channels of {1} took {0:0.##} seconds", lDiff.TotalSeconds, lInclude.mHeaderPrefixName.Trim('_'), lInclude.ChannelCount);
-                if (!lInclude.IsInnerInclude && !lInclude.IsScript && lInclude.OriginalChannelCount > 0)
-                    ReplaceDocumentStrings("%N%", lInclude.OriginalChannelCount.ToString());
                 ReplaceDocumentStrings("%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
                 // we replace also all additional replace key value pairs
                 for (int lCount = 0; lCount < lInclude.ReplaceKeys.Length; lCount++)
@@ -1631,7 +1618,7 @@ namespace OpenKNXproducer
             // catch { }
         }
 
-        private void ExportHeader(DefineContent iDefine, string iHeaderFileName, string iHeaderPrefixName, ProcessInclude iInclude, XmlNodeList iChildren = null)
+        private void ExportHeader(DefineContent iDefine, string iHeaderPrefixName, ProcessInclude iInclude, XmlNodeList iChildren = null)
         {
             // iInclude.ParseHeaderFile(iHeaderFileName);
             // if (iInclude.IsInnerInclude)

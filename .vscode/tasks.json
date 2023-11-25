@@ -44,7 +44,6 @@
         {
             "label": "build, publish and copy to bin",
             "dependsOn": [
-                "build",
                 "publish",
                 "copy to bin"
             ],

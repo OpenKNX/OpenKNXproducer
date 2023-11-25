@@ -16,31 +16,31 @@
                 <RelativeSegment Id="%AID%_RS-04-00000" Name="Parameters" Offset="0" Size="%MemorySize%" LoadStateMachine="4" />
             </Code>
             <ParameterTypes>
-                <op:includetemplate href="%share%" xpath="//ParameterTypes/ParameterType" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterTypes/ParameterType" prefix="%prefix%" />
             </ParameterTypes>
             <Parameters>
-                <op:includetemplate href="%share%" xpath="//Parameters/Parameter|//Parameters/Union" type="parameter" prefix="%prefix%" />
-                <op:includetemplate href="%templ%" xpath="//Parameters/Parameter|//Parameters/Union" type="template" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union" type="parameter" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union" type="template" prefix="%prefix%" />
             </Parameters>
             <ParameterRefs>
-                <op:includetemplate href="%share%" xpath="//ParameterRefs/ParameterRef" prefix="%prefix%" />
-                <op:includetemplate href="%templ%" xpath="//ParameterRefs/ParameterRef" type="template" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterRefs/ParameterRef" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterRefs/ParameterRef" type="template" prefix="%prefix%" />
             </ParameterRefs>
             <ParameterCalculations>
-                <op:includetemplate href="%share%" xpath="//ParameterCalculations/ParameterCalculation" prefix="%prefix%" />
-                <op:includetemplate href="%templ%" xpath="//ParameterCalculations/ParameterCalculation" type="template" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterCalculations/ParameterCalculation" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterCalculations/ParameterCalculation" type="template" prefix="%prefix%" />
             </ParameterCalculations>
             <ParameterValidations>
-                <op:includetemplate href="%share%" xpath="//ParameterValidations/ParameterValidation" prefix="%prefix%" />
-                <op:includetemplate href="%templ%" xpath="//ParameterValidations/ParameterValidation" type="template" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterValidations/ParameterValidation" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterValidations/ParameterValidation" type="template" prefix="%prefix%" />
             </ParameterValidations>
             <ComObjectTable>
-                <op:includetemplate href="%share%" xpath="//ComObjectTable/ComObject" prefix="%prefix%" />
-                <op:includetemplate href="%templ%" xpath="//ComObjectTable/ComObject" type="template" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ComObjectTable/ComObject" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ComObjectTable/ComObject" type="template" prefix="%prefix%" />
             </ComObjectTable>
             <ComObjectRefs>
-                <op:includetemplate href="%share%" xpath="//ComObjectRefs/ComObjectRef" prefix="%prefix%" />
-                <op:includetemplate href="%templ%" xpath="//ComObjectRefs/ComObjectRef" type="template" prefix="%prefix%" />
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ComObjectRefs/ComObjectRef" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ComObjectRefs/ComObjectRef" type="template" prefix="%prefix%" />
             </ComObjectRefs>
             <AddressTable MaxEntries="2047" />
             <AssociationTable MaxEntries="2047" />
@@ -69,18 +69,21 @@
               <Message Id="%AID%_M-1" Name="VersionMismatch" Text="Diese Applikaiton und die Firmware passen nicht zusammen" />
             </Messages>
             <Script>
-              <op:includetemplate href="%share%" xpath="//Script/text()" prefix="%prefix%" />
+              <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Script/text()" prefix="%prefix%" />
             </Script>
             <Options />
           </Static>
+          <ModuleDefs>
+            <op:includetemplate href="%share%" xpath="//ApplicationProgram/ModuleDefs/*" prefix="%prefix%" />
+            <op:includetemplate href="%templ%" xpath="//ApplicationProgram/ModuleDefs/*" type="template" prefix="%prefix%" />
+          </ModuleDefs>
           <Dynamic>
-            <!-- <op:includetemplate href="%share%" xpath="//Dynamic/Channel/*" prefix="%prefix%" /> -->
-            <!-- <op:includetemplate href="%templ%" xpath="//Dynamic/ChannelIndependentBlock/*" type="template" prefix="%prefix%" /> -->
+            <op:includetemplate href="%share%" xpath="//ApplicationProgram/Dynamic/*" prefix="%prefix%" />
           </Dynamic>
         </ApplicationProgram>
       </ApplicationPrograms>
       <Baggages>
-        <op:includetemplate href="%share%" xpath="//Baggages/*" prefix="%prefix%" />
+        <op:includetemplate href="%share%" xpath="//Manufacturer/Baggages/*" prefix="%prefix%" />
       </Baggages>
       <Hardware>
         <Hardware Id="%HardwareId%" Name="OpenKNX-%HardwareName%%BuildSuffix%" SerialNumber="%SerialNumber%" VersionNumber="1" BusCurrent="%BusCurrent%" IsIPEnabled="%IsIPEnabled%" HasIndividualAddress="true" HasApplicationProgram="true">

@@ -150,10 +150,11 @@ class TemplateApplication
             InitParam(lParams, "IsRailMounted", false, "", "false");
             InitParam(lParams, "IsIPEnabled", false, "", "false");
             int.TryParse(lParams["%ApplicationNumber%"], out int lApplicationNumberInt);
+            int.TryParse(lParams["%ApplicationVersion%"], out int lApplicationVersionInt);
             string lOpenKnxId = lParams["%OpenKnxId%"].Replace("0x", "");
             InitParam(lParams, "SerialNumber", false, "", string.Format("0x{0}{1:X02}", lOpenKnxId, lApplicationNumberInt));
             InitParam(lParams, "OrderNumber", false, "SerialNumber");
-            InitParam(lParams, "BaggagesRootDir", false, "", string.Format("{0}/{1:X02}", lOpenKnxId, lApplicationNumberInt));
+            InitParam(lParams, "BaggagesRootDir", false, "", string.Format("{0}/{1:X02}/{2:X02}", lOpenKnxId, lApplicationNumberInt, lApplicationVersionInt));
             iInclude.BaggagesBaseDir = lParams["%BaggagesRootDir%"].Replace('/', '\\');
             // finally its a simple string replace
             foreach (var lParam in lParams)

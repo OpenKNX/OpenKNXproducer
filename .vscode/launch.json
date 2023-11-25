@@ -73,6 +73,23 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug SOM-UP (temp)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../SOM-UP/include/knxprod.h",
+                "../SOM-UP/src/SoundModule"
+            ],
+            "cwd": "${workspaceFolder}/../../OpenKNX-tmp/SOM-UP",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug PresenceModule",
             "type": "coreclr",
             "request": "launch",
