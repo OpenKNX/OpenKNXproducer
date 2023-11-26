@@ -1,16 +1,171 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- This schema is used by knx-editor.xsd to extend it with OpenKNXproducer-elements -->
 <xs:schema xmlns:op="http://github.com/OpenKNX/OpenKNXproducer" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://github.com/OpenKNX/OpenKNXproducer" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.0">
+
+  <!-- Types to change in knx.xsd -->
+  <xs:simpleType name="ID">
+    <!-- <xs:restriction base="xs:string"/> -->
+    <xs:restriction base="xs:string">
+      <!-- the following is intended, but not allowed in xsd pattern -->
+      <!-- <xs:pattern value="%AID%_(U?P|O)-((%T%|\d)%C{3}%\d{3})(_R-\2\d\d)?" /> -->
+      <xs:pattern value="%AID%(_MD-(%T%|\d)%C{3}%\d{3})?_(U?P|O)-(%T%|\d)%C{3}%\d{3}(_R-(%T%|\d)%C{3}%\d{3}\d\d)?" />
+      <!-- the following is intended, but not allowed in xsd pattern -->
+      <!-- <xs:pattern value="%AID%_(U?P|O)-((%T%|\d)\d{6})(_R-\2\d\d)?" /> -->
+      <xs:pattern value="%AID%(_MD-(%T%|\d)\d{6})?_(U?P|O)-(%T%|\d)\d{6}(_R-(%T%|\d)\d{6}\d\d)?" />
+      <xs:pattern value="%AID%(_MD-(%T%|\d)(%C{3}%|\d{3})\d{3})?_P[BST]-.*" />
+      <xs:pattern value="%AID%(_MD-(%T%|\d)(%C{3}%|\d{3})\d{3})?_(RS|CH|M|A|L|X)-.*" />
+      <xs:pattern value="%AID%_MD-(%T%|\d)(%C{3}%|\d{3})\d{3}" />
+      <xs:pattern value="%[a-zA-z0-9]*%" />
+      <xs:pattern value="%FILE-[\-a-zA-z0-9]*%" />
+      <xs:pattern value="M-00FA_CS-OpenKNX" />
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- ID for Parameter and its refs -->
+  <xs:simpleType name="PID">
+    <!-- <xs:restriction base="xs:string"/> -->
+    <xs:restriction base="xs:string">
+      <!-- the following is intended, but not allowed in xsd pattern -->
+      <!-- <xs:pattern value="%AID%_(U?P)-((%T%|\d)%C{3}%\d{3})(_R-\2\d\d)?" /> -->
+      <xs:pattern value="%AID%(_MD-(%T%|\d)%C{3}%\d{3})?_(U?P)-(%T%|\d)%C{3}%\d{3}(_R-(%T%|\d)%C{3}%\d{3}\d\d)?" />
+      <!-- the following is intended, but not allowed in xsd pattern -->
+      <!-- <xs:pattern value="%AID%_(U?P)-((%T%|\d)\d{6})(_R-\2\d\d)?" /> -->
+      <xs:pattern value="%AID%(_MD-(%T%|\d)\d{6})?_(U?P)-(%T%|\d)\d{6}(_R-(%T%|\d)\d{6}\d\d)?" />
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- ID for ComObject and its refs -->
+  <xs:simpleType name="OID"> 
+    <!-- <xs:restriction base="xs:string"/> -->
+    <xs:restriction base="xs:string">
+      <!-- the following is intended, but not allowed in xsd pattern -->
+      <!-- <xs:pattern value="%AID%_(U?P)-((%T%|\d)%C{3}%\d{3})(_R-\2\d\d)?" /> -->
+      <xs:pattern value="%AID%(_MD-(%T%|\d)%C{3}%\d{3})?_O-(%T%|\d)%C{3}%\d{3}(_R-(%T%|\d)%C{3}%\d{3}\d\d)?" />
+      <!-- the following is intended, but not allowed in xsd pattern -->
+      <!-- <xs:pattern value="%AID%_(U?P)-((%T%|\d)\d{6})(_R-\2\d\d)?" /> -->
+      <xs:pattern value="%AID%(_MD-(%T%|\d)\d{6})?_O-(%T%|\d)\d{6}(_R-(%T%|\d)\d{6}\d\d)?" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="whenWithPlaceholder">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="((-?(%[A-Z]*%)+\s)*-?(%[A-Z]*%)+)|((=|(!=)|&gt;|&lt;|(&gt;=)|(&lt;=))-?(%[A-Z]*%)+)" />
+      <xs:pattern value="%[A-Z]*%" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NumberKo">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="%K[0-9]*%" />
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:restriction base="xs:integer" />
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+  <xs:simpleType name="Size_t">
+    <xs:restriction base="xs:string" />
+  </xs:simpleType>
+  <xs:simpleType name="hexBinary">
+    <xs:restriction base="xs:string" />
+  </xs:simpleType>
+  <xs:simpleType name="longOrPlaceholder">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="%[a-zA-Z0-9]*%" />
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:restriction base="xs:long" />
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+  <xs:simpleType name="DPTID">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="DPT-\d{1,3}" />
+      <xs:pattern value="DPST-\d{1,3}-\d{1,3}" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MaskVersionEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="MV-07B0" />
+      <xs:enumeration value="MV-27B0" />
+      <xs:enumeration value="MV-57B0" />
+      <xs:enumeration value="MV-091A" />
+      <xs:enumeration value="MV-2920" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MediumTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="MT-0" />
+      <xs:enumeration value="MT-5" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="MediumTypesEnum">
+    <xs:list itemType="op:MediumTypeEnum" />
+  </xs:simpleType>
+  <xs:simpleType name="ManufacturerEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="M-00FA" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- OpenKNXproducer types -->
   <xs:simpleType name="OpenKnxId_enum">
     <xs:restriction base="xs:string">
       <xs:enumeration value="0xA0" />
       <xs:enumeration value="0xA1" />
       <xs:enumeration value="0xA2" />
+      <xs:enumeration value="0xA3" />
+      <xs:enumeration value="0xA4" />
+      <xs:enumeration value="0xA5" />
+      <xs:enumeration value="0xA6" />
+      <xs:enumeration value="0xA7" />
+      <xs:enumeration value="0xA8" />
+      <xs:enumeration value="0xA9" />
+      <xs:enumeration value="0xAA" />
+      <xs:enumeration value="0xAB" />
+      <xs:enumeration value="0xAC" />
+      <xs:enumeration value="0xAD" />
+      <xs:enumeration value="0xAE" />
+      <xs:enumeration value="0xAF" />
+      <xs:enumeration value="0xB0" />
+      <xs:enumeration value="0xB1" />
+      <xs:enumeration value="0xB2" />
+      <xs:enumeration value="0xB3" />
+      <xs:enumeration value="0xB4" />
+      <xs:enumeration value="0xB5" />
+      <xs:enumeration value="0xB6" />
+      <xs:enumeration value="0xB7" />
+      <xs:enumeration value="0xB8" />
+      <xs:enumeration value="0xB9" />
+      <xs:enumeration value="0xBA" />
+      <xs:enumeration value="0xBB" />
+      <xs:enumeration value="0xBC" />
+      <xs:enumeration value="0xBD" />
+      <xs:enumeration value="0xBE" />
+      <xs:enumeration value="0xBF" />
+      <xs:enumeration value="0xF0" />
+      <xs:enumeration value="0xF1" />
+      <xs:enumeration value="0xF2" />
+      <xs:enumeration value="0xF3" />
+      <xs:enumeration value="0xF4" />
+      <xs:enumeration value="0xF5" />
+      <xs:enumeration value="0xF6" />
+      <xs:enumeration value="0xF7" />
+      <xs:enumeration value="0xF8" />
+      <xs:enumeration value="0xF9" />
+      <xs:enumeration value="0xFA" />
+      <xs:enumeration value="0xFB" />
+      <xs:enumeration value="0xFC" />
+      <xs:enumeration value="0xFD" />
+      <xs:enumeration value="0xFE" />
+      <xs:enumeration value="0xFF" />
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="NumChannels_t">
     <xs:restriction base="xs:unsignedShort">
-      <xs:minInclusive value="2" />
+      <xs:minInclusive value="1" />
       <xs:maxInclusive value="99" />
     </xs:restriction>
   </xs:simpleType>
@@ -19,7 +174,7 @@
   </xs:simpleType>
   <xs:simpleType name="Prefix_t">
     <xs:restriction base="xs:string">
-      <xs:pattern value="[A-Z0-9]{1,5}" />
+      <xs:pattern value="[A-Z0-9]{1,10}" />
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="Headerfile_t">
@@ -51,12 +206,24 @@
     <xs:attribute name="ReplacesVersions" type="op:VersionNumbers_t" use="required" />
     <xs:attribute name="ApplicationRevision" type="xs:unsignedByte" use="required" />
   </xs:complexType>
+  <xs:complexType name="verify_t">
+    <xs:attribute name="File" type="xs:string" use="required" />
+    <xs:attribute name="Regex" type="xs:string" use="optional" />
+    <xs:attribute name="ModuleVersion" type="xs:unsignedByte" use="optional" />
+  </xs:complexType>
   <xs:complexType name="define_t">
+    <xs:sequence>
+      <xs:element name="verify" type="op:verify_t" minOccurs="0" />
+    </xs:sequence>
     <xs:attribute name="prefix" type="op:Prefix_t" use="required" />
     <xs:attribute name="header" type="op:Headerfile_t" use="required" />
-    <xs:attribute name="NumChannels" type="op:NumChannels_t" use="required" />
-    <xs:attribute name="KoOffset" type="xs:unsignedShort" use="required" />
+    <xs:attribute name="NumChannels" type="op:NumChannels_t" use="optional" />
+    <xs:attribute name="KoOffset" type="xs:unsignedShort" use="optional" />
+    <!-- just for documentation, does not work wit xsd 1.0 -->
+    <!-- <xs:assert test="(@NumChannels and @KoOffset) or (not(@NumChannels) and not(@KoOffset)) "/> -->
+    <xs:attribute name="KoSingleOffset" type="xs:unsignedShort" use="optional" />
     <xs:attribute name="ModuleType" type="op:ModuleType_t" use="required" />
+
   </xs:complexType>
   <xs:complexType name="include_t">
     <xs:attribute name="href" type="op:Xmlfile_t" use="required" />
@@ -64,8 +231,12 @@
     <xs:attribute name="type" type="op:Type_t" use="optional" />
     <xs:attribute name="prefix" type="op:Prefix_t" use="optional" />
   </xs:complexType>
+  <xs:complexType name="config_t">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
   <xs:element name="version" type="op:version_t" />
   <xs:element name="define" type="op:define_t" />
   <xs:element name="include" type="op:include_t" />
-
+  <xs:element name="config" type="op:config_t"/>
 </xs:schema>

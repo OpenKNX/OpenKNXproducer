@@ -4,3 +4,4 @@ bin/
 Check.*
 Check-Verify.*
 release/*
+debug/*

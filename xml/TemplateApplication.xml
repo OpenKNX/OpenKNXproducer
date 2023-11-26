@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-model href="../../Organization/knxprod-support/knx_project_%etsversion%/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<KNX xmlns="http://knx.org/xml/project/%etsversion%" xmlns:op="http://github.com/OpenKNX/OpenKNXproducer">
+  <ManufacturerData>
+    <Manufacturer RefId="M-00FA">
+      <Catalog>
+        <CatalogSection Id="M-00FA_CS-OpenKNX" Name="OpenKNX" Number="OpenKNX" DefaultLanguage="de">
+          <CatalogItem Id="%CatalogItemId%" Name="OpenKNX: %CatalogName%%BuildSuffixText%" Number="1" ProductRefId="%ProductId%" Hardware2ProgramRefId="%Hardware2ProgramId%" DefaultLanguage="de" />
+        </CatalogSection>
+      </Catalog>
+      <ApplicationPrograms>
+        <op:version OpenKnxId="%OpenKnxId%" ApplicationNumber="%ApplicationNumber%" ApplicationVersion="%ApplicationVersion%" ReplacesVersions="%ReplacesVersions%" ApplicationRevision="%ApplicationRevision%" />
+        <ApplicationProgram Id="%AID%" ProgramType="ApplicationProgram" MaskVersion="MV-07B0" Name="%ApplicationName%%BuildSuffix%" LoadProcedureStyle="MergedProcedure" PeiType="0" DefaultLanguage="de" DynamicTableManagement="false" Linkable="true" MinEtsVersion="5.0" ContextHelpFile="%FILE-HELP-de%" IconFile="%FILE-ICONS%" IPConfig="Custom" ApplicationNumber="0" ApplicationVersion="0" ReplacesVersions="0">
+          <Static>
+            <Code>
+                <RelativeSegment Id="%AID%_RS-04-00000" Name="Parameters" Offset="0" Size="%MemorySize%" LoadStateMachine="4" />
+            </Code>
+            <ParameterTypes>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterTypes/ParameterType" prefix="%prefix%" />
+            </ParameterTypes>
+            <Parameters>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union" type="parameter" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union" type="template" prefix="%prefix%" />
+            </Parameters>
+            <ParameterRefs>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterRefs/ParameterRef" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterRefs/ParameterRef" type="template" prefix="%prefix%" />
+            </ParameterRefs>
+            <ParameterCalculations>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterCalculations/ParameterCalculation" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterCalculations/ParameterCalculation" type="template" prefix="%prefix%" />
+            </ParameterCalculations>
+            <ParameterValidations>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterValidations/ParameterValidation" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterValidations/ParameterValidation" type="template" prefix="%prefix%" />
+            </ParameterValidations>
+            <ComObjectTable>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ComObjectTable/ComObject" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ComObjectTable/ComObject" type="template" prefix="%prefix%" />
+            </ComObjectTable>
+            <ComObjectRefs>
+                <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ComObjectRefs/ComObjectRef" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ComObjectRefs/ComObjectRef" type="template" prefix="%prefix%" />
+            </ComObjectRefs>
+            <AddressTable MaxEntries="2047" />
+            <AssociationTable MaxEntries="2047" />
+            <LoadProcedures>
+              <LoadProcedure MergeId="1">
+                  <LdCtrlCompareProp InlineData="%VersionCheck%" ObjIdx="0" PropId="78">
+                      <OnError Cause="CompareMismatch" MessageRef="%AID%_M-1" />
+                  </LdCtrlCompareProp>
+              </LoadProcedure>
+              <LoadProcedure MergeId="2">
+                  <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="1" Fill="0" AppliesTo="full" />
+                  <LdCtrlRelSegment LsmIdx="4" Size="%MemorySize%" Mode="0" Fill="0" AppliesTo="par" />
+              </LoadProcedure>
+              <LoadProcedure MergeId="4">
+                  <LdCtrlWriteRelMem ObjIdx="4" Offset="0" Size="%MemorySize%" Verify="true" AppliesTo="full,par" />
+              </LoadProcedure>
+              <LoadProcedure MergeId="7">
+                  <LdCtrlLoadImageProp ObjIdx="1" PropId="27" />
+                  <LdCtrlLoadImageProp ObjIdx="2" PropId="27" />
+                  <LdCtrlLoadImageProp ObjIdx="3" PropId="27" />
+                  <LdCtrlLoadImageProp ObjIdx="4" PropId="27" />
+              </LoadProcedure>
+            </LoadProcedures>
+            <Extension />
+            <Messages>
+              <Message Id="%AID%_M-1" Name="VersionMismatch" Text="Diese Applikaiton und die Firmware passen nicht zusammen" />
+            </Messages>
+            <Script>
+              <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Script/text()" prefix="%prefix%" />
+            </Script>
+            <Options />
+          </Static>
+          <ModuleDefs>
+            <op:includetemplate href="%share%" xpath="//ApplicationProgram/ModuleDefs/*" prefix="%prefix%" />
+            <op:includetemplate href="%templ%" xpath="//ApplicationProgram/ModuleDefs/*" type="template" prefix="%prefix%" />
+          </ModuleDefs>
+          <Dynamic>
+            <op:includetemplate href="%share%" xpath="//ApplicationProgram/Dynamic/*" prefix="%prefix%" />
+          </Dynamic>
+        </ApplicationProgram>
+      </ApplicationPrograms>
+      <Baggages>
+        <op:includetemplate href="%share%" xpath="//Manufacturer/Baggages/*" prefix="%prefix%" />
+      </Baggages>
+      <Hardware>
+        <Hardware Id="%HardwareId%" Name="OpenKNX-%HardwareName%%BuildSuffix%" SerialNumber="%SerialNumber%" VersionNumber="1" BusCurrent="%BusCurrent%" IsIPEnabled="%IsIPEnabled%" HasIndividualAddress="true" HasApplicationProgram="true">
+          <Products>
+            <Product Id="%ProductId%" Text="OpenKNX: %ProductName%%BuildSuffixText%" OrderNumber="%OrderNumber%" IsRailMounted="%IsRailMounted%" DefaultLanguage="de">
+              <RegistrationInfo RegistrationStatus="Registered" />
+            </Product>
+          </Products>
+          <Hardware2Programs>
+            <Hardware2Program Id="%Hardware2ProgramId%" MediumTypes="MT-0">
+              <ApplicationProgramRef RefId="%AID%" />
+              <RegistrationInfo RegistrationStatus="Registered" RegistrationNumber="0001/11" />
+            </Hardware2Program>
+          </Hardware2Programs>
+        </Hardware>
+      </Hardware>
+    </Manufacturer>
+  </ManufacturerData>
+</KNX>

@@ -20,6 +20,76 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug Dummy",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-Dummy/include/knxprod.h",
+                "../OAM-Dummy/src/DummyModule"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug Dummy Doku",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "baggages",
+                "-d",
+                "../OAM-Dummy/doc/Applikationsbeschreibung.md",
+                "-b",
+                "../OAM-Dummy/src/Baggages/Help_de",
+                "--Prefix",
+                "DMY"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug SOM-UP",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../SOM-UP/include/knxprod.h",
+                "../SOM-UP/src/SoundModule"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug SOM-UP (temp)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../SOM-UP/include/knxprod.h",
+                "../SOM-UP/src/SoundModule"
+            ],
+            "cwd": "${workspaceFolder}/../../OpenKNX-tmp/SOM-UP",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug PresenceModule",
             "type": "coreclr",
             "request": "launch",
@@ -28,7 +98,26 @@
             "args": [
                 "create",
                 "--Debug",
+                "--HeaderFileName",
+                "../OAM-PresenceModule/include/knxprod.h",
                 "../OAM-PresenceModule/src/PMmodul"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug PresenceModule Doku",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "baggages",
+                "-d",
+                "../OFM-PresenceModule/Doc/Applikationbeschreibung-Praesenz.md",
+                "-b",
+                "../OFM-PresenceModule/src/Baggages/Help_de"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -43,6 +132,10 @@
             "args": [
                 "create",
                 "--Debug",
+                "--HeaderFileName",
+                "../OAM-SensorModule/include/knxprod.h",
+                "--ConfigFileName",
+                "../OAM-SensorModule/src/Sensormodul.conf.xml",
                 "../OAM-SensorModule/src/Sensormodul"
             ],
             "cwd": "${workspaceFolder}",
@@ -88,7 +181,28 @@
             "args": [
                 "create",
                 "--Debug",
+                "--HeaderFileName",
+                "../OAM-LogicModule/include/knxprod.h",
                 "../OAM-LogicModule/src/Logikmodul"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug Logicmodule Doku",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "baggages",
+                "-d",
+                "../OFM-LogicModule/doc/Applikationsbeschreibung-Logik.md",
+                "-b",
+                "../OFM-LogicModule/src/Baggages/Help_de",
+                "--Prefix",
+                "LOG"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

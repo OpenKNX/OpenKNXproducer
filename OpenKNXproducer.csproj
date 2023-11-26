@@ -11,9 +11,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Remove="NewDevice.xml" />
+    <Content Remove="TemplateApplication.xml" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="NewDevice.xml" />
+    <EmbeddedResource Include="xml/NewDevice.xml" />
+    <EmbeddedResource Include="xml/TemplateApplication.xml" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
