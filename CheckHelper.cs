@@ -4,6 +4,8 @@ class CheckHelper
 {
     public static readonly Dictionary<uint, HashSet<string>> NoWarn = new();
 
+    public static readonly HashSet<string> sDuplicateMessages = new();
+
     private bool mFail;
     private bool mWarn;
 
@@ -39,19 +41,26 @@ class CheckHelper
 
     public void WriteFail(string iFormat, params object[] iParams)
     {
-        if (!mFail && !mWarn) Console.WriteLine();
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine("  --> " + iFormat, iParams);
-        Console.ResetColor();
-        mFail = true;
-        mFailAny = true;
+        string lMessage = string.Format(iFormat, iParams);
+        if (!sDuplicateMessages.Contains(lMessage))
+        {
+            if (!mFail && !mWarn) Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("  --> " + lMessage);
+            Console.ResetColor();
+            sDuplicateMessages.Add(lMessage);
+            mFail = true;
+            mFailAny = true;
+        }
     }
 
     public void WriteWarn(uint iWarnId, string iFormat, params object[] iParams)
     {
         bool lSuppress = false;
         string lMessage = String.Format($"  --> WARN {iWarnId:d03}: " + iFormat, iParams);
-        if (NoWarn.ContainsKey(iWarnId))
+        if (sDuplicateMessages.Contains(lMessage))
+            lSuppress = true;
+        else if (NoWarn.ContainsKey(iWarnId))
         {
             foreach (var lPattern in NoWarn[iWarnId])
             {
@@ -67,6 +76,7 @@ class CheckHelper
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine(lMessage);
             Console.ResetColor();
+            sDuplicateMessages.Add(lMessage);
             mWarn = true;
         }
     }

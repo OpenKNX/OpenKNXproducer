@@ -1610,7 +1610,7 @@ namespace OpenKNXproducer
                 foreach (XmlNode lNode in lChildren)
                     ProcessConfig(lNode);
                 lInclude.ModuleType = lDefine.ModuleType;
-                if (!lInclude.IsInnerInclude && lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
+                if (lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
                 {
                     if ("ParameterType" == lChildren[0].LocalName)
                         lInclude.OriginalChannelCount = lDefine.NumChannels;
@@ -1623,12 +1623,12 @@ namespace OpenKNXproducer
                         lInclude.KoSingleOffset = lDefine.KoSingleOffset;
                         lInclude.ReplaceKeys = lDefine.ReplaceKeys;
                         lInclude.ReplaceValues = lDefine.ReplaceValues;
-                        ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
+                        if (!lInclude.IsInnerInclude) ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
                     }
                     else if (lDefine.IsParameter || "ComObject".Contains(lChildren[0].LocalName))
                     {
                         lInclude.OriginalChannelCount = lDefine.NumChannels;
-                        ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
+                        if (!lInclude.IsInnerInclude) ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
                     }
                     // debug
                     // string lDebugHeader = mHeaderGenerated.ToString();
