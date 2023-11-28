@@ -154,7 +154,9 @@ namespace OpenKNXproducer
 #nullable enable
         public static void Message(bool iIsError, string iFormat, params object?[] args)
         {
-            additionalMessages.Add(string.Format(iFormat, args), iIsError);
+            string lMessage = string.Format(iFormat, args);
+            if (!additionalMessages.ContainsKey(lMessage))
+                additionalMessages.Add(lMessage, iIsError);
         }
 #nullable disable
 

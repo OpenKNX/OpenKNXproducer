@@ -2,20 +2,29 @@ using System.Xml;
 using System.Xml.Linq;
 using System.IO;
 
-namespace OpenKNXproducer {
-    public static class ExtensionMethods {
+namespace OpenKNXproducer
+{
+    public static class ExtensionMethods
+    {
 
-        public static string NodeAttr(this XmlNode iNode, string iAttributeName, string iDefault = "") {
+        public static string NodeAttr(this XmlNode iNode, string iAttributeName, string iDefault = "")
+        {
             string lResult = iDefault;
             XmlNode lAttribute = iNode.Attributes.GetNamedItem(iAttributeName);
             if (lAttribute != null) lResult = lAttribute.Value.ToString();
             return lResult;
         }
 
+        public static string SubId(this XmlNode iNode, string iAttributeName, string iIdSeparator)
+        {
+            string lValue = iNode.NodeAttr(iAttributeName, iIdSeparator).Split(iIdSeparator)[1];
+            return lValue;
+        }
+
         public static XmlDocument ToXmlDocument(this XDocument xDocument)
         {
             var xmlDocument = new XmlDocument();
-            using(var xmlReader = xDocument.CreateReader())
+            using (var xmlReader = xDocument.CreateReader())
             {
                 xmlDocument.Load(xmlReader);
             }
@@ -31,20 +40,20 @@ namespace OpenKNXproducer {
             }
         }
 
-    public static void DeepCopy(this DirectoryInfo directory, string destinationDir) 
-    { 
-        Directory.CreateDirectory(destinationDir);
-        foreach (string dir in Directory.GetDirectories(directory.FullName, "*", SearchOption.AllDirectories)) 
+        public static void DeepCopy(this DirectoryInfo directory, string destinationDir)
         {
-            string dirToCreate = dir.Replace(directory.FullName, destinationDir); 
-            Directory.CreateDirectory(dirToCreate); 
-        } 
-            
-        foreach (string newPath in Directory.GetFiles(directory.FullName, "*.*", SearchOption.AllDirectories)) 
-        { 
-            File.Copy(newPath, newPath.Replace(directory.FullName, destinationDir), true); 
-        } 
-    } 
+            Directory.CreateDirectory(destinationDir);
+            foreach (string dir in Directory.GetDirectories(directory.FullName, "*", SearchOption.AllDirectories))
+            {
+                string dirToCreate = dir.Replace(directory.FullName, destinationDir);
+                Directory.CreateDirectory(dirToCreate);
+            }
+
+            foreach (string newPath in Directory.GetFiles(directory.FullName, "*.*", SearchOption.AllDirectories))
+            {
+                File.Copy(newPath, newPath.Replace(directory.FullName, destinationDir), true);
+            }
+        }
     }
 }
 

@@ -24,7 +24,8 @@ namespace OpenKNXproducer
         private bool mLoaded = false;
         readonly StringBuilder mHeaderGenerated = new();
 
-        private static XmlNode sParameterTypesNode = null;
+        private static readonly Dictionary<string, XmlNode> sParameterTypes = new();
+        private bool mParameterTypesFetched;
         private static readonly Dictionary<string, ProcessInclude> gIncludes = new();
         private static int sMaxKoNumber = 0;
         private readonly string mXmlFileName;
@@ -48,11 +49,6 @@ namespace OpenKNXproducer
         public static bool AbsoluteSingleParameters = false;
         public bool IsInnerInclude = false;
 
-        public static XmlNode ParameterTypesNode
-        {
-            get { return sParameterTypesNode; }
-        }
-
         public int ChannelCount
         {
             get { return mChannelCount; }
@@ -61,6 +57,39 @@ namespace OpenKNXproducer
                 mChannelCount = value;
                 OriginalChannelCount = value;
             }
+        }
+
+        private void FetchParameterTypes()
+        {
+            if (!mParameterTypesFetched)
+            {
+                // before we start with template processing, we calculate all Parameter relevant info
+                XmlNode lParameterTypes = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
+                if (lParameterTypes != null)
+                {
+                    foreach (XmlNode lChild in lParameterTypes.ChildNodes)
+                        if (lChild.NodeType == XmlNodeType.Element)
+                        {
+                            string lParameterTypeId = lChild.SubId("Id", "_PT-");
+                            if (lParameterTypeId != "" && !sParameterTypes.ContainsKey(lParameterTypeId))
+                                sParameterTypes.Add(lParameterTypeId, lChild);
+                        }
+                }
+                mParameterTypesFetched = true;
+            }
+
+        }
+
+        public static XmlNode ParameterType(string iId)
+        {
+            string lId = "_PT-";
+            if (iId.Contains(lId)) lId = iId;
+            lId = lId.Split("_PT-")[1];
+            if (sParameterTypes.ContainsKey(lId))
+                return sParameterTypes[lId];
+            else
+                Program.Message(true, "ParameterType {0} was not declared, before it was used. Usually the declaration is missing or the include order of you used modules is wrong!", iId);
+            return null;
         }
 
         public static int GetIdOfProjectNamespace(XmlDocument iDocument)
@@ -98,15 +127,17 @@ namespace OpenKNXproducer
         public static ProcessInclude Factory(string iXmlFileName, string iHeaderPrefixName)
         {
             ProcessInclude lInclude = null;
-            if (gIncludes.ContainsKey(iXmlFileName))
+            string lXmlFileName = Path.GetFileName(iXmlFileName);
+            if (gIncludes.ContainsKey(lXmlFileName))
             {
-                lInclude = gIncludes[iXmlFileName];
+                // Console.WriteLine("Reusing existing include {0}", iXmlFileName);
+                lInclude = gIncludes[lXmlFileName];
             }
             else
             {
                 Console.WriteLine("Processing include {0}", iXmlFileName);
                 lInclude = new ProcessInclude(iXmlFileName, iHeaderPrefixName);
-                gIncludes.Add(iXmlFileName, lInclude);
+                gIncludes.Add(lXmlFileName, lInclude);
             }
             return lInclude;
         }
@@ -929,10 +960,10 @@ namespace OpenKNXproducer
             return lParameterBlockCount;
         }
 
-        public int CalcParamSize(XmlNode iParameter, XmlNode iParameterTypesNode)
+        public int CalcParamSize(XmlNode iParameter)
         {
             int lResult = 0;
-            if (iParameterTypesNode != null)
+            if (sParameterTypes.Count > 0)
             {
                 // we calculate the size only, if the parameter uses some memory in the device storage
                 XmlNode lMemory = iParameter.SelectSingleNode("Memory");
@@ -948,7 +979,7 @@ namespace OpenKNXproducer
                     else
                     {
                         string lParameterTypeId = iParameter.NodeAttr("ParameterType");
-                        lSizeNode = iParameterTypesNode.SelectSingleNode(string.Format("ParameterType[@Id='{0}']", lParameterTypeId));
+                        lSizeNode = ParameterType(lParameterTypeId);
                         if (lSizeNode != null) lSizeInBitAttribute = lSizeNode.SelectSingleNode("*/@SizeInBit");
                     }
                     if (lSizeNode != null)
@@ -981,12 +1012,12 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        public int CalcParamSize(XmlNodeList iParameterList, XmlNode iParameterTypesNode)
+        public int CalcParamSize(XmlNodeList iParameterList)
         {
             int lResult = 0;
             foreach (XmlNode lNode in iParameterList)
             {
-                int lSize = CalcParamSize(lNode, iParameterTypesNode);
+                int lSize = CalcParamSize(lNode);
                 if (lSize > 0)
                 {
                     // at this point we know there is a memory reference, we look at the offset
@@ -997,7 +1028,7 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        private string ReplaceChannelName(string iName)
+        private static string ReplaceChannelName(string iName)
         {
             string lResult = iName;
             // if (iName.Contains("%C%")) lResult = iName.Remove(0, iName.IndexOf("%C%") + 3);
@@ -1027,7 +1058,7 @@ namespace OpenKNXproducer
                 XmlNodeList lComObjects = mDocument.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
                 mKoBlockSize = lComObjects.Count;
 
-                StringBuilder lOut = new StringBuilder();
+                StringBuilder lOut = new();
                 mHeaderKoBlockGenerated = ExportHeaderKo(iDefine, lOut, iHeaderPrefixName);
                 if (mHeaderKoBlockGenerated)
                 {
@@ -1057,7 +1088,7 @@ namespace OpenKNXproducer
         private bool ExportHeaderKo(DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName)
         {
             XmlNodeList lNodes = mDocument.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
-            StringBuilder lOut = new StringBuilder();
+            StringBuilder lOut = new();
 
             bool lResult = false;
             foreach (XmlNode lNode in lNodes)
@@ -1086,17 +1117,17 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        private void ExportHeaderParameterStart(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName)
+        private void ExportHeaderParameterStart(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName)
         {
             if (!mHeaderParameterStartGenerated && iDefine.IsParameter)
             {
                 cOut.AppendLine("// Parameter with single occurrence");
-                ExportHeaderParameter(iNodes, iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
+                ExportHeaderParameter(iNodes, iDefine, cOut, iHeaderPrefixName, iDefine.IsParameter);
                 mHeaderParameterStartGenerated = true;
             }
         }
 
-        private void ExportHeaderParameterBlock(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName)
+        private void ExportHeaderParameterBlock(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName)
         {
             if (!mHeaderParameterBlockGenerated)
             {
@@ -1114,7 +1145,7 @@ namespace OpenKNXproducer
                     cOut.AppendLine();
                     cOut.AppendLine();
                 }
-                int lSize = ExportHeaderParameter(iNodes, iDefine, cOut, iParameterTypesNode, iHeaderPrefixName, iDefine.IsParameter);
+                int lSize = ExportHeaderParameter(iNodes, iDefine, cOut, iHeaderPrefixName, iDefine.IsParameter);
                 // if (lSize != mParameterBlockSize) throw new ArgumentException(string.Format("ParameterBlockSize {0} calculation differs from header file calculated ParameterBlockSize {1}", mParameterBlockSize, lSize));
                 mHeaderParameterBlockGenerated = true;
             }
@@ -1126,7 +1157,7 @@ namespace OpenKNXproducer
             // return new string(iText.Where(c => !char.IsControl(c)).ToArray());
         }
 
-        public int ExportHeaderParameter(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, XmlNode iParameterTypesNode, string iHeaderPrefixName, bool iWithAbsoluteOffset, string iChannelCalculation = "", string iChannelArgs = "")
+        public int ExportHeaderParameter(XmlNodeList iNodes, DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName, bool iWithAbsoluteOffset, string iChannelCalculation = "", string iChannelArgs = "")
         {
             int lMaxSize = 0;
             StringBuilder lOut = new StringBuilder();
@@ -1143,11 +1174,11 @@ namespace OpenKNXproducer
                 }
                 XmlNode lMemory = lMemoryNode.FirstChild;
                 while (lMemory != null && lMemory.NodeType == XmlNodeType.Comment) lMemory = lMemory.NextSibling;
-                if (lMemory != null && iParameterTypesNode != null)
+                if (lMemory != null && sParameterTypes.Count > 0)
                 {
                     // parse parameter type to fill additional information
                     string lParameterTypeId = lNode.NodeAttr("ParameterType");
-                    XmlNode lParameterType = iParameterTypesNode.SelectSingleNode(string.Format("./ParameterType[@Id='{0}']", lParameterTypeId));
+                    XmlNode lParameterType = ParameterType(lParameterTypeId);
                     XmlNode lTypeNumber = null;
                     if (lParameterType != null) lTypeNumber = lParameterType.FirstChild;
                     while (lTypeNumber != null && lTypeNumber.NodeType == XmlNodeType.Comment) lTypeNumber = lTypeNumber.NextSibling;
@@ -1537,6 +1568,7 @@ namespace OpenKNXproducer
                 DefineContent.ValidateDefines();
             }
 
+            FetchParameterTypes();
 
             // process generate
             XmlNodeList lGenerate = mDocument.SelectNodes("//generate");
@@ -1578,7 +1610,7 @@ namespace OpenKNXproducer
                 foreach (XmlNode lNode in lChildren)
                     ProcessConfig(lNode);
                 lInclude.ModuleType = lDefine.ModuleType;
-                if (lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
+                if (!lInclude.IsInnerInclude && lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
                 {
                     if ("ParameterType" == lChildren[0].LocalName)
                         lInclude.OriginalChannelCount = lDefine.NumChannels;
@@ -1599,8 +1631,8 @@ namespace OpenKNXproducer
                         ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
                     }
                     // debug
-                    string lDebugHeader = mHeaderGenerated.ToString();
-                    File.WriteAllText(Path.Combine("debug", Path.ChangeExtension(Path.GetFileName(lIncludeName), ".h")), lDebugHeader);
+                    // string lDebugHeader = mHeaderGenerated.ToString();
+                    // File.WriteAllText(Path.Combine("debug", Path.ChangeExtension(Path.GetFileName(lIncludeName), ".h")), lDebugHeader);
                 }
 
                 if (!lInclude.IsInnerInclude && !lInclude.IsScript && lInclude.OriginalChannelCount > 0)
@@ -1655,13 +1687,8 @@ namespace OpenKNXproducer
             // if (iInclude.IsInnerInclude)
             //     return;
             XmlNodeList lParameterNodes;
-            if (sParameterTypesNode == null)
-            {
-                // before we start with template processing, we calculate all Parameter relevant info
-                sParameterTypesNode = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
-            }
-
-            if (sParameterTypesNode != null)
+            // FetchParameterTypes();
+            if (sParameterTypes.Count > 0)
             {
                 // the main document contains necessary ParameterTypes definitions
                 // lParameterNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union");
@@ -1669,12 +1696,12 @@ namespace OpenKNXproducer
                 lParameterNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union");
                 if (lParameterNodes != null)
                 {
-                    ParameterBlockSize = CalcParamSize(lParameterNodes, sParameterTypesNode);
+                    ParameterBlockSize = CalcParamSize(lParameterNodes);
                 }
                 if (iChildren != null)
                 {
                     // ... and we do parameter processing, so we calculate ParamBlockSize for this include
-                    int lBlockSize = iInclude.CalcParamSize(iChildren, sParameterTypesNode);
+                    int lBlockSize = iInclude.CalcParamSize(iChildren);
                     if (lBlockSize > 0)
                     {
                         iInclude.ParameterBlockSize = lBlockSize;
@@ -1686,12 +1713,12 @@ namespace OpenKNXproducer
             // Header file generation is only possible before we resolve includes
             // First we serialize local parameters of this instance
             lParameterNodes = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
-            ExportHeaderParameterStart(lParameterNodes, iDefine, mHeaderGenerated, sParameterTypesNode, iHeaderPrefixName);
+            ExportHeaderParameterStart(lParameterNodes, iDefine, mHeaderGenerated, iHeaderPrefixName);
             // followed by template parameters of the include
             if (iInclude != this)
             {
                 lParameterNodes = iInclude.mDocument.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
-                iInclude.ExportHeaderParameterBlock(lParameterNodes, iDefine, mHeaderGenerated, sParameterTypesNode, iHeaderPrefixName);
+                iInclude.ExportHeaderParameterBlock(lParameterNodes, iDefine, mHeaderGenerated, iHeaderPrefixName);
             }
 
             ExportHeaderKoStart(iDefine, mHeaderGenerated, iHeaderPrefixName);

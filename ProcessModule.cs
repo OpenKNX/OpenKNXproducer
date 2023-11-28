@@ -140,7 +140,7 @@ namespace OpenKNXproducer
                             // we have to calculate module parameter size
                             XmlNodeList lParams = mRootNode.SelectNodes("./Static/Parameters/Parameter|./Static/Parameters/Union");
                             // mModuleParamSize = CalcSubmodulesSize();
-                            mModuleParamSize = mInclude.CalcParamSize(lParams, ProcessInclude.ParameterTypesNode);
+                            mModuleParamSize = mInclude.CalcParamSize(lParams);
                             lAllocates.Value = (mModuleParamSize + SubmodulesParamSize).ToString();
                         }
                         else
@@ -228,7 +228,7 @@ namespace OpenKNXproducer
             cOut.AppendLine();
 
             XmlNodeList lNodes = mRootNode.SelectNodes("./Static/Parameters//Parameter");
-            mInclude.ExportHeaderParameter(lNodes, mDefine, cOut, ProcessInclude.ParameterTypesNode, "", false, lCalcIndexName, lCalcIndexArgs);
+            mInclude.ExportHeaderParameter(lNodes, mDefine, cOut, "", false, lCalcIndexName, lCalcIndexArgs);
             GetSubmoduleList();
             UpdateModuleInstnces(iModuleOffset);
             iParamOffset += ModuleParamSize;
