@@ -148,7 +148,8 @@ class TemplateApplication
             InitParam(lParams, "BuildSuffixText", false, "BuildSuffix");
             InitParam(lParams, "BusCurrent", false, "", "10");
             InitParam(lParams, "IsRailMounted", false, "", "false");
-            InitParam(lParams, "IsIPEnabled", false, "", "false");
+            InitParam(lParams, "MaskVersion", false, "", "MV-07B0");
+            InitParam(lParams, "MediumTypes", false, "", "MT-0");
             int.TryParse(lParams["%ApplicationNumber%"], out int lApplicationNumberInt);
             int.TryParse(lParams["%ApplicationVersion%"], out int lApplicationVersionInt);
             string lOpenKnxId = lParams["%OpenKnxId%"].Replace("0x", "");
