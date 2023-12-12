@@ -8,6 +8,7 @@ namespace OpenKNXproducer
         public string prefix = "LOG";
         public int KoOffset = 1;
         public int KoSingleOffset;
+        public int KoBlockSize = 0;
         public string[] ReplaceKeys = Array.Empty<string>();
         public string[] ReplaceValues = Array.Empty<string>();
         public int NumChannels = 1;

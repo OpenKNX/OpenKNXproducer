@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml.Serialization;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace OpenKNXproducer
 {
@@ -240,7 +241,7 @@ namespace OpenKNXproducer
             string lResult = iValue;
             bool lReplaced = false;
             Match lMatch;
-            // support multiple occurences 
+            // support multiple occurrences 
             if (iValue.Contains('%'))
             {
                 do
@@ -278,6 +279,31 @@ namespace OpenKNXproducer
             return lResult;
         }
 
+        static void ReplaceKoTemplateFinal(DefineContent iDefine, ProcessInclude iInclude, XmlNode iTargetNode)
+        {
+            int lBlockSize = iDefine.KoBlockSize;
+            int lOffset = iDefine.KoOffset;
+            Regex lRegex = new(@"%!K(\d{1,3})!C(\d{1,3})!%");
+            XmlNodeList lNodes = iTargetNode.SelectNodes("//*/@*[contains(.,'%!K')]");
+            foreach (XmlAttribute lNode in lNodes)
+            {
+                string lValue = lNode.Value;
+                Match lMatch = lRegex.Match(lValue);
+                if (lMatch.Captures.Count > 0)
+                {
+                    int.TryParse(lMatch.Groups[2].Value, out int lChannel);
+                    if (int.TryParse(lMatch.Groups[1].Value, out int lShift))
+                    {
+                        int lKoNumber = (lChannel - 1) * lBlockSize + lOffset + lShift;
+                        // we replace just in case it is numeric, otherwise an error message will appear during final document check                        
+                        lNode.Value = lValue.Replace(lMatch.Value, lKoNumber.ToString());
+                        // remember the max replaced number
+                        sMaxKoNumber = (lKoNumber > sMaxKoNumber) ? lKoNumber : sMaxKoNumber;
+                    }
+                }
+
+            }
+        }
         static string ReplaceKoTemplate(DefineContent iDefine, string iValue, int iChannel, ProcessInclude iInclude, bool iIsName)
         {
             string lResult = iValue;
@@ -299,7 +325,9 @@ namespace OpenKNXproducer
                     Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
                     if (lMatch.Captures.Count > 0)
                     {
-                        if (int.TryParse(lMatch.Groups[1].Value, out int lShift))
+                        if (iInclude != null && !iInclude.mHeaderKoBlockGenerated)
+                            lResult = iValue.Replace(lMatch.Value, string.Format("%!K{0}!C{1:D03}!%", lMatch.Groups[1].Value, iChannel));
+                        else if (int.TryParse(lMatch.Groups[1].Value, out int lShift))
                         {
                             int lKoNumber = (iChannel - 1) * lBlockSize + lOffset + lShift;
                             // we replace just in case it is numeric, otherwise an error message will appear during final document check                        
@@ -1057,7 +1085,8 @@ namespace OpenKNXproducer
             {
                 XmlNodeList lComObjects = mDocument.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
                 mKoBlockSize = lComObjects.Count;
-
+                if (iDefine.KoBlockSize > 0 && iDefine.KoBlockSize != mKoBlockSize) throw new Exception("Different KoBlockSize!");
+                if (iDefine.IsTemplate) iDefine.KoBlockSize = mKoBlockSize;
                 StringBuilder lOut = new();
                 mHeaderKoBlockGenerated = ExportHeaderKo(iDefine, lOut, iHeaderPrefixName);
                 if (mHeaderKoBlockGenerated)
@@ -1623,7 +1652,8 @@ namespace OpenKNXproducer
                         lInclude.KoSingleOffset = lDefine.KoSingleOffset;
                         lInclude.ReplaceKeys = lDefine.ReplaceKeys;
                         lInclude.ReplaceValues = lDefine.ReplaceValues;
-                        if (!lInclude.IsInnerInclude) ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
+                        if (!lInclude.IsInnerInclude)
+                            ExportHeader(lDefine, lHeaderPrefixName, lInclude, lChildren);
                     }
                     else if (lDefine.IsParameter || "ComObject".Contains(lChildren[0].LocalName))
                     {
@@ -1671,7 +1701,11 @@ namespace OpenKNXproducer
                 // we replace all HelpContext Ids 
                 // string lFileName = Path.GetFileNameWithoutExtension(mXmlFileName) + ".dbg.xml";
                 // mDocument.Save("xml/" + lFileName);
-                if (lHeaderPrefixName != "" && !lInclude.IsInnerInclude) ProcessHelpContext(lDefine, mDocument, lInclude);
+                if (lHeaderPrefixName != "" && !lInclude.IsInnerInclude)
+                {
+                    if (lInclude.mHeaderParameterBlockGenerated) ReplaceKoTemplateFinal(lDefine, lInclude, mDocument);
+                    ProcessHelpContext(lDefine, mDocument, lInclude);
+                }
                 // if (lHeaderPrefixName != "") ProcessIncludeFinish(lChildren);
                 //if this fails, something is wrong
             }
