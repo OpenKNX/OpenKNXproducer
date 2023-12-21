@@ -1652,7 +1652,7 @@ namespace OpenKNXproducer
                 foreach (XmlNode lNode in lChildren)
                     ProcessConfig(lNode);
                 lInclude.ModuleType = lDefine.ModuleType;
-                if (lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
+                if (lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | BusInterface | ParameterCalculation | ParameterValidation | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
                 {
                     if ("ParameterType" == lChildren[0].LocalName)
                         lInclude.OriginalChannelCount = lDefine.NumChannels;
