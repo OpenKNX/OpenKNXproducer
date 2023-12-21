@@ -15,15 +15,21 @@ class TemplateApplication
     readonly XmlDocument mDocument = new();
     private XmlNamespaceManager nsmgr;
 
+    public static bool IsDebugMode = false;
+
     public string Generate(ProcessInclude iInclude, XmlNode iBase)
     {
         GetTemplateDocument(iBase.NodeAttr("base"), iInclude);
         nsmgr = new XmlNamespaceManager(mDocument.NameTable);
         nsmgr.AddNamespace("op", ProcessInclude.cOwnNamespace);
         AddIncludes(iInclude);
-        // AddVersionAttribute(iInclude);
         AddDynamicPart(iInclude);
-        // mDocument.Save("TemplateApplication.generated.xml");
+        if (IsDebugMode)
+        {
+            string lFileName = Path.ChangeExtension(iInclude.BaggagesName, ".appl.debug.xml");
+            lFileName = Path.Combine(iInclude.CurrentDir, lFileName);
+            mDocument.Save(lFileName);
+        }
         return mDocument.OuterXml;
     }
 

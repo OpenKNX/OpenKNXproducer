@@ -592,7 +592,7 @@ namespace OpenKNXproducer
             foreach (XmlNode lNode in lNodes)
             {
                 if (!iInclude.IsIconId(lNode.Value))
-                    lCheck.WriteFail("Icon {0} not found in HelpContext baggage", lNode.Value);
+                    lCheck.WriteFail("Icon {0} not found in Icon baggage", lNode.Value);
             }
             lCheck.Finish();
 
@@ -1372,6 +1372,7 @@ namespace OpenKNXproducer
             }
             string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
+            if (opts.Debug) TemplateApplication.IsDebugMode = true;
             // Directory.CreateDirectory(lBaggageDirName);
             bool lWithVersions = lInclude.Expand();
             // We restore the original namespace in File

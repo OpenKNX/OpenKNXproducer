@@ -67,6 +67,7 @@
             <Extension />
             <Messages>
               <Message Id="%AID%_M-1" Name="VersionMismatch" Text="Diese Applikaiton und die Firmware passen nicht zusammen" />
+              <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Messages" prefix="%prefix%" />
             </Messages>
             <Script>
               <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Script/text()" prefix="%prefix%" />

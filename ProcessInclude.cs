@@ -1575,6 +1575,7 @@ namespace OpenKNXproducer
         /// <param name="iCurrentDir">Directory to use for relative href expressions</param>
         public void ResolveIncludes(string iCurrentDir)
         {
+            bool lIsApplicationInclude = false;
             InitNamespaceManager();
             // process config
             XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
@@ -1589,6 +1590,7 @@ namespace OpenKNXproducer
             XmlNodeList lDefineNodes = mDocument.SelectNodes("//oknxp:define", nsmgr);
             if (lDefineNodes != null && lDefineNodes.Count > 0)
             {
+                lIsApplicationInclude = true;
                 foreach (XmlNode lDefineNode in lDefineNodes)
                 {
                     DefineContent lDefine = DefineContent.Factory(lDefineNode);
@@ -1609,6 +1611,17 @@ namespace OpenKNXproducer
                 // lDocument = ReplaceXmlns(lDocument);
                 mDocument.LoadXml(lDocument);
                 InitNamespaceManager();
+            }
+
+            if (lIsApplicationInclude)
+            {
+                // we evaluate correct MemoryId
+                XmlNode lMemoryNode = mDocument.SelectSingleNode("//ApplicationProgram/Static/Code/RelativeSegment|//ApplicationProgram/Static/Code/AbsoluteSegment");
+                if (lMemoryNode != null)
+                {
+                    string lMemoryId = lMemoryNode.NodeAttr("Id");
+                    if (lMemoryId != "") AddConfig("%MID%", lMemoryId);
+                }
             }
 
             //find all XIncludes in a copy of the document
