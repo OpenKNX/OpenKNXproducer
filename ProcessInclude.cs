@@ -1593,6 +1593,8 @@ namespace OpenKNXproducer
                 lIsApplicationInclude = true;
                 foreach (XmlNode lDefineNode in lDefineNodes)
                 {
+                    // allow config in defines (Cornelius' idea)
+                    ProcessConfig(lDefineNode);
                     DefineContent lDefine = DefineContent.Factory(lDefineNode);
                     VerifyModuleDependency(lDefine, iCurrentDir);
                 }
