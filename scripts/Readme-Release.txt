@@ -1,11 +1,11 @@
-Dieses Release kann unter Windows 10/11 folgendermaßen installiert werden:
-- falls noch nicht geschehen: Das gesamte zip in ein Verzeichnis entpacken
-- das Verzeichnis, in das entpackt wurde, öffnen
-- rechte Maustaste auf Install-OpenKNX-Tools.ps1
-- "Mit PowerShell ausführen" wählen, ggf. die Sicherheitswarnung mit "Datei öffnen" bestätigen
-    (jetzt werden die Tools nach <homedir>/bin kopiert -> mehr passiert nicht!)
+This release can be installed on Windows 10/11 as follows:
 
-Für MacOS und Linux sollte das Script Build-Release.ps1 mit PowerShell ausgeführt werden.
-Über weitere Installationstipps würden wir uns freuen, wir werden diese dann hier aufnehmen.
+If not done already: Extract the entire zip file into a directory.
+Open the directory where it was extracted.
+Right-click on Install-OpenKNX-Tools.ps1.
+Choose 'Run with PowerShell' and confirm any security warnings by selecting 'Open File' if prompted.
+(Now, the tools will be copied to <homedir>/bin -> nothing else happens!)
+For MacOS and Linux, the script Build-Release.ps1 should be executed with PowerShell.
+We would appreciate any additional installation tips, and we will include them here.
 
-Fertig.
+Done.
