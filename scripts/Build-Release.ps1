@@ -1,3 +1,24 @@
+function OpenKNX_ShowLogo($AddCustomText= $null) {
+  Write-Host ""
+  Write-Host "Open " -NoNewline
+  #Write-Host "▀" -ForegroundColor Green
+  Write-Host "$( [char]::ConvertFromUtf32(0x2580) )" -ForegroundColor Green
+  $unicodeString = "$( [char]::ConvertFromUtf32(0x2533) )$( [char]::ConvertFromUtf32(0x2501) )$( [char]::ConvertFromUtf32(0x2501) )$( [char]::ConvertFromUtf32(0x2501) )$( [char]::ConvertFromUtf32(0x2501) )$( [char]::ConvertFromUtf32(0x253B) ) "
+  
+  if ($AddCustomText) { 
+    #Write-Host "┳━━━━┻  $AddCustomText" -ForegroundColor Green
+    Write-Host "$($unicodeString) $($AddCustomText)"  -ForegroundColor Green
+  } else {
+    #Write-Host "┳━━━━┻" -ForegroundColor Green
+    Write-Host "$($unicodeString)"  -ForegroundColor Green
+  }
+
+  #Write-Host "▄" -NoNewline -ForegroundColor Green
+  Write-Host "$( [char]::ConvertFromUtf32(0x2584) )" -NoNewline -ForegroundColor Green
+  Write-Host " KNX"
+  Write-Host ""
+}
+
 function CheckOS {
   # check on which os we are running
   # After check, the Os-Informations are availibe in the PS-Env.
@@ -30,6 +51,7 @@ function CheckOS {
 }
 
 # Check on which OS we are running
+OpenKNX_ShowLogo "Build OpenKNXproducer Release"
 CheckOS
 
 # check for working dir
@@ -103,7 +125,7 @@ Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer     release/tools/L
 # Copy bossac tool to the release package into the dedicated folder 
 Copy-Item -Path tools/bossac/Windows -Destination release/tools/bossac/Windows -Recurse
 Copy-Item -Path tools/bossac/MacOS -Destination release/tools/bossac/MacOS -Recurse
-#Copy-Item -Path tools/bossac/Linux -Destination release/tools/bossac/Linux -Recurse
+Copy-Item -Path tools/bossac/Linux -Destination release/tools/bossac/Linux -Recurse
 Copy-Item tools/bossac/LICENSE.txt release/tools/bossac/LICENSE.txt
 
 
@@ -141,4 +163,4 @@ $ReleaseName = $ReleaseName.Replace(" ", "-") + ".zip"
 Compress-Archive -Force -Path release/* -DestinationPath "$ReleaseName"
 #Remove-Item -Recurse release/*
 Move-Item "$ReleaseName" release/
-
+OpenKNX_ShowLogo "Finished Build OpenKNXproducer Release"
