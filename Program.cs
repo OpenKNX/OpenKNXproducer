@@ -773,18 +773,21 @@ namespace OpenKNXproducer
                                 case "unsignedInt":
                                     if (min < 0)
                                         iCheck.WriteFail("MinInclusive of {0} cannot be smaller than 0, value is '{1}'", iMessage, min);
-                                    if (max >= maxSize)
+                                    if (max > maxSize)
                                         iCheck.WriteFail("MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, maxSize - 1, max);
                                     break;
 
                                 case "signedInt":
                                     if (min < ((maxSize / 2) * (-1)))
                                         iCheck.WriteFail("MinInclusive of {0} cannot be smaller than {1}, value is '{2}'", iMessage, ((maxSize / 2) * (-1)), min);
-                                    if (max >= ((maxSize / 2)))
-                                        iCheck.WriteFail("MinInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, ((maxSize / 2) - 1), max);
+                                    if (max > ((maxSize / 2)))
+                                        iCheck.WriteFail("MaxInclusive of {0} cannot be greater than {1}, value is '{2}'", iMessage, ((maxSize / 2) - 1), max);
                                     break;
                             }
-                            //TODO check value
+                            if (lDummyLong < min)
+                                iCheck.WriteWarn(4, "Value of {0} cannot be smaller than MinInclusive {1}, value is '{2}'", iMessage, min, iValue);
+                            if (lDummyLong > max)
+                                iCheck.WriteWarn(5, "Value of {0} cannot be greater than MaxInclusive {1}, value is '{2}'", iMessage, max, iValue);
                             break;
                         case "TypeFloat":
                             float lDummyFloat;
