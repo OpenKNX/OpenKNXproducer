@@ -1,0 +1,114 @@
+{
+  "Applications": [
+    {
+      "Name": "OpenKNXproducer",
+      "Windows": {
+        "x86": {
+          "FilesAndFolders": {
+            "OpenKNXProducer": {
+              "SourcePath": "tools/Windows/OpenKNXproducer-x64.exe",
+              "DestinationPath": "$env:USERPROFILE/bin/OpenKNXproducer.exe"
+            }
+          }
+        },
+        "x64": {
+          "FilesAndFolders": {
+            "OpenKNXProducer": {
+              "SourcePath": "tools/Windows/OpenKNXproducer-x86.exe",
+              "DestinationPath": "$env:USERPROFILE/bin/OpenKNXproducer.exe"
+            }
+          }
+        }
+      },
+      "MacOS": { 
+        "FilesAndFolders": {
+          "OpenKNXProducer": {
+            "SourcePath": "tools/MacOS/OpenKNXproducer",
+            "DestinationPath": "/usr/local/bin/OpenKNXproducer"
+          }
+        },
+        "ExecuteCommand1": "chmod +x /usr/local/bin/OpenKNXproducer"
+      },
+      "Linux": {
+        "FilesAndFolders": {
+          "OpenKNXProducer": {
+            "SourcePath": "tools/Linux/OpenKNXproducer",
+            "DestinationPath": "/usr/local/bin/OpenKNXproducer"
+          }
+        },
+        "ExecuteCommand1": "chmod +x /usr/local/bin/OpenKNXproducer"
+      }
+    },{
+      "Name": "Bossa",
+      "Windows": {
+        "x86": {
+          "FilesAndFolders": {
+            "Bossa_console_exe": {
+              "SourcePath": "tools/bossac/Windows/x86/bossac.exe",
+              "DestinationPath": "$env:USERPROFILE/bin/bossac.exe"
+            },
+            "Bossa_Application_Folder": {
+              "SourcePath": "tools/bossac/Windows/x86",
+              "DestinationPath": "$env:USERPROFILE/bin/bossa",
+              "CopyEntireFolder": true
+            }
+          }
+        },
+        "x64": {
+          "FilesAndFolders": {
+            "Bossa_console_exe": {
+              "SourcePath": "tools/bossac/Windows/x64/bossac.exe",
+              "DestinationPath": "$env:USERPROFILE/bin/bossac.exe"
+            },
+            "Bossa_Application_Folder": {
+              "SourcePath": "tools/bossac/Windows/x64",
+              "DestinationPath": "$env:USERPROFILE/bin/bossa",
+              "CopyEntireFolder": true
+            },
+            "Bossa_license": {
+              "SourcePath": "tools/bossac/LICENSE.txt",
+              "DestinationPath": "$env:USERPROFILE/bin/LICENSE_Bossa.txt"
+            }
+          }
+        }
+      },
+      "MacOS": {
+        "FilesAndFolders": {
+          "Bossa_console_bin": {
+            "SourcePath": "tools/bossac/MacOS/bossac",
+            "DestinationPath": "/usr/local/bin/bossac"
+          },
+          "Bossa_consoleh_bin": {
+            "SourcePath": "tools/bossac/MacOS/bossash",
+            "DestinationPath": "/usr/local/bin/bossash"
+          },
+          "Bossa_App": {
+            "SourcePath": "tools/bossac/MacOS/BOSSA.app",
+            "DestinationPath": "$env:HOME/Applications/Bossa.app",
+            "CopyEntireFolder": true
+            
+          },
+          "Bossa_license": {
+            "SourcePath": "tools/bossac/LICENSE.txt",
+            "DestinationPath": "/usr/local/bin/Bossa_License.txt"
+          }
+        },
+        "ExecuteCommand1": "chmod +x /usr/local/bin/bossac",
+        "ExecuteCommand2": "chmod +x /usr/local/bin/bossash"
+      },
+      "Linux": {
+        "FilesAndFolders": {
+          "Bossa_console_bin": {
+            "SourcePath": "tools/bossac/MacOS/bossac",
+            "DestinationPath": "/usr/local/bin/bossac"
+          },
+          "Bossa_license": {
+            "SourcePath": "tools/bossac/LICENSE.txt",
+            "DestinationPath": "/usr/local/bin/Bossa_License.txt"
+          }
+        },
+        "ExecuteCommand1": "chmod +x /usr/local/bin/bossac"
+      }
+    }
+  ]
+}
