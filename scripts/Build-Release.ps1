@@ -92,8 +92,8 @@ function Test-AndInstallDotnet {
 function Get-OpenKNXProducerVersion {
   $OSCommands = @{
       "Windows" = "release/tools/Windows/OpenKNXproducer-x64.exe --version"
-      "MacOS" = "release/tools/MacOS/OpenKNXproducer-osx64 --version"
-      "Linux" = "release/tools/Linux/OpenKNXproducer-linux64 --version"
+      "MacOS" = "release/tools/MacOS/OpenKNXproducer --version"
+      "Linux" = "release/tools/Linux/OpenKNXproducer --version"
   }
 
   # Determine the current OS
@@ -148,21 +148,21 @@ if($false) {
   # we copy publish version also to our bin to ensure same OpenKNXproducer for our delivered products
   Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe   ~/bin/OpenKNXproducer-x64.exe
   Copy-Item bin/Debug/net6.0/win-x86/publish/OpenKNXproducer.exe   ~/bin/OpenKNXproducer-x86.exe
-  Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer   ~/bin/OpenKNXproducer-osx64.exe
-  Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer ~/bin/OpenKNXproducer-linux64.exe
+  Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer   ~/bin/OpenKNXproducer
+  Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer ~/bin/OpenKNXproducer
 
   # copy package content 
   Copy-Item ~/bin/OpenKNXproducer-x64.exe     release/tools/Windows
   Copy-Item ~/bin/OpenKNXproducer-x86.exe     release/tools/Windows
-  Copy-Item ~/bin/OpenKNXproducer-osx64.exe   release/tools/MacOS
-  Copy-Item ~/bin/OpenKNXproducer-linux64.exe release/tools/Linux
+  Copy-Item ~/bin/OpenKNXproducer     release/tools/MacOS
+  Copy-Item ~/bin/OpenKNXproducer     release/tools/Linux
 }
 
 # we copy publish version also to our bin to ensure same OpenKNXproducer for our delivered products
 Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x64.exe
 Copy-Item bin/Debug/net6.0/win-x86/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x86.exe
-Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer-osx64
-Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer-linux64
+Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer
+Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer
 
 # Copy bossac tool to the release package into the dedicated folder 
 Copy-Item -Path tools/bossac/Windows -Destination release/tools/bossac/Windows -Recurse
@@ -172,7 +172,9 @@ Copy-Item tools/bossac/LICENSE.txt release/tools/bossac/LICENSE.txt
 
 # add necessary scripts
 Copy-Item scripts/Readme-Release.txt release/
-Copy-Item scripts/Install-OpenKNX-Tools.ps1 release/
+Copy-Item scripts/Install-Application.ps1 release/
+Copy-Item scripts/Install-OpenKNXProducer.json  release/
+
 
 # Get version from OpenKNXproducer and remove spaces from release name
 $ReleaseName = (Get-OpenKNXProducerVersion).Replace(" ", "-") + ".zip"
