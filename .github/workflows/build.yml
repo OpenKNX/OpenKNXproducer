@@ -1,0 +1,19 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '7.0'  # Passen Sie diese Zeile an, um die gewünschte .NET-Version zu installieren
+
+    - name: Run build script
+      run: pwsh Build-Release.ps1  # Passen Sie diese Zeile an, um den Pfad zu Ihrem Build-Skript anzugeben
