@@ -117,16 +117,54 @@ function Get-OpenKNXProducerVersion {
   return $ReleaseName
 }
 
+
+function Invoke-DotnetExecute {
+  param (
+      [string]$arguments,
+      [string]$message= "Executing dotnet command ...",
+      [string]$workingDirectory = $null
+  )
+
+  # Get the os specific dotnet command
+  $dotnetCommand = Test-AndInstallDotnet -Install $false
+
+  $processStartInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $processStartInfo.FileName = $dotnetCommand
+  $processStartInfo.Arguments = $arguments
+  $processStartInfo.RedirectStandardOutput = $true
+  $processStartInfo.RedirectStandardError = $true
+  $processStartInfo.UseShellExecute = $false
+  $processStartInfo.CreateNoWindow = $true
+
+  if ($workingDirectory) {
+      $processStartInfo.WorkingDirectory = $workingDirectory
+  }
+
+  Write-Host $message  -ForegroundColor Green -NoNewline
+  $process = [System.Diagnostics.Process]::Start($processStartInfo)
+  # Capture and suppress standard output and standard error
+  $output = $process.StandardOutput.ReadToEnd()
+  $errorOutput = $process.StandardError.ReadToEnd()
+
+  $process.WaitForExit()
+  Write-Host "`t✔ Done" -ForegroundColor Green
+  if($Verbose) {
+    # Display the captured output for debugging purposes
+    Write-Host "Standard Output: $output"
+    Write-Host "Standard Error: $errorOutput"
+    return $process.ExitCode
+  }
+}
+
 # Check on which OS we are running
 OpenKNX_ShowLogo "Build OpenKNXproducer Release"
-CheckOS
-
-# Check and get dotnet executable
-$donetExecute = Test-AndInstallDotnet -Install $false
+CheckOS | Out-Null
 
 # check for working dir and create if not exists
+Write-Host "- Create release folder structure ..." -ForegroundColor Green -NoNewline
 if (Test-Path -Path release) {  Remove-Item -Recurse release\* -Force
 } else { New-Item -Path release -ItemType Directory | Out-Null }
+Write-Host "`t✔ Done" -ForegroundColor Green
 
 # Create further required release folders
 New-Item -Path release/tools -ItemType Directory | Out-Null
@@ -136,54 +174,57 @@ New-Item -Path release/tools/Linux -ItemType Directory | Out-Null
 New-Item -Path release/tools/bossac -ItemType Directory | Out-Null
 
 # Build OpenKNXproducer
-Write-Host "Build OpenKNXproducer with $donetExecute"
-Start-Process $donetExecute -ArgumentList "build OpenKNXproducer.csproj" -NoNewWindow -Wait
-Start-Process $donetExecute -ArgumentList "publish OpenKNXproducer.csproj -c Debug -r win-x64   --self-contained true /p:PublishSingleFile=true" -NoNewWindow -Wait
-Start-Process $donetExecute -ArgumentList "publish OpenKNXproducer.csproj -c Debug -r win-x86   --self-contained true /p:PublishSingleFile=true" -NoNewWindow -Wait
-Start-Process $donetExecute -ArgumentList "publish OpenKNXproducer.csproj -c Debug -r osx-x64   --self-contained true /p:PublishSingleFile=true" -NoNewWindow -Wait
-Start-Process $donetExecute -ArgumentList "publish OpenKNXproducer.csproj -c Debug -r linux-x64 --self-contained true /p:PublishSingleFile=true" -NoNewWindow -Wait
+Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x64 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x64   --self-contained true /p:PublishSingleFile=true"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x86 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x86   --self-contained true /p:PublishSingleFile=true"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for MacOS       ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r osx-x64   --self-contained true /p:PublishSingleFile=true"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Linux       ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r linux-x64 --self-contained true /p:PublishSingleFile=true"
 
-# Local build for testing (To be discussed if and why we need this)
-if($false) {
-  # we copy publish version also to our bin to ensure same OpenKNXproducer for our delivered products
-  Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe   ~/bin/OpenKNXproducer-x64.exe
-  Copy-Item bin/Debug/net6.0/win-x86/publish/OpenKNXproducer.exe   ~/bin/OpenKNXproducer-x86.exe
-  Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer   ~/bin/OpenKNXproducer
-  Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer ~/bin/OpenKNXproducer
-
-  # copy package content 
-  Copy-Item ~/bin/OpenKNXproducer-x64.exe     release/tools/Windows
-  Copy-Item ~/bin/OpenKNXproducer-x86.exe     release/tools/Windows
-  Copy-Item ~/bin/OpenKNXproducer     release/tools/MacOS
-  Copy-Item ~/bin/OpenKNXproducer     release/tools/Linux
-}
-
-# we copy publish version also to our bin to ensure same OpenKNXproducer for our delivered products
+# Copy publish version to release folder structure
+Write-Host "- Copy publish openKNXproducer binaries to release folder structure ..." -ForegroundColor Green -NoNewline
 Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x64.exe
 Copy-Item bin/Debug/net6.0/win-x86/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x86.exe
 Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer
 Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer
+Write-Host "`t✔ Done" -ForegroundColor Green
+
 
 # Copy bossac tool to the release package into the dedicated folder 
+Write-Host "- Copy external bossac tool to release folder structure ..." -ForegroundColor Green -NoNewline
 Copy-Item -Path tools/bossac/Windows -Destination release/tools/bossac/Windows -Recurse
 Copy-Item -Path tools/bossac/MacOS -Destination release/tools/bossac/MacOS -Recurse
 Copy-Item -Path tools/bossac/Linux -Destination release/tools/bossac/Linux -Recurse
 Copy-Item tools/bossac/LICENSE.txt release/tools/bossac/LICENSE.txt
+Write-Host "`t✔ Done" -ForegroundColor Green
+
 
 # add necessary scripts
+Write-Host "- Copying scripts to release folder structure ..." -ForegroundColor Green -NoNewline
 Copy-Item scripts/Readme-Release.txt release/
 Copy-Item scripts/Install-Application.ps1 release/
 Copy-Item scripts/Install-OpenKNXProducer.json  release/
-
+Write-Host "`t✔ Done" -ForegroundColor Green
 
 # Get version from OpenKNXproducer and remove spaces from release name
-$ReleaseName = (Get-OpenKNXProducerVersion).Replace(" ", "-") + ".zip"
+$OpenKNXproducerVersion = (Get-OpenKNXProducerVersion)
+Write-Host "- Checking and getting version directly from builded executable ..." -ForegroundColor Green -NoNewline
+if( $null -eq $OpenKNXproducerVersion ) {
+  Write-Host "ERROR: Could not get OpenKNXproducer version from the builded executable." -ForegroundColor Red
+  exit 1
+} else {
+  Write-Host "OpenKNXproducer version: $OpenKNXproducerVersion `t✔ Done" -ForegroundColor Green
+}
 
 # create package 
+$ReleaseName = $OpenKNXproducerVersion.Replace(" ", "-") + ".zip"
+Write-Host "- Create release package: $ReleaseName ..." -ForegroundColor Green -NoNewline
 Compress-Archive -Force -Path release/* -DestinationPath "$ReleaseName"
+Write-Host "`t✔ Done" -ForegroundColor Green
 
 # Move package to release folder
+Write-Host "- Move release package to release folder ..." -ForegroundColor Green -NoNewline
 Move-Item "$ReleaseName" release/
+Write-Host "`t✔ Done" -ForegroundColor Green
 
 # Clean working dir
 #Remove-Item -Recurse -Force release/*
