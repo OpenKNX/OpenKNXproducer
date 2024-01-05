@@ -93,24 +93,24 @@ function Test-AndInstallDotnet {
 
 function Get-ApplicationVersion {
   param (
-      [string]$application = "OpenKNXProducer"
+      [string]$application = "OpenKNXproducer"
   )
 
   $OSCommands = @{
       "Windows x86" = @{
-          "OpenKNXProducer" = "release/tools/Windows/OpenKNXproducer-x86.exe --version"
+          "OpenKNXproducer" = "release/tools/Windows/OpenKNXproducer-x86.exe --version"
           "bossac" = "release/tools/bossac/Windows/x86/bossac.exe --help"
       }
       "Windows x64" = @{
-          "OpenKNXProducer" = "release/tools/Windows/OpenKNXproducer-x64.exe --versiobn"
+          "OpenKNXproducer" = "release/tools/Windows/OpenKNXproducer-x64.exe --versiobn"
           "bossac" = "release/tools/bossac/Windows/x64/bossac.exe --help"
       }
       "MacOS" = @{
-          "OpenKNXProducer" = "release/tools/MacOS/OpenKNXproducer --version"
+          "OpenKNXproducer" = "release/tools/MacOS/OpenKNXproducer --version"
           "bossac" = "release/tools/bossac/MacOS/bossac --help"
       }
       "Linux" = @{
-          "OpenKNXProducer" = "release/tools/Linux/OpenKNXproducer --version"
+          "OpenKNXproducer" = "release/tools/Linux/OpenKNXproducer --version"
           "bossac" = "release/tools/bossac/Linux/bossac --help"
       }
   }
@@ -132,15 +132,15 @@ function Get-ApplicationVersion {
       Start-Process chmod -ArgumentList "+x", $executable -NoNewWindow -Wait
   }
 
-  # Get version from OpenKNXProducer or bossac
+  # Get version from OpenKNXproducer or bossac
   if($Verbose) { Write-Host "Get version from '$application' with command '$VersionCommand'" -ForegroundColor Yellow }
   $VersionOutput = Invoke-Expression $VersionCommand
   if($Verbose) { Write-Host "Version output: $VersionOutput" -ForegroundColor Yellow }
   
-  # the patern for OPenKNXProducer is: OpenKNXproducer 'OpenKNXproducer (\d+(\.\d+)*)'
+  # the patern for OPenKNXproducer is: OpenKNXproducer 'OpenKNXproducer (\d+(\.\d+)*)'
   # the patern for bossac and others is: 'Version (\d+(\.\d+)*)'
   $pattern = switch ($application) {
-      "OpenKNXProducer" { 'OpenKNXproducer (\d+(\.\d+)*)' }
+      "OpenKNXproducer" { 'OpenKNXproducer (\d+(\.\d+)*)' }
       default { 'Version (\d+(\.\d+)*)' }
   }
   if($Verbose) { Write-Host "Pattern: $pattern" -ForegroundColor Yellow }
@@ -239,7 +239,7 @@ Write-Host "`t✔ Done" -ForegroundColor Green
 Write-Host "- Copying scripts to release folder structure ..." -ForegroundColor Green -NoNewline
 Copy-Item scripts/Readme-Release.txt release/
 Copy-Item scripts/Install-Application.ps1 release/
-Copy-Item scripts/Install-OpenKNXProducer.json  release/
+Copy-Item scripts/Install-OpenKNXproducer.json  release/
 Write-Host "`t✔ Done" -ForegroundColor Green
 
 Write-Host "- Checking and getting versions directly from builded executables ..." -ForegroundColor Green -NoNewline
@@ -268,7 +268,7 @@ if( [string]::IsNullOrEmpty($OpenKNXproducerVersion) -or [string]::IsNullOrEmpty
 }
 
 # create package 
-$ReleaseName = $OpenKNXproducerVersion.Replace(" ", "-") + ".zip"
+$ReleaseName = "OpenKNXproducer-$($OpenKNXproducerVersion).zip"
 Write-Host "- Create release package: $ReleaseName ..." -ForegroundColor Green -NoNewline
 Compress-Archive -Force -Path release/* -DestinationPath "$ReleaseName"
 Write-Host "`t✔ Done" -ForegroundColor Green

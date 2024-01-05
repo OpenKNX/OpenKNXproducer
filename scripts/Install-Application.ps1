@@ -59,7 +59,7 @@ function Invoke-ExecuteCommands($appSettings) {
     # process here the executeCommand
     (1..10) | ForEach-Object {
         $executeCommand = $appSettings."ExecuteCommand$_"
-        if ($executeCommand) {
+        if ($executeCommand -and !$Uninstall) {
             Write-Host "- Executing custom command $($_): $executeCommand" -ForegroundColor Gree
             Invoke-Expression $executeCommand
         }
@@ -101,7 +101,7 @@ function Copy-ApplicationFiles {
     # Write the application name and the current OS
     # write-host with 20 time of this: $( [char]::ConvertFromUtf32(0x2500) ) Generate it in on line. 
 
-    Write-Host "Installing: $(if ($version) { "$($version)" } else { $($appName) }) for $($currentOS)" -ForegroundColor Blue
+    Write-Host "$(('Removing', 'Installing')[!$Uninstall]): $(if ($version) { "$($version)" } else { $($appName) }) for $($currentOS)" -ForegroundColor Blue
     #Write-Host ($( [char]::ConvertFromUtf32(0x2500)*(($Host.UI.RawUI.WindowSize.Width)/3))) -ForegroundColor Green
     
     # Get the application settings based on the detected OS
@@ -308,11 +308,11 @@ function IntallFilesAndFolders {
   }
 }
 
-OpenKNX_ShowLogo -AddCustomText "Installing OpenKNXProducer Tools" -Line 0
+OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) OpenKNXproducer Tools" -Line 0
 # Example usage
-$jsonFilePath = "Install-OpenKNXProducer.json"
+$jsonFilePath = "Install-OpenKNXproducer.json"
 Copy-ApplicationFiles -jsonFilePath $jsonFilePath
-OpenKNX_ShowLogo -AddCustomText "Installation of OpenKNXProducer Tools completed" -Line 4
+OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) of OpenKNXproducer Tools complete" -Line 4
 
 
 #Testing the OS Versions
