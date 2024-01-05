@@ -1,9 +1,25 @@
 # Description: This script is used to install or uninstall OpenKNX applications on Windows, Linux and macOS.
 
 param(
-  [switch]$Verbose = $true, 
+  [switch]$Verbose = $false, 
   [switch]$Uninstall = $false
 )
+
+# To Show OpenKNX Logo in the console output
+function OpenKNX_ShowLogo($AddCustomText = $null, $Line=0 ) {
+  if(($Line -band 1) -eq 1 -or ($Line -band 3) -eq 3) { Write-Host ($( [char]::ConvertFromUtf32(0x2500)*($Host.UI.RawUI.WindowSize.Width/3))) -ForegroundColor Green }
+  Write-Host ""
+  Write-Host "Open " -NoNewline # Open
+  Write-Host "$( [char]::ConvertFromUtf32(0x25A0) )" -ForegroundColor Green # ■
+  $unicodeString = "$( [char]::ConvertFromUtf32(0x252C) )$($([char]::ConvertFromUtf32(0x2500) )*4)$( [char]::ConvertFromUtf32(0x2534) ) "
+  if ($AddCustomText) { Write-Host "$($unicodeString) $($AddCustomText)"  -ForegroundColor Green } # ┬────┴
+  else { Write-Host "$($unicodeString)"  -ForegroundColor Green } # ┬────┴
+  Write-Host "$( [char]::ConvertFromUtf32(0x25A0) )" -NoNewline -ForegroundColor Green # ■
+  Write-Host " KNX   " -NoNewline # KNX
+  if(($Line -band 4) -eq 4 ) { Write-Host "https://www.OpenKNX.de" -ForegroundColor Blue } else { Write-Host "" }
+  if(($Line -band 2) -eq 2 -or ($Line -band 3) -eq 3) { Write-Host ($( [char]::ConvertFromUtf32(0x2500)*($Host.UI.RawUI.WindowSize.Width/3))) -ForegroundColor Green }
+  Write-Host ""
+}
 
 function CheckOS {
   # check on which os we are running
@@ -32,7 +48,7 @@ function CheckOS {
   }
 
   $PSVersion = "$($PSVersionTable.PSVersion.Major).$($PSVersionTable.PSVersion.Minor).$($PSVersionTable.PSVersion.Patch)"
-  if($true) { Write-Host -ForegroundColor Green "- We are on '$CurrentOS' Build Environment with PowerShell $PSVersion"  ([Char]0x221A) }
+  if($Verbose) { Write-Host -ForegroundColor Green "- We are on '$CurrentOS' Build Environment with PowerShell $PSVersion"  ([Char]0x221A) }
   return $CurrentOS
 }
 
@@ -44,7 +60,7 @@ function Invoke-ExecuteCommands($appSettings) {
     (1..10) | ForEach-Object {
         $executeCommand = $appSettings."ExecuteCommand$_"
         if ($executeCommand) {
-            Write-Host "Executing custom command $($_): $executeCommand" -ForegroundColor Green
+            Write-Host "- Executing custom command $($_): $executeCommand" -ForegroundColor Gree
             Invoke-Expression $executeCommand
         }
     }
@@ -79,8 +95,14 @@ function Copy-ApplicationFiles {
       if($Verbose) { Write-Host "currentOS: $($currentOS) - $($currentOS_x86x64) " -ForegroundColor Yellow }
     }
 
+    # Read a version.txt file if exist, where we could find the version number of the application
+    $versionFile = "version.txt"
+    $version = if(Test-Path $versionFile) { $(Get-Content $versionFile) | Select-String -Pattern $appName | Select-Object -ExpandProperty Line } else { $null }
     # Write the application name and the current OS
-    Write-Host "Processing application: $appName on $currentOS" -ForegroundColor Green
+    # write-host with 20 time of this: $( [char]::ConvertFromUtf32(0x2500) ) Generate it in on line. 
+
+    Write-Host "Installing: $(if ($version) { "$($version)" } else { $($appName) }) for $($currentOS)" -ForegroundColor Blue
+    #Write-Host ($( [char]::ConvertFromUtf32(0x2500)*(($Host.UI.RawUI.WindowSize.Width)/3))) -ForegroundColor Green
     
     # Get the application settings based on the detected OS
     $appSettings = $application.$currentOS
@@ -89,33 +111,33 @@ function Copy-ApplicationFiles {
     if (![string]::IsNullOrEmpty($appSettings) -and ![string]::IsNullOrEmpty($application.$currentOS)) {
         # Process common settings
         if ($appSettings.Common) {
-          Write-Host "Processing - Common: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow
+          if($Verbose) { Write-Host "Processing - Common: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow }
           ProcessFilesAndFolders $appName $appSettings.Common
         }
         # Process general settings
-        Write-Host "Processing - File and Folders: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow
+        if($Verbose) { Write-Host "Processing - File and Folders: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow }
         ProcessFilesAndFolders $appName $appSettings
       
         # Check and process executeCommand
-        Write-Host "Processing - ExecuteCommand: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow
+        if($Verbose) { Write-Host "Processing - ExecuteCommand: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow }
         Invoke-ExecuteCommands $appSettings
 
         # Process the common settings for Windows - x86 and x64
         # Process common settings for Windows - x86 and x64
         if ($currentOS -eq "Windows" -and $currentOS_x86x64 -in @("x86", "x64")) {
-          Write-Host "Processing - Common: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow
+          if($Verbose) { Write-Host "Processing - Common: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow }
           ProcessFilesAndFolders $appName $appSettings.$currentOS_x86x64.Common
 
           # Now process OS specific settings for Windows - x86 or x64
-          Write-Host "Processing - File and Folders: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow
+          if($Verbose) { Write-Host "Processing - File and Folders: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow }
           ProcessFilesAndFolders $appName $appSettings.$currentOS_x86x64
 
           # Check and process executeCommand
-          Write-Host "Processing - ExecuteCommand: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow
+          if($Verbose) { Write-Host "Processing - ExecuteCommand: of $currentOS $($currentOS_x86x64)" -ForegroundColor Yellow }
           Invoke-ExecuteCommands $appSettings
         }
     } else  { 
-      Write-Host "No specific settings found for OS:$currentOS. Skipping application." -ForegroundColor Yellow
+      if($Verbose) { Write-Host "No specific settings found for OS:$currentOS. Skipping application." -ForegroundColor Yellow }
     }
   }
 }
@@ -286,9 +308,12 @@ function IntallFilesAndFolders {
   }
 }
 
+OpenKNX_ShowLogo -AddCustomText "Installing OpenKNXProducer Tools" -Line 0
 # Example usage
 $jsonFilePath = "Install-OpenKNXProducer.json"
 Copy-ApplicationFiles -jsonFilePath $jsonFilePath
+OpenKNX_ShowLogo -AddCustomText "Installation of OpenKNXProducer Tools completed" -Line 4
+
 
 #Testing the OS Versions
 #Copy-ApplicationFiles -jsonFilePath $jsonFilePath -currentOS "Windows x86"

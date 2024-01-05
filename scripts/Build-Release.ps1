@@ -1,6 +1,9 @@
 
 # This script builds the OpenKNXproducer release package for Windows, MacOS and Linux
 
+param(
+  [switch]$Verbose = $false
+)
 # To Show OpenKNX Logo in the console output
 function OpenKNX_ShowLogo($AddCustomText = $null) {
   Write-Host ""
@@ -52,7 +55,7 @@ function CheckOS {
   }
 
   $PSVersion = "$($PSVersionTable.PSVersion.Major).$($PSVersionTable.PSVersion.Minor).$($PSVersionTable.PSVersion.Patch)"
-  if($true) { Write-Host -ForegroundColor Green "- We are on '$CurrentOS' Build Environment with PowerShell $PSVersion"  ([Char]0x221A) }
+  if($Verbose) { Write-Host -ForegroundColor Green "- We are on '$CurrentOS' Build Environment with PowerShell $PSVersion"  ([Char]0x221A) }
   return $CurrentOS
 }
 # To check and install (Optional and for testing) dotnet if not exists
@@ -88,35 +91,69 @@ function Test-AndInstallDotnet {
   return $dotnetExecutable
 }
 
-# To get the OpenKNXproducer version from the executable
-function Get-OpenKNXProducerVersion {
+function Get-ApplicationVersion {
+  param (
+      [string]$application = "OpenKNXProducer"
+  )
+
   $OSCommands = @{
-      "Windows" = "release/tools/Windows/OpenKNXproducer-x64.exe --version"
-      "MacOS" = "release/tools/MacOS/OpenKNXproducer --version"
-      "Linux" = "release/tools/Linux/OpenKNXproducer --version"
+      "Windows x86" = @{
+          "OpenKNXProducer" = "release/tools/Windows/OpenKNXproducer-x86.exe --version"
+          "bossac" = "release/tools/bossac/Windows/x86/bossac.exe --help"
+      }
+      "Windows x64" = @{
+          "OpenKNXProducer" = "release/tools/Windows/OpenKNXproducer-x64.exe --versiobn"
+          "bossac" = "release/tools/bossac/Windows/x64/bossac.exe --help"
+      }
+      "MacOS" = @{
+          "OpenKNXProducer" = "release/tools/MacOS/OpenKNXproducer --version"
+          "bossac" = "release/tools/bossac/MacOS/bossac --help"
+      }
+      "Linux" = @{
+          "OpenKNXProducer" = "release/tools/Linux/OpenKNXproducer --version"
+          "bossac" = "release/tools/bossac/Linux/bossac --help"
+      }
   }
 
   # Determine the current OS
-  $OS = "Windows"
-  if ($IsMacOSEnv) {
-      $OS = "MacOS"
-  } elseif ($IsLinuxEnv) {
-      $OS = "Linux"
-  }
+  $OS = CheckOS
 
-  # Get the version command for the current OS
-  $VersionCommand = $OSCommands[$OS]
+  # Get the version command for the current OS and application
+  $VersionCommand = $OSCommands[$OS][$application]
+  if([string]::IsNullOrEmpty($VersionCommand)) {
+      Write-Host "ERROR: Could not get version command for '$application' on '$OS'" -ForegroundColor Red
+      exit 1
+  }
 
   # Make version command executable on MacOS and Linux
   if ($OS -eq "MacOS" -or $OS -eq "Linux") {
-      Start-Process chmod -ArgumentList "+x", $VersionCommand.Split(" ")[0] -NoNewWindow -Wait
+      $executable = $VersionCommand.Split(" ")[0]
+      if($Verbose) { Write-Host "Setting executable permissions for '$executable'." -ForegroundColor Yellow }
+      Start-Process chmod -ArgumentList "+x", $executable -NoNewWindow -Wait
   }
 
-  # Get version from OpenKNXproducer
-  $ReleaseName = Invoke-Expression $VersionCommand
-  return $ReleaseName
-}
+  # Get version from OpenKNXProducer or bossac
+  if($Verbose) { Write-Host "Get version from '$application' with command '$VersionCommand'" -ForegroundColor Yellow }
+  $VersionOutput = Invoke-Expression $VersionCommand
+  if($Verbose) { Write-Host "Version output: $VersionOutput" -ForegroundColor Yellow }
+  
+  # the patern for OPenKNXProducer is: OpenKNXproducer 'OpenKNXproducer (\d+(\.\d+)*)'
+  # the patern for bossac and others is: 'Version (\d+(\.\d+)*)'
+  $pattern = switch ($application) {
+      "OpenKNXProducer" { 'OpenKNXproducer (\d+(\.\d+)*)' }
+      default { 'Version (\d+(\.\d+)*)' }
+  }
+  if($Verbose) { Write-Host "Pattern: $pattern" -ForegroundColor Yellow }
 
+  $VersionMatch = ($VersionOutput | Select-String -Pattern $pattern)
+  if ($VersionMatch) {
+    if($Verbose) { Write-Host "Version match: $VersionMatch" -ForegroundColor Yellow }
+    $Version = $VersionMatch.Matches.Groups[1].Value
+    if($Verbose) { Write-Host "Version: $Version" -ForegroundColor Yellow }
+    return $Version
+  }
+  return $null
+}
 
 function Invoke-DotnetExecute {
   param (
@@ -157,7 +194,7 @@ function Invoke-DotnetExecute {
 }
 
 # Check on which OS we are running
-OpenKNX_ShowLogo "Build OpenKNXproducer Release"
+OpenKNX_ShowLogo "Build OpenKNXproducer Release on $(CheckOS)"
 CheckOS | Out-Null
 
 # check for working dir and create if not exists
@@ -205,14 +242,29 @@ Copy-Item scripts/Install-Application.ps1 release/
 Copy-Item scripts/Install-OpenKNXProducer.json  release/
 Write-Host "`t✔ Done" -ForegroundColor Green
 
+Write-Host "- Checking and getting versions directly from builded executables ..." -ForegroundColor Green -NoNewline
 # Get version from OpenKNXproducer and remove spaces from release name
-$OpenKNXproducerVersion = (Get-OpenKNXProducerVersion)
-Write-Host "- Checking and getting version directly from builded executable ..." -ForegroundColor Green -NoNewline
-if( $null -eq $OpenKNXproducerVersion ) {
-  Write-Host "ERROR: Could not get OpenKNXproducer version from the builded executable." -ForegroundColor Red
+$OpenKNXproducerVersion = (Get-ApplicationVersion)
+$bossacVersion = (Get-ApplicationVersion -application "bossac")
+
+if( [string]::IsNullOrEmpty($OpenKNXproducerVersion) -or [string]::IsNullOrEmpty($bossacVersion) ) {
+  Write-Host "ERROR: Could not get version from the executable." -ForegroundColor Red
   exit 1
 } else {
-  Write-Host "OpenKNXproducer version: $OpenKNXproducerVersion `t✔ Done" -ForegroundColor Green
+  Write-Host "OpenKNXproducer version: $OpenKNXproducerVersion and " -ForegroundColor Green -NoNewline
+  Write-Host "bossac version: $bossacVersion `t✔ Done" -ForegroundColor Green
+  
+  #Write the application version strings into the file version.txt. Remove version.txt if exists and create a new one.
+  if (Test-Path -Path release/version.txt) { Remove-Item -Path release/version.txt -Force }
+  New-Item -Path release/version.txt -ItemType File | Out-Null
+  Add-Content -Path release/version.txt -Value "OpenKNXproducer $($OpenKNXproducerVersion)"
+  Add-Content -Path release/version.txt -Value "bossac $($bossacVersion)"
+  
+  # Write a Install-Helper.ps1 file to the release folder. This script is used to install the application on Windows. 
+  # For some reasong, an error message saying "is not digitally signed." is shown. To bypass this, we use the Install-Helper.ps1 script.
+  if (Test-Path -Path release/Install-Helper.ps1) { Remove-Item -Path release/Install-Helper.ps1 -Force }
+  New-Item -Path release/Install-Helper.ps1 -ItemType File | Out-Null
+  Add-Content -Path release/Install-Helper.ps1 -Value "PowerShell.exe -ExecutionPolicy Bypass -File .\Install-Application.ps1"
 }
 
 # create package 

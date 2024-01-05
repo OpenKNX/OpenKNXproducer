@@ -6,7 +6,7 @@
         "x86": {
           "FilesAndFolders": {
             "OpenKNXProducer": {
-              "SourcePath": "tools\\Windows\\OpenKNXproducer-x64.exe",
+              "SourcePath": "tools\\Windows\\OpenKNXproducer-x86.exe",
               "DestinationPath": "$env:USERPROFILE\\bin\\OpenKNXproducer.exe"
             }
           }
@@ -14,7 +14,7 @@
         "x64": {
           "FilesAndFolders": {
             "OpenKNXProducer": {
-              "SourcePath": "tools\\Windows\\OpenKNXproducer-x86.exe",
+              "SourcePath": "tools\\Windows\\OpenKNXproducer-x64.exe",
               "DestinationPath": "$env:USERPROFILE\\bin\\OpenKNXproducer.exe"
             }
           }
