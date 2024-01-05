@@ -6,16 +6,16 @@
         "x86": {
           "FilesAndFolders": {
             "OpenKNXProducer": {
-              "SourcePath": "tools/Windows/OpenKNXproducer-x64.exe",
-              "DestinationPath": "$env:USERPROFILE/bin/OpenKNXproducer.exe"
+              "SourcePath": "tools\\Windows\\OpenKNXproducer-x64.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\OpenKNXproducer.exe"
             }
           }
         },
         "x64": {
           "FilesAndFolders": {
             "OpenKNXProducer": {
-              "SourcePath": "tools/Windows/OpenKNXproducer-x86.exe",
-              "DestinationPath": "$env:USERPROFILE/bin/OpenKNXproducer.exe"
+              "SourcePath": "tools\\Windows\\OpenKNXproducer-x86.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\OpenKNXproducer.exe"
             }
           }
         }
@@ -44,12 +44,12 @@
         "x86": {
           "FilesAndFolders": {
             "Bossa_console_exe": {
-              "SourcePath": "tools/bossac/Windows/x86/bossac.exe",
-              "DestinationPath": "$env:USERPROFILE/bin/bossac.exe"
+              "SourcePath": "tools\\bossac\\Windows\\x86\\bossac.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossac.exe"
             },
             "Bossa_Application_Folder": {
-              "SourcePath": "tools/bossac/Windows/x86",
-              "DestinationPath": "$env:USERPROFILE/bin/bossa",
+              "SourcePath": "tools\\bossac\\Windows\\x86",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossa",
               "CopyEntireFolder": true
             }
           }
@@ -57,17 +57,17 @@
         "x64": {
           "FilesAndFolders": {
             "Bossa_console_exe": {
-              "SourcePath": "tools/bossac/Windows/x64/bossac.exe",
-              "DestinationPath": "$env:USERPROFILE/bin/bossac.exe"
+              "SourcePath": "tools\\bossac\\Windows\\x64\\bossac.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossac.exe"
             },
             "Bossa_Application_Folder": {
-              "SourcePath": "tools/bossac/Windows/x64",
-              "DestinationPath": "$env:USERPROFILE/bin/bossa",
+              "SourcePath": "tools\\bossac\\Windows\\x64",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossa",
               "CopyEntireFolder": true
             },
             "Bossa_license": {
-              "SourcePath": "tools/bossac/LICENSE.txt",
-              "DestinationPath": "$env:USERPROFILE/bin/LICENSE_Bossa.txt"
+              "SourcePath": "tools\\bossac\\LICENSE.txt",
+              "DestinationPath": "$env:USERPROFILE\\bin\\LICENSE_Bossa.txt"
             }
           }
         }

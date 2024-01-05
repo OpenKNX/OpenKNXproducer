@@ -122,24 +122,56 @@ function Copy-ApplicationFiles {
 
 function Resolve-EnvVariablesInJson {
   param (
-      [string]$jsonString
+    [string]$jsonString
   )
-  # Findet alle Vorkommen von $env:VariableName im JSON-String
-  $matches_ = [regex]::Matches($jsonString, '\$env:([^/]+)')
+
+  # Find all occurrences of $env:VariableName in the JSON string
+  $matches_ = [regex]::Matches($jsonString, '\$env:([^' + ('\\', '/')[!$IsWinEnv] + ']+)')
+
+  If($Verbose) { Write-Host "Resolve-Env: Input '$($jsonString)'" }
 
   foreach ($match in $matches_) {
-    # Extrahiert den Variablennamen aus dem Match
+    # Extract the variable name from the match
     $envVariableName = $match.Groups[1].Value
 
-    # Holt den tatsächlichen Wert der Umgebungsvariable
+    # Get the actual value of the environment variable
     $envVariableValue = [System.Environment]::GetEnvironmentVariable($envVariableName)
 
-    # Ersetzt $env:VariableName im JSON-String durch den tatsächlichen Wert
+    # Replace $env:VariableName in the JSON string with the actual value
     $jsonString = $jsonString.Replace("`$env:$envVariableName", $envVariableValue)
   }
+
+  If($Verbose) { Write-Host "Resolve-Env: Output '$($jsonString)'" }
+
   return $jsonString
 }
 
+function Ensure-ParentDirectoriesExist {
+  param (
+      [string]$path
+  )
+
+  # Split the path to get the parent directories
+  $parentDirectories = $path | Split-Path -Parent
+
+  # Determine the directory separator based on the platform
+  $splitChar = If ($IsWinEnv) { '\\' } Else { '/' }
+
+  # Split the parent directories using the determined separator
+  $directories = $parentDirectories -split $splitChar
+
+  # Initialize the current path
+  $currentPath = ''
+
+  # Iterate through each directory and ensure it exists
+  foreach ($directory in $directories) {
+    $currentPath += $directory + $splitChar
+    # Check if the current path exists; if not, create it
+    if (-not (Test-Path $currentPath)) {
+      New-Item -ItemType Directory -Force -Path $currentPath
+    }
+  }
+}
 
 function RemoveFilesAndFolders {
   param (
@@ -169,6 +201,7 @@ function RemoveFilesAndFolders {
       } else {
         # Otherwise, remove individual file
         # Check if the destination file exists
+        $fileOrFolder.DestinationPath = Resolve-EnvVariablesInJson $fileOrFolder.DestinationPath
         if (Test-Path -Path $fileOrFolder.DestinationPath) {
           if($Verbose) { Write-Host "Remove-Item -Path $($fileOrFolder.DestinationPath) -Force -ErrorAction Stop" -ForegroundColor Yellow }
           Remove-Item -Path $fileOrFolder.DestinationPath -Force -ErrorAction Stop
@@ -217,6 +250,7 @@ function IntallFilesAndFolders {
         } else {
           $fileOrFolder.DestinationPath = Resolve-EnvVariablesInJson $fileOrFolder.DestinationPath
           if($Verbose) { Write-Host "Copy-Item -Recurse -Force -Path "$($fileOrFolder.SourcePath)" -Destination "$($fileOrFolder.DestinationPath)" -ErrorAction Stop" -ForegroundColor Yellow }
+          Ensure-ParentDirectoriesExist $($fileOrFolder.DestinationPath)
           Copy-Item -Recurse -Force -Path $($fileOrFolder.SourcePath) -Destination $($fileOrFolder.DestinationPath) -ErrorAction Stop
           #CHeck if the folder was copied
           if (!(Test-Path -Path $fileOrFolder.DestinationPath)) {
@@ -234,7 +268,9 @@ function IntallFilesAndFolders {
           exit 1
         } else {
           #Now copy the file
+          $fileOrFolder.DestinationPath = Resolve-EnvVariablesInJson $fileOrFolder.DestinationPath
           if($Verbose) { Write-Host "Copy-Item -Path $($fileOrFolder.SourcePath) -Destination $($fileOrFolder.DestinationPath) -Force" -ForegroundColor Yellow }
+          Ensure-ParentDirectoriesExist $($fileOrFolder.DestinationPath)
           Copy-Item -Path $fileOrFolder.SourcePath -Destination $fileOrFolder.DestinationPath -Force -ErrorAction Stop
           #Check if the file was copied
           if (!(Test-Path -Path $fileOrFolder.DestinationPath)) {
