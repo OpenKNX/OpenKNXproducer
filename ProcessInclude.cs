@@ -493,7 +493,6 @@ namespace OpenKNXproducer
                 string lFileName = lFileNameAttr.Value;
                 XmlNode lPathAttr = iTargetNode.Attributes.GetNamedItem("TargetPath");
                 string lTargetPath = lPathAttr.Value;
-                // lTargetPath = Path.Combine(BaggagesBaseDir, lTargetPath.Replace("/", "\\"));
                 string lSourceDirName = "";
                 if (lFileName.StartsWith("..\\"))
                     lSourceDirName = iInclude.mCurrentDir;

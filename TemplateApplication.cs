@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Runtime.InteropServices;
 using OpenKNXproducer;
 using static OpenKNXproducer.ProcessInclude;
 using StringDict = System.Collections.Generic.Dictionary<string, string>;
@@ -162,7 +163,8 @@ class TemplateApplication
             InitParam(lParams, "SerialNumber", false, "", string.Format("0x{0}{1:X02}", lOpenKnxId, lApplicationNumberInt));
             InitParam(lParams, "OrderNumber", false, "SerialNumber");
             InitParam(lParams, "BaggagesRootDir", false, "", string.Format("{0}/{1:X02}/{2:X02}", lOpenKnxId, lApplicationNumberInt, lApplicationVersionInt));
-            iInclude.BaggagesBaseDir = lParams["%BaggagesRootDir%"].Replace('/', '\\');
+            iInclude.BaggagesBaseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? lParams["%BaggagesRootDir%"].Replace('/', '\\') : lParams["%BaggagesRootDir%"];
+
             // finally its a simple string replace
             foreach (var lParam in lParams)
                 iXml = iXml.Replace(lParam.Key, lParam.Value);
