@@ -1,8 +1,16 @@
+####################################################################################################
+#   Open ■
+#   ┬────┴  Build Releases
+#   ■ KNX   2024 OpenKNX - Erkan Çolak
+#
+# This script builds the OpenKNXproducer release package for Windows, MacOS and Linux
+#
+####################################################################################################
 
 # This script builds the OpenKNXproducer release package for Windows, MacOS and Linux
 
 param(
-  [switch]$Verbose = $false
+  [switch]$Verbose = $false # To show more information during the build process. Default is $false. Please use -Verbose to enable it.
 )
 # To Show OpenKNX Logo in the console output
 function OpenKNX_ShowLogo($AddCustomText = $null) {
@@ -197,6 +205,12 @@ function Invoke-DotnetExecute {
 OpenKNX_ShowLogo "Build OpenKNXproducer Release on $(CheckOS)"
 CheckOS | Out-Null
 
+if(-not $Verbose) {
+  Write-Host -NoNewline "`u{2139} " -ForegroundColor Blue
+  Write-Host -NoNewline "Verbose mode is disabled. Use -Verbose to enable it!" -ForegroundColor Blue
+  Write-Host " `u{2139}" -ForegroundColor Blue
+}
+
 # check for working dir and create if not exists
 Write-Host "- Create release folder structure ..." -ForegroundColor Green -NoNewline
 if (Test-Path -Path release) {  Remove-Item -Recurse release\* -Force
@@ -237,10 +251,13 @@ Write-Host "`t✔ Done" -ForegroundColor Green
 
 # add necessary scripts
 Write-Host "- Copying scripts to release folder structure ..." -ForegroundColor Green -NoNewline
-Copy-Item scripts/Readme-Release.txt release/
-Copy-Item scripts/Install-Application.ps1 release/
-Copy-Item scripts/Install-OpenKNXproducer.json  release/
+Copy-Item scripts/Readme-Release.txt release/                   # This is the readme file for the release
+Copy-Item scripts/Install-Application.ps1 release/tools/        # This script is used to install the application on Windows, Linux and macOS.WIll be included in Install-OpenKNX-Tools.ps1 script
+Copy-Item scripts/Install-OpenKNXproducer.json  release/tools/  # This is the json file for the Install-OpenKNX-Tools.ps1 script
+Copy-Item scripts/Install-OpenKNX-Tools.ps1 release/            # This script is used to install the application on Windows, Linux and macOS
+Copy-Item scripts/Remove-OpenKNX-Tools.ps1 release/             # This script is used to uninstall the application on Windows, Linux and macOS
 Write-Host "`t✔ Done" -ForegroundColor Green
+
 
 Write-Host "- Checking and getting versions directly from builded executables ..." -ForegroundColor Green -NoNewline
 # Get version from OpenKNXproducer and remove spaces from release name
@@ -255,16 +272,10 @@ if( [string]::IsNullOrEmpty($OpenKNXproducerVersion) -or [string]::IsNullOrEmpty
   Write-Host "bossac version: $bossacVersion `t✔ Done" -ForegroundColor Green
   
   #Write the application version strings into the file version.txt. Remove version.txt if exists and create a new one.
-  if (Test-Path -Path release/version.txt) { Remove-Item -Path release/version.txt -Force }
-  New-Item -Path release/version.txt -ItemType File | Out-Null
-  Add-Content -Path release/version.txt -Value "OpenKNXproducer $($OpenKNXproducerVersion)"
-  Add-Content -Path release/version.txt -Value "bossac $($bossacVersion)"
-  
-  # Write a Install-Helper.ps1 file to the release folder. This script is used to install the application on Windows. 
-  # For some reasong, an error message saying "is not digitally signed." is shown. To bypass this, we use the Install-Helper.ps1 script.
-  if (Test-Path -Path release/Install-Helper.ps1) { Remove-Item -Path release/Install-Helper.ps1 -Force }
-  New-Item -Path release/Install-Helper.ps1 -ItemType File | Out-Null
-  Add-Content -Path release/Install-Helper.ps1 -Value "PowerShell.exe -ExecutionPolicy Bypass -File .\Install-Application.ps1"
+  if (Test-Path -Path release/tools/version.txt) { Remove-Item -Path release/tools/version.txt -Force }
+  New-Item -Path release/tools/version.txt -ItemType File | Out-Null
+  Add-Content -Path release/tools/version.txt -Value "OpenKNXproducer $($OpenKNXproducerVersion)"
+  Add-Content -Path release/tools/version.txt -Value "bossac $($bossacVersion)"
 }
 
 # create package 

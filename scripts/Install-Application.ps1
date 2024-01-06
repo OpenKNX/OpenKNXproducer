@@ -1,8 +1,29 @@
+####################################################################################################
+#   Open ■
+#   ┬────┴  Application Installer and Uninstaller
+#   ■ KNX   2024 OpenKNX - Erkan Çolak
+#
 # Description: This script is used to install or uninstall OpenKNX applications on Windows, Linux and macOS.
+#              The script reads the application settings from a JSON file and copies the files and folders
+#              to the specified locations. The script also executes the specified commands.
+#
+# Usage:       Install-Application.ps1 [-Verbose] [-Uninstall]
+#
+# Parameters:  -Verbose: Show verbose output
+#              -Uninstall: Uninstall the application
+#              -jsonFilePath: Path to the JSON file containing the application settings. Default: Install-OpenKNXproducer.json
+#              -versionFile: Path to the version.txt file containing the application version. Default: tools/version.txt
+#
+# Example:     Install-Application.ps1 -Verbose
+#              Install-Application.ps1 -Uninstall
+#
+####################################################################################################
 
 param(
-  [switch]$Verbose = $false, 
-  [switch]$Uninstall = $false
+  [switch]$Verbose = $false,
+  [switch]$Uninstall = $false,
+  [string]$jsonFilePath = "Install-Application.json",
+  [string]$versionFile = "tools/version.txt"
 )
 
 # To Show OpenKNX Logo in the console output
@@ -96,7 +117,6 @@ function Copy-ApplicationFiles {
     }
 
     # Read a version.txt file if exist, where we could find the version number of the application
-    $versionFile = "version.txt"
     $version = if(Test-Path $versionFile) { $(Get-Content $versionFile) | Select-String -Pattern $appName | Select-Object -ExpandProperty Line } else { $null }
     # Write the application name and the current OS
     # write-host with 20 time of this: $( [char]::ConvertFromUtf32(0x2500) ) Generate it in on line. 
@@ -308,14 +328,10 @@ function IntallFilesAndFolders {
   }
 }
 
-OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) OpenKNXproducer Tools" -Line 0
+
 # Example usage
-$jsonFilePath = "Install-OpenKNXproducer.json"
-Copy-ApplicationFiles -jsonFilePath $jsonFilePath
-OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) of OpenKNXproducer Tools complete" -Line 4
 
-
-#Testing the OS Versions
-#Copy-ApplicationFiles -jsonFilePath $jsonFilePath -currentOS "Windows x86"
-#Copy-ApplicationFiles -jsonFilePath $jsonFilePath -currentOS "Windows x64"
-#Copy-ApplicationFiles -jsonFilePath $jsonFilePath -currentOS "Linux"
+#OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) OpenKNXproducer Tools" -Line 0
+#$jsonFilePath = "Install-OpenKNXproducer.json"
+#Copy-ApplicationFiles -jsonFilePath $jsonFilePath
+#OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) of OpenKNXproducer Tools complete" -Line 4
