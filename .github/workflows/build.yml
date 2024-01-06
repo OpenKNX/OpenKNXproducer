@@ -18,7 +18,7 @@ jobs:
         dotnet-version: '7.0'
 
     - name: Run build script
-      run: pwsh scripts/Build-Release.ps1
+      run: pwsh scripts/Build-Release.ps1 -Verbose
 
     - name: Upload test artifact
       uses: actions/upload-artifact@v2
