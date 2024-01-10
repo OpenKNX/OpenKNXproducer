@@ -6,7 +6,7 @@
 #
 # Description: This script is used to install or uninstall OpenKNX applications on Windows, Linux and macOS.
 #              The script reads the application settings from a JSON file and copies the files and folders
-#              to the specified locations. The script also executes the specified commands.
+#              to the specified locations. The script also executes commands specified in the JSON file.
 #
 # Usage:       Install-YourApplication.ps1
 #

@@ -330,7 +330,6 @@ function IntallFilesAndFolders {
 
 
 # Example usage
-
 #OpenKNX_ShowLogo -AddCustomText "$(('Removing', 'Installing')[!$Uninstall]) OpenKNXproducer Tools" -Line 0
 #$jsonFilePath = "Install-OpenKNXproducer.json"
 #Copy-ApplicationFiles -jsonFilePath $jsonFilePath
