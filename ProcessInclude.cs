@@ -1105,7 +1105,9 @@ namespace OpenKNXproducer
                         cOut.AppendLine();
                         cOut.AppendFormat("#define {0}KoCalcNumber(index) (index + {0}KoBlockOffset + _channelIndex * {0}KoBlockSize)", iHeaderPrefixName);
                         cOut.AppendLine();
-                        cOut.AppendFormat("#define {0}KoCalcIndex(number) ((number >= {0}KoCalcNumber(0) && number < {0}KoCalcNumber({0}KoBlockSize)) ? (number - {0}KoOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
+                        cOut.AppendFormat("#define {0}KoCalcIndex(number) ((number >= {0}KoCalcNumber(0) && number < {0}KoCalcNumber({0}KoBlockSize)) ? (number - {0}KoBlockOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
+                        cOut.AppendLine();
+                        cOut.AppendFormat("#define {0}KoCalcChannel(number) ((number >= {0}KoBlockOffset && number < {0}KoBlockOffset + {0}ChannelCount * {0}KoBlockSize) ? (number - {0}KoBlockOffset) / {0}KoBlockSize : -1)", iHeaderPrefixName);
                         cOut.AppendLine();
                         cOut.AppendLine();
                     }
@@ -1124,10 +1126,10 @@ namespace OpenKNXproducer
             {
                 string lComment = "// " + lNode.Attributes.GetNamedItem("Text").Value;
                 string lNumber = ReplaceKoTemplate(iDefine, lNode.NodeAttr("Number"), 1, null, true);
-                cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
+                cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, lName, lNumber);
                 cOut.AppendLine();
                 lOut.AppendLine(RemoveControlChars(lComment));
-                string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
                 if (iDefine.IsTemplate)
                     lOut.AppendFormat("#define Ko{0}{3,-35} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1})))", iHeaderPrefixName, lName, lNumber, lName);
                 else

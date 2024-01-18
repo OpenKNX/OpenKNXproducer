@@ -6,9 +6,10 @@ namespace OpenKNXproducer
     public class ParseDocumentation
     {
 
-        static readonly Regex sRegexChapterId = new("[^a-zA-Z0-9-_ ÄäÖöÜüß]");
+        static readonly Regex sRegexChapterId = new("[^a-zA-Z0-9-_ ÄäÖöÜüß\\n]");
+        static readonly Regex sRegexChapterWhitespaces = new("--*");
         static readonly Regex sRegexChapterName = new("[#*]");
-        static readonly Dictionary<string, string> sCharReplace = new() { { " ", "-" }, { "Ä", "Ae" }, { "ä", "ae" }, { "Ö", "Oe" }, { "ö", "oe" }, { "Ü", "Ue" }, { "ü", "ue" }, { "ß", "ss" } };
+        static readonly Dictionary<string, string> sCharReplace = new() { { " ", "-" }, { "\n", "-" }, { "Ä", "Ae" }, { "ä", "ae" }, { "Ö", "Oe" }, { "ö", "oe" }, { "Ü", "Ue" }, { "ü", "ue" }, { "ß", "ss" } };
         public static string GetChapterId(string iLine, string iPraefix)
         {
             // get rid of forbidden characters
@@ -18,6 +19,7 @@ namespace OpenKNXproducer
             foreach (var lEntry in sCharReplace)
                 lResult = lResult.Replace(lEntry.Key, lEntry.Value);
             if (iPraefix != "") lResult = iPraefix + "-" + lResult;
+            lResult = sRegexChapterWhitespaces.Replace(lResult, "-");
             return lResult;
         }
 
