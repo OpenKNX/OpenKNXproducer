@@ -1435,7 +1435,7 @@ namespace OpenKNXproducer
                     {
                         lResult = (iDefine.VerifyVersion == lVersionInt);
                         if (!lResult)
-                            Program.Message(true, "You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt);
+                            Program.Message(true, "You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}.{2}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt / 16, lVersionInt % 16);
                     }
                     else
                     {
