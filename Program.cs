@@ -1363,16 +1363,7 @@ namespace OpenKNXproducer
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
             // additional configuration
             if (opts.ConfigFileName != "")
-            {
-                XmlDocument lConfig = new();
-                lConfig.Load(opts.ConfigFileName);
-                XmlNamespaceManager nsmgr = new(lConfig.NameTable);
-                nsmgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
-                // process config
-                XmlNodeList lConfigNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
-                if (lConfigNodes != null && lConfigNodes.Count > 0)
-                    ProcessInclude.ParseConfig(lConfigNodes);
-            }
+                ProcessInclude.LoadConfig(opts.ConfigFileName, WorkingDir);
             string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
             if (opts.Debug) TemplateApplication.IsDebugMode = true;

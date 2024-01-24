@@ -1506,6 +1506,19 @@ namespace OpenKNXproducer
             return iXmlString;
         }
 
+        public static void LoadConfig(string iConfigFileName, string iCurrentDir)
+        {
+            XmlDocument lConfig = new();
+            string lConfigFileName = Path.Combine(iCurrentDir, iConfigFileName);
+            lConfig.Load(lConfigFileName);
+            XmlNamespaceManager nsmgr = new(lConfig.NameTable);
+            nsmgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
+            // process config
+            XmlNodeList lConfigNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
+            if (lConfigNodes != null && lConfigNodes.Count > 0)
+                ParseConfig(lConfigNodes, iCurrentDir);
+        }
+
         public static bool AddConfig(string iName, string iValue)
         {
             bool lResult = false;
@@ -1519,16 +1532,24 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        public static void ParseConfig(XmlNodeList iConfigNodes)
+        public static void ParseConfig(XmlNodeList iConfigNodes, string iCurrentDir)
         {
             // config consists of a list of name-value pairs to be replaced in document
             foreach (XmlNode lNode in iConfigNodes)
             {
                 if (lNode.NodeType == XmlNodeType.Comment) continue;
-                string lName = lNode.NodeAttr("name");
-                string lValue = lNode.NodeAttr("value");
-                lNode.ParentNode.RemoveChild(lNode);
-                AddConfig(lName, lValue);
+                string lHref = lNode.NodeAttr("href");
+                if (lHref == "")
+                {
+                    string lName = lNode.NodeAttr("name");
+                    string lValue = lNode.NodeAttr("value");
+                    lNode.ParentNode.RemoveChild(lNode);
+                    AddConfig(lName, lValue);
+                }
+                else
+                {
+                    LoadConfig(lHref, iCurrentDir);
+                }
             }
         }
 
@@ -1582,7 +1603,7 @@ namespace OpenKNXproducer
             // process config
             XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
             if (lConfigNodes != null && lConfigNodes.Count > 0)
-                ParseConfig(lConfigNodes);
+                ParseConfig(lConfigNodes, iCurrentDir);
 
             XmlNodeList lNoWarnNodes = mDocument.SelectNodes("//oknxp:nowarn", nsmgr);
             if (lNoWarnNodes != null && lNoWarnNodes.Count > 0)
@@ -1593,6 +1614,11 @@ namespace OpenKNXproducer
             if (lDefineNodes != null && lDefineNodes.Count > 0)
             {
                 lIsApplicationInclude = true;
+                // we first process config for op:ETS
+                XmlNodeList lEtsNodes = mDocument.SelectNodes("//oknxp:ETS", nsmgr);
+                if (lEtsNodes != null && lEtsNodes.Count == 1)
+                    ProcessConfig(lEtsNodes[0]);
+
                 foreach (XmlNode lDefineNode in lDefineNodes)
                 {
                     // allow config in defines (Cornelius' idea)
