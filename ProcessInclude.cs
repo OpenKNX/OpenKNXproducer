@@ -863,6 +863,7 @@ namespace OpenKNXproducer
                         {
                             mBaggageHelpFileName = Path.Combine(lPath, lFileName);
                             mBaggageHelpId = lHashId;
+                            ParseHelpFiles(lFiles);
                         }
                         else if (iZipPattern == "%FILE-ICONS")
                         {
@@ -904,6 +905,32 @@ namespace OpenKNXproducer
                 foreach (XmlNode lDelete in lDeletes)
                 {
                     lDelete.ParentNode.RemoveChild(lDelete);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Check if any of provided help files contains foreign links, this is forbidden in ETS
+        /// </summary>
+        /// <param name="lFiles">List of files to check</param>
+        private static void ParseHelpFiles(IEnumerable<string> lFiles)
+        {
+            if (lFiles != null)
+            {
+                Regex lLinkPattern = new(@"!?\[.*\]\(.*\)");
+                foreach (var lFileName in lFiles)
+                {
+                    using var lFile = File.OpenText(lFileName);
+                    string lContent = lFile.ReadToEnd();
+                    Match lMatch = lLinkPattern.Match(lContent);
+                    if (lMatch.Success)
+                    {
+                        string lName = Path.GetFileNameWithoutExtension(lFileName);
+                        if (lMatch.Value.StartsWith("!"))
+                            Program.Message(true, "Baggage file {0} contains a file link '{1}', this ist not allowed in ETS!", lName, lMatch.Value);
+                        else
+                            Program.Message(false, "Baggage file {0} contains a link '{1}', this will not work in ETS!", lName, lMatch.Value);
+                    }
                 }
             }
         }
