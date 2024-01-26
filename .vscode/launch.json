@@ -134,8 +134,6 @@
                 "--Debug",
                 "--HeaderFileName",
                 "../OAM-SensorModule/include/knxprod.h",
-                "--ConfigFileName",
-                "../OAM-SensorModule/src/Sensormodul.conf.xml",
                 "../OAM-SensorModule/src/Sensormodul"
             ],
             "cwd": "${workspaceFolder}",

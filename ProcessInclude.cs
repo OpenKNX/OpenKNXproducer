@@ -862,6 +862,7 @@ namespace OpenKNXproducer
                         {
                             mBaggageHelpFileName = Path.Combine(lPath, lFileName);
                             mBaggageHelpId = lHashId;
+                            ParseHelpFiles(lFiles);
                         }
                         else if (iZipPattern == "%FILE-ICONS")
                         {
@@ -903,6 +904,32 @@ namespace OpenKNXproducer
                 foreach (XmlNode lDelete in lDeletes)
                 {
                     lDelete.ParentNode.RemoveChild(lDelete);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Check if any of provided help files contains foreign links, this is forbidden in ETS
+        /// </summary>
+        /// <param name="lFiles">List of files to check</param>
+        private static void ParseHelpFiles(IEnumerable<string> lFiles)
+        {
+            if (lFiles != null)
+            {
+                Regex lLinkPattern = new(@"!?\[.*\]\(.*\)");
+                foreach (var lFileName in lFiles)
+                {
+                    using var lFile = File.OpenText(lFileName);
+                    string lContent = lFile.ReadToEnd();
+                    Match lMatch = lLinkPattern.Match(lContent);
+                    if (lMatch.Success)
+                    {
+                        string lName = Path.GetFileNameWithoutExtension(lFileName);
+                        if (lMatch.Value.StartsWith("!"))
+                            Program.Message(true, "Baggage file {0} contains a file link '{1}', this ist not allowed in ETS!", lName, lMatch.Value);
+                        else
+                            Program.Message(false, "Baggage file {0} contains a link '{1}', this will not work in ETS!", lName, lMatch.Value);
+                    }
                 }
             }
         }
@@ -1104,7 +1131,9 @@ namespace OpenKNXproducer
                         cOut.AppendLine();
                         cOut.AppendFormat("#define {0}KoCalcNumber(index) (index + {0}KoBlockOffset + _channelIndex * {0}KoBlockSize)", iHeaderPrefixName);
                         cOut.AppendLine();
-                        cOut.AppendFormat("#define {0}KoCalcIndex(number) ((number >= {0}KoCalcNumber(0) && number < {0}KoCalcNumber({0}KoBlockSize)) ? (number - {0}KoOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
+                        cOut.AppendFormat("#define {0}KoCalcIndex(number) ((number >= {0}KoCalcNumber(0) && number < {0}KoCalcNumber({0}KoBlockSize)) ? (number - {0}KoBlockOffset) % {0}KoBlockSize : -1)", iHeaderPrefixName);
+                        cOut.AppendLine();
+                        cOut.AppendFormat("#define {0}KoCalcChannel(number) ((number >= {0}KoBlockOffset && number < {0}KoBlockOffset + {0}ChannelCount * {0}KoBlockSize) ? (number - {0}KoBlockOffset) / {0}KoBlockSize : -1)", iHeaderPrefixName);
                         cOut.AppendLine();
                         cOut.AppendLine();
                     }
@@ -1123,10 +1152,10 @@ namespace OpenKNXproducer
             {
                 string lComment = "// " + lNode.Attributes.GetNamedItem("Text").Value;
                 string lNumber = ReplaceKoTemplate(iDefine, lNode.NodeAttr("Number"), 1, null, true);
-                cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, ReplaceChannelName(lNode.NodeAttr("Name")), lNumber);
+                string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
+                cOut.AppendFormat("#define {0}Ko{1} {2}", iHeaderPrefixName, lName, lNumber);
                 cOut.AppendLine();
                 lOut.AppendLine(RemoveControlChars(lComment));
-                string lName = ReplaceChannelName(lNode.NodeAttr("Name"));
                 if (iDefine.IsTemplate)
                     lOut.AppendFormat("#define Ko{0}{3,-35} (knx.getGroupObject({0}KoCalcNumber({0}Ko{1})))", iHeaderPrefixName, lName, lNumber, lName);
                 else
@@ -1432,7 +1461,7 @@ namespace OpenKNXproducer
                     {
                         lResult = (iDefine.VerifyVersion == lVersionInt);
                         if (!lResult)
-                            Program.Message(true, "You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt);
+                            Program.Message(true, "You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the {0} Module to ModuleVersion {1}.{2}, see https://github.com/OpenKNX/OpenKNX/wiki/Versionierung-von-Modulen-(OFM)", iDefine.prefix, lVersionInt / 16, lVersionInt % 16);
                     }
                     else
                     {
@@ -1503,6 +1532,19 @@ namespace OpenKNXproducer
             return iXmlString;
         }
 
+        public static void LoadConfig(string iConfigFileName, string iCurrentDir)
+        {
+            XmlDocument lConfig = new();
+            string lConfigFileName = Path.Combine(iCurrentDir, iConfigFileName);
+            lConfig.Load(lConfigFileName);
+            XmlNamespaceManager nsmgr = new(lConfig.NameTable);
+            nsmgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
+            // process config
+            XmlNodeList lConfigNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
+            if (lConfigNodes != null && lConfigNodes.Count > 0)
+                ParseConfig(lConfigNodes, iCurrentDir);
+        }
+
         public static bool AddConfig(string iName, string iValue)
         {
             bool lResult = false;
@@ -1516,16 +1558,24 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        public static void ParseConfig(XmlNodeList iConfigNodes)
+        public static void ParseConfig(XmlNodeList iConfigNodes, string iCurrentDir)
         {
             // config consists of a list of name-value pairs to be replaced in document
             foreach (XmlNode lNode in iConfigNodes)
             {
                 if (lNode.NodeType == XmlNodeType.Comment) continue;
-                string lName = lNode.NodeAttr("name");
-                string lValue = lNode.NodeAttr("value");
-                lNode.ParentNode.RemoveChild(lNode);
-                AddConfig(lName, lValue);
+                string lHref = lNode.NodeAttr("href");
+                if (lHref == "")
+                {
+                    string lName = lNode.NodeAttr("name");
+                    string lValue = lNode.NodeAttr("value");
+                    lNode.ParentNode.RemoveChild(lNode);
+                    AddConfig(lName, lValue);
+                }
+                else
+                {
+                    LoadConfig(lHref, iCurrentDir);
+                }
             }
         }
 
@@ -1579,7 +1629,7 @@ namespace OpenKNXproducer
             // process config
             XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
             if (lConfigNodes != null && lConfigNodes.Count > 0)
-                ParseConfig(lConfigNodes);
+                ParseConfig(lConfigNodes, iCurrentDir);
 
             XmlNodeList lNoWarnNodes = mDocument.SelectNodes("//oknxp:nowarn", nsmgr);
             if (lNoWarnNodes != null && lNoWarnNodes.Count > 0)
@@ -1590,6 +1640,11 @@ namespace OpenKNXproducer
             if (lDefineNodes != null && lDefineNodes.Count > 0)
             {
                 lIsApplicationInclude = true;
+                // we first process config for op:ETS
+                XmlNodeList lEtsNodes = mDocument.SelectNodes("//oknxp:ETS", nsmgr);
+                if (lEtsNodes != null && lEtsNodes.Count == 1)
+                    ProcessConfig(lEtsNodes[0]);
+
                 foreach (XmlNode lDefineNode in lDefineNodes)
                 {
                     // allow config in defines (Cornelius' idea)
