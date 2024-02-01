@@ -209,7 +209,7 @@ OpenKNX_ShowLogo "Build OpenKNXproducer Release on $(CheckOS)"
 CheckOS | Out-Null
 
 if (-not $Verbose) {
-  Write-Host "$infoChar Verbose mode is disabled. Use -Verbose to enable it! $infoChar" -ForegroundColor Blue
+  Write-Host "$infoChar Verbose mode is disabled. Use -Verbose to enable it! $infoChar" -ForegroundColor Cyan
 }
 
 # check for working dir and create if not exists

@@ -642,16 +642,16 @@ namespace OpenKNXproducer
             lCheck.Finish();
 
             lCheck.Start("- Not replaced config entries...");
-            lNodes = lXml.SelectNodes("//@*");
+            lNodes = lXml.SelectNodes("//@*[contains(.,'%')]");
             Regex lConfigName = new(@"%[A-Za-z0-9\-_]*%");
             foreach (XmlAttribute lAttr in lNodes)
             {
-                if (lAttr.Value.Contains('%'))
-                {
-                    Match lMatch = lConfigName.Match(lAttr.Value);
+                // if (lAttr.Value.Contains('%'))
+                // {
+                Match lMatch = lConfigName.Match(lAttr.Value);
                     if (lMatch.Success)
                         lCheck.WriteWarn(2, "The value {0} of attribute {1} in node {2} might be an unreplaced config entry", lAttr.Value, lAttr.Name, lAttr.OwnerElement.Name);
-                }
+                // }
             }
             lCheck.Finish();
 
@@ -696,8 +696,18 @@ namespace OpenKNXproducer
             return !lCheck.IsFail;
         }
 
+        static Dictionary<string, XmlNode> sParameterTypes = null;
+
         private static void CheckParameterValueIntegrity(XmlNode iTargetNode, CheckHelper iCheck, XmlNode iParameterNode, string iValue, string iMessage)
         {
+            if (sParameterTypes == null)
+            {
+                // init global parameter types cache
+                XmlNodeList lParameterTypeNodes = iTargetNode.SelectNodes("//ParameterType[@Id]");
+                sParameterTypes = new();
+                foreach (XmlNode lNode in lParameterTypeNodes)
+                    sParameterTypes.Add(lNode.NodeAttr("Id"), lNode);
+            }
             string lParameterType = iParameterNode.NodeAttr("ParameterType");
             if (lParameterType == "")
             {
@@ -705,14 +715,11 @@ namespace OpenKNXproducer
             }
             if (iValue != null && lParameterType != "")
             {
-                // find parameter type
-                XmlNode lParameterTypeNode = iTargetNode.SelectSingleNode(string.Format("//ParameterType[@Id='{0}']", lParameterType));
-                if (lParameterTypeNode != null)
+                if (sParameterTypes.ContainsKey(lParameterType))
                 {
                     // get first child ignoring comments
-                    XmlNode lChild = lParameterTypeNode.ChildNodes[0];
+                    XmlNode lChild = sParameterTypes[lParameterType].ChildNodes[0];
                     while (lChild != null && lChild.NodeType != XmlNodeType.Element) lChild = lChild.NextSibling;
-
 
                     int sizeInBit;
                     long maxSize = 0;

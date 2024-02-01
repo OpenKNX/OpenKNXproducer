@@ -37,8 +37,8 @@ function OpenKNX_ShowLogo($AddCustomText = $null, $Line=0 ) {
   else { Write-Host "$($unicodeString)"  -ForegroundColor Green } # ┬────┴
   Write-Host "$( [char]::ConvertFromUtf32(0x25A0) )" -NoNewline -ForegroundColor Green # ■
   Write-Host " KNX   " -NoNewline # KNX
-  if(($Line -band 4) -eq 4 ) { Write-Host "https://www.OpenKNX.de" -ForegroundColor Blue } else { Write-Host "" }
-  if(($Line -band 2) -eq 2 -or ($Line -band 3) -eq 3) { Write-Host ($( [char]::ConvertFromUtf32(0x2500)*($Host.UI.RawUI.WindowSize.Width/3))) -ForegroundColor Green }
+  if (($Line -band 4) -eq 4 ) { Write-Host "https://www.OpenKNX.de" -ForegroundColor Cyan } else { Write-Host "" }
+  if (($Line -band 2) -eq 2 -or ($Line -band 3) -eq 3) { Write-Host ($( [char]::ConvertFromUtf32(0x2500) * ($Host.UI.RawUI.WindowSize.Width / 3))) -ForegroundColor Green }
   Write-Host ""
 }
 
@@ -58,49 +58,50 @@ function CheckOS {
   $script:IsMacOSEnv = (Get-Variable -Name "IsMacOS" -ErrorAction Ignore) -and $IsMacOS
   $script:IsWinEnv = !$IsLinuxEnv -and !$IsMacOSEnv
 
-  $CurrentOS = switch($true) {
+  $CurrentOS = switch ($true) {
     $IsLinuxEnv { "Linux" }
     $IsMacOSEnv { "MacOS" }
     $IsWinEnv { "Windows" }
     default { "Unknown" }
   }
-  if($IsWinEnv) { 
+  if ($IsWinEnv) { 
     $CurrentOS = $CurrentOS + " " + $(if ([System.Environment]::Is64BitOperatingSystem) { 'x64' } else { 'x86' })
   }
 
   $PSVersion = "$($PSVersionTable.PSVersion.Major).$($PSVersionTable.PSVersion.Minor).$($PSVersionTable.PSVersion.Patch)"
-  if($Verbose) { Write-Host -ForegroundColor Green "- We are on '$CurrentOS' Build Environment with PowerShell $PSVersion"  ([Char]0x221A) }
+  if ($Verbose) { Write-Host -ForegroundColor Green "- We are on '$CurrentOS' Build Environment with PowerShell $PSVersion"  ([Char]0x221A) }
   return $CurrentOS
 }
 
 function Invoke-ExecuteCommands($appSettings) {
-  if($Verbose) { Write-Host "Invoke-ExecuteCommands" -ForegroundColor Yellow }
-  if(![string]::IsNullOrEmpty($appSettings)) {
-    if($Verbose) { Write-Host "appSettings: $appSettings" -ForegroundColor Yellow }
+  if ($Verbose) { Write-Host "Invoke-ExecuteCommands" -ForegroundColor Yellow }
+  if (![string]::IsNullOrEmpty($appSettings)) {
+    if ($Verbose) { Write-Host "appSettings: $appSettings" -ForegroundColor Yellow }
     # process here the executeCommand
     (1..10) | ForEach-Object {
-        $executeCommand = $appSettings."ExecuteCommand$_"
-        if ($executeCommand -and !$Uninstall) {
-            Write-Host "- Executing custom command $($_): $executeCommand" -ForegroundColor Gree
-            Invoke-Expression $executeCommand
-        }
+      $executeCommand = $appSettings."ExecuteCommand$_"
+      if ($executeCommand -and !$Uninstall) {
+        Write-Host "- Executing custom command $($_): $executeCommand" -ForegroundColor Gree
+        Invoke-Expression $executeCommand
+      }
     }
   }
 }
 
 function Copy-ApplicationFiles {
   param (
-      [string]$jsonFilePath,
-      [string]$currentOS = (CheckOS)
+    [string]$jsonFilePath,
+    [string]$currentOS = (CheckOS)
   )
-  if($Verbose) { Write-Host "Copy-ApplicationFiles" -ForegroundColor Yellow }
+  if ($Verbose) { Write-Host "Copy-ApplicationFiles" -ForegroundColor Yellow }
   # Read the JSON file
   #check if the file exists
-  if(-not (Test-Path $jsonFilePath)) {
+  if (-not (Test-Path $jsonFilePath)) {
     Write-Host "ERROR: The specified JSON file '$jsonFilePath' does not exist." -ForegroundColor Red ($([Char]0x2717))
     exit 1
-  } else {
-    if($Verbose){ Write-Host "The specified JSON file '$jsonFilePath' exists." -ForegroundColor Yellow ($([Char]0x221A)) }
+  }
+  else {
+    if ($Verbose) { Write-Host "The specified JSON file '$jsonFilePath' exists." -ForegroundColor Yellow ($([Char]0x221A)) }
     $jsonContent = Get-Content -Raw -Path $jsonFilePath | ConvertFrom-Json
   }
   
@@ -110,18 +111,18 @@ function Copy-ApplicationFiles {
     $appName = $application.Name
 
     # If the currentos is one of "Windows x86", "Windows x64 then split the currentos to WIndows and x86 or x64 part, so i can use it for the common settings
-    if($currentOS -in @("Windows x86", "Windows x64")) {
+    if ($currentOS -in @("Windows x86", "Windows x64")) {
       $currentOS_x86x64 = $currentOS.Split(" ")[1]
       $currentOS = $currentOS.Split(" ")[0]
-      if($Verbose) { Write-Host "currentOS: $($currentOS) - $($currentOS_x86x64) " -ForegroundColor Yellow }
+      if ($Verbose) { Write-Host "currentOS: $($currentOS) - $($currentOS_x86x64) " -ForegroundColor Yellow }
     }
 
     # Read a version.txt file if exist, where we could find the version number of the application
-    $version = if(Test-Path $versionFile) { $(Get-Content $versionFile) | Select-String -Pattern $appName | Select-Object -ExpandProperty Line } else { $null }
+    $version = if (Test-Path $versionFile) { $(Get-Content $versionFile) | Select-String -Pattern $appName | Select-Object -ExpandProperty Line } else { $null }
     # Write the application name and the current OS
     # write-host with 20 time of this: $( [char]::ConvertFromUtf32(0x2500) ) Generate it in on line. 
 
-    Write-Host "$(('Removing', 'Installing')[!$Uninstall]): $(if ($version) { "$($version)" } else { $($appName) }) for $($currentOS)" -ForegroundColor Blue
+    Write-Host "$(('Removing', 'Installing')[!$Uninstall]): $(if ($version) { "$($version)" } else { $($appName) }) for $($currentOS)" -ForegroundColor Cyan
     #Write-Host ($( [char]::ConvertFromUtf32(0x2500)*(($Host.UI.RawUI.WindowSize.Width)/3))) -ForegroundColor Green
     
     # Get the application settings based on the detected OS

@@ -18,8 +18,8 @@
 # Set values for the installation or uninstallation process
 $Verbose    = $false  # Show verbose messages, if any errors occur during the installation. So we can see what went wrong
 $Uninstall  = $false   # Uninstall the application
-$WaitOnEnd  = $false   # Wait for the user to press a key before exiting, so they can read the messages
-$AskUser    = $true  # Ask the user if they want to install / remove the application
+$WaitOnEnd  = $true   # Wait for the user to press a key before exiting, so they can read the messages
+$AskUser    = $false  # Ask the user if they want to install / remove the application
 
 # Check the operating system
 $OS = CheckOS
@@ -36,9 +36,9 @@ $jsonFilePath = "tools/Install-OpenKNXproducer.json"
 
 OpenKNX_ShowLogo -AddCustomText $messageInstall -Line 4
   $messageDone = $messageComplete  
-  if($AskUser) { Write-Host -NoNewline $messageInstallQuestion -ForegroundColor Blue; $answer = Read-Host } else { $answer = "y" }
+  if($AskUser) { Write-Host -NoNewline $messageInstallQuestion -ForegroundColor Cyan; $answer = Read-Host } else { $answer = "y" }
   if($answer -eq "y") { Copy-ApplicationFiles -jsonFilePath $jsonFilePath } else { $messageDone = $messageAbort }
 OpenKNX_ShowLogo -AddCustomText $messageDone -Line 0
 
 # Show the user press any key to continue, so they can read the messages
-if($WaitOnEnd) { Write-Host "Press any key to continue..." -ForegroundColor Blue; $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
+if ($WaitOnEnd) { Write-Host "Press any key to continue..." -ForegroundColor Cyan; $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") }
