@@ -43,26 +43,38 @@
       "Windows": {
         "x86": {
           "FilesAndFolders": {
+            "Bossa_legacy_console_exe": {
+              "SourcePath": "tools\\bossac\\Windows\\legacy\\bossac.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossac.exe"
+            },
             "Bossa_console_exe": {
               "SourcePath": "tools\\bossac\\Windows\\x86\\bossac.exe",
-              "DestinationPath": "$env:USERPROFILE\\bin\\bossac.exe"
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossa_new\\bossac.exe"
             },
             "Bossa_Application_Folder": {
               "SourcePath": "tools\\bossac\\Windows\\x86",
-              "DestinationPath": "$env:USERPROFILE\\bin\\bossa",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossa_new\\bossa",
               "CopyEntireFolder": true
+            },
+            "Bossa_license": {
+              "SourcePath": "tools\\bossac\\LICENSE.txt",
+              "DestinationPath": "$env:USERPROFILE\\bin\\LICENSE_Bossa.txt"
             }
           }
         },
         "x64": {
           "FilesAndFolders": {
+            "Bossa_legacy_console_exe": {
+              "SourcePath": "tools\\bossac\\Windows\\legacy\\bossac.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossac.exe"
+            },
             "Bossa_console_exe": {
               "SourcePath": "tools\\bossac\\Windows\\x64\\bossac.exe",
-              "DestinationPath": "$env:USERPROFILE\\bin\\bossac.exe"
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossa_new\\bossac.exe"
             },
             "Bossa_Application_Folder": {
               "SourcePath": "tools\\bossac\\Windows\\x64",
-              "DestinationPath": "$env:USERPROFILE\\bin\\bossa",
+              "DestinationPath": "$env:USERPROFILE\\bin\\bossa_new\\bossa",
               "CopyEntireFolder": true
             },
             "Bossa_license": {
