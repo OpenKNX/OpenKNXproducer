@@ -132,20 +132,44 @@ namespace OpenKNXproducer
             return lResult;
         }
 
+        private static string CommentDebug;
+        private static int mMaxNumChannels;
+        public static int MaxNumChannels
+        {
+            get
+            {
+                return mMaxNumChannels;
+            }
+            set
+            {
+                if (value > mMaxNumChannels)
+                    mMaxNumChannels = value;
+            }
+        }
         private static void CreateComment(XmlDocument iTargetNode, XmlNode iNode, string iId, string iSuffix = "")
         {
+            if (CommentDebug == "no") return;
+            if (CommentDebug == "auto" && MaxNumChannels > 40) return;
+
             int lLength = iId.LastIndexOf("_R");
             if (lLength >= 0)
             {
-                string lNodeId = iId.Substring(0, lLength);
+                string lNodeId = iId[..lLength];
                 string lTextId = iId;
                 string lNodeName = "Id-mismatch! Name not found!";
                 string lText = "Id-mismatch! Text not found!";
                 if (gIds.ContainsKey(lNodeId)) lNodeName = gIds[lNodeId].NodeAttr("Name");
                 if (gIds.ContainsKey(lTextId) && gIds[lTextId].NodeAttr("Text") == "") lTextId = lNodeId;
-                if (gIds.ContainsKey(lTextId)) lText = gIds[lTextId].NodeAttr("Text");
+                lText = gIds[lTextId].NodeAttr("Text");
                 XmlComment lComment = iTargetNode.CreateComment(string.Format(" {0}{3} {1} '{2}'", iNode.Name, lNodeName, lText, iSuffix));
+                // this is very slow!!! But there is no alternative in the current implementation
                 iNode.ParentNode.InsertBefore(lComment, iNode);
+                // very fast, but wrong output
+                // iNode.ParentNode.InsertAfter(lComment, iNode);
+                // alternative is even slower
+                // XmlNode lParentNode = iNode.ParentNode; //necessary, in next line parent gets lost
+                // lParentNode.ReplaceChild(lComment, iNode);
+                // lParentNode.InsertAfter(iNode, lComment);
             }
         }
 
@@ -286,6 +310,7 @@ namespace OpenKNXproducer
             lCheck.Finish();
 
             lCheck.Start("- TextParameterRefId-Integrity...");
+            // DateTime lStart = DateTime.Now;
             lNodes = lXml.SelectNodes("//*[@TextParameterRefId]");
             foreach (XmlNode lNode in lNodes)
             {
@@ -295,6 +320,7 @@ namespace OpenKNXproducer
                 else
                     CreateComment(lXml, lNode, lTextParamRefId);
             }
+            // Console.WriteLine($"Time spend: {DateTime.Now - lStart}");
             lCheck.Finish();
 
             lCheck.Start("- SourceParamRefRef-Integrity...");
@@ -1263,6 +1289,8 @@ namespace OpenKNXproducer
             public string Prefix { get; set; } = "";
             [Option('d', "Debug", Required = false, HelpText = "Additional output of <xmlfile>.debug.xml, this file is the input file for knxprod converter")]
             public bool Debug { get; set; } = false;
+            [Option('C', "CommentDebug", Required = false, Default = "auto", MetaValue = "auto,no,yes", HelpText = "Add comments to additional output of <xmlfile>.debug.xml")]
+            public string CommentDebug { get; set; } = "auto";
             [Option('R', "NoRenumber", Required = false, HelpText = "Don't renumber ParameterSeparator- and ParameterBlock-Id's")]
             public bool NoRenumber { get; set; } = false;
             [Option('A', "AbsoluteSingleParameters", Required = false, HelpText = "Compatibility with 1.5.x: Parameters with single occurrence have an absolute address in xml")]
@@ -1276,6 +1304,8 @@ namespace OpenKNXproducer
         {
             [Option('d', "Debug", Required = false, HelpText = "Additional output of <xmlfile>.debug.xml, this file is the input file for knxprod converter")]
             public bool Debug { get; set; } = false;
+            [Option('C', "CommentDebug", Required = false, Default = "auto", MetaValue = "auto,no,yes", HelpText = "Add comments to additional output of <xmlfile>.debug.xml")]
+            public string CommentDebug { get; set; } = "auto";
         }
 
         static int Main(string[] args)
@@ -1371,6 +1401,7 @@ namespace OpenKNXproducer
             // additional configuration
             if (opts.ConfigFileName != "")
                 ProcessInclude.LoadConfig(opts.ConfigFileName, WorkingDir);
+            CommentDebug = opts.CommentDebug;
             string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
             if (opts.Debug) TemplateApplication.IsDebugMode = true;
@@ -1426,6 +1457,7 @@ namespace OpenKNXproducer
         static private int VerbCheck(CheckOptions opts)
         {
             WriteVersion();
+            CommentDebug = opts.CommentDebug;
             string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string lFileName = Path.ChangeExtension(opts.XmlFileName, "xml");
             Console.WriteLine("Reading and resolving xml file {0}", lFileName);

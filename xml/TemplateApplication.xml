@@ -96,7 +96,7 @@
           <Hardware2Programs>
             <Hardware2Program Id="%Hardware2ProgramId%" MediumTypes="%MediumTypes%">
               <ApplicationProgramRef RefId="%AID%" />
-              <RegistrationInfo RegistrationStatus="Registered" RegistrationNumber="0001/11" />
+              <RegistrationInfo RegistrationStatus="Registered" RegistrationNumber="0001/%HardwareVersionEncoded%1" />
             </Hardware2Program>
           </Hardware2Programs>
         </Hardware>

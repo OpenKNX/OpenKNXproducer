@@ -55,6 +55,7 @@ namespace OpenKNXproducer
             get { return mChannelCount; }
             set
             {
+                Program.MaxNumChannels = mChannelCount;
                 mChannelCount = value;
                 OriginalChannelCount = value;
             }
@@ -1516,9 +1517,13 @@ namespace OpenKNXproducer
             XmlNamespaceManager nsmgr = new(lConfig.NameTable);
             nsmgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
             // process config
-            XmlNodeList lConfigNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
-            if (lConfigNodes != null && lConfigNodes.Count > 0)
-                ParseConfig(lConfigNodes, iCurrentDir);
+            XmlNodeList lNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
+            if (lNodes != null && lNodes.Count > 0)
+                ParseConfig(lNodes, iCurrentDir);
+            // we also allow nowarn in config files
+            lNodes = lConfig.SelectNodes("//oknxp:nowarn", nsmgr);
+            if (lNodes != null && lNodes.Count > 0)
+                ParseNoWarn(lNodes);
         }
 
         public static bool AddConfig(string iName, string iValue)
