@@ -216,6 +216,23 @@ namespace OpenKNXproducer
             }
             lCheck.Finish();
 
+            lCheck.Start("- ParameterType-Id-Syntax...");
+            foreach (XmlNode lNode in lNodes)
+            {
+                string lId = lNode.Attributes.GetNamedItem("Id").Value;
+                int lPos = lId.IndexOf("_PT-");
+                if (lPos > 0)
+                {
+                    string lPartId = lId[(lPos + 4)..];
+                    lPos = lPartId.IndexOf("_EN-");
+                    if (lPos < 0)
+                        foreach (char lChar in "-_")
+                            if (lPartId.Contains(lChar))
+                                lCheck.WriteFail("{0} contains not allowed character {1} in {2} {3}", lId, lChar, lNode.Name, lNode.NodeAttr("Name"));
+                }
+            }
+            lCheck.Finish();
+
             lCheck.Start("- Id-R_Suffix-Uniqueness...");
             Dictionary<string, bool> lParameterSuffixes = new();
             Dictionary<string, bool> lComObjectSuffixes = new();
