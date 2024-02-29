@@ -34,7 +34,9 @@ namespace OpenKNXproducer
             {"http://knx.org/xml/project/13", new EtsVersion("5.1.84.17602", "ETS 5.5")},
             {"http://knx.org/xml/project/14", new EtsVersion("5.6.241.33672", "ETS 5.6")},
             {"http://knx.org/xml/project/20", new EtsVersion("5.7", "ETS 5.7")},
-            {"http://knx.org/xml/project/21", new EtsVersion("6.0", "ETS 6.0")}
+            {"http://knx.org/xml/project/21", new EtsVersion("6.0", "ETS 6.0")},
+            {"http://knx.org/xml/project/22", new EtsVersion("6.1", "ETS 6.1")},
+            {"http://knx.org/xml/project/23", new EtsVersion("6.2", "ETS 6.2")}
         };
 
         //installation path of a valid ETS instance (only ETS5 or ETS6 supported)
