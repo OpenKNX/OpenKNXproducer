@@ -22,7 +22,12 @@ namespace OpenKNXproducer.Signing
             object registrationKey = Enum.Parse(RegistrationKeyEnum, "knxconv");
 
             string asmVersion = asm.GetName().Version.ToString();
-            if(asmVersion.StartsWith("6.")) { //ab ETS6
+            if(asm.GetName().Version.ToString().StartsWith("6.2.")) {
+                objm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.Common.dll"));
+                object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Common.Schema.KnxXmlSchemaVersion"), nsVersion);
+                _type = asm.GetType("Knx.Ets.XmlSigning.Signer.HardwareSigner");
+                _instance = Activator.CreateInstance(_type, hardwareFile, applProgIdMappings, applProgHashes, patchIds, registrationKey, knxSchemaVersion);
+            } else if(asm.GetName().Version.ToString().StartsWith("6.")) {
                 // registrationKey= Knx.Ets.Xml.ObjectModel.RegistrationKey.knxconv (is an enum)
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
                 _type = asm.GetType("Knx.Ets.XmlSigning.Signer.HardwareSigner");
