@@ -162,16 +162,19 @@ namespace OpenKNXproducer
                 string lText = "Id-mismatch! Text not found!";
                 if (gIds.ContainsKey(lNodeId)) lNodeName = gIds[lNodeId].NodeAttr("Name");
                 if (gIds.ContainsKey(lTextId) && gIds[lTextId].NodeAttr("Text") == "") lTextId = lNodeId;
-                lText = gIds[lTextId].NodeAttr("Text");
-                XmlComment lComment = iTargetNode.CreateComment(string.Format(" {0}{3} {1} '{2}'", iNode.Name, lNodeName, lText, iSuffix));
-                // this is very slow!!! But there is no alternative in the current implementation
-                iNode.ParentNode.InsertBefore(lComment, iNode);
-                // very fast, but wrong output
-                // iNode.ParentNode.InsertAfter(lComment, iNode);
-                // alternative is even slower
-                // XmlNode lParentNode = iNode.ParentNode; //necessary, in next line parent gets lost
-                // lParentNode.ReplaceChild(lComment, iNode);
-                // lParentNode.InsertAfter(iNode, lComment);
+                if (gIds.ContainsKey(lTextId))
+                {
+                    lText = gIds[lTextId].NodeAttr("Text");
+                    XmlComment lComment = iTargetNode.CreateComment(string.Format(" {0}{3} {1} '{2}'", iNode.Name, lNodeName, lText, iSuffix));
+                    // this is very slow!!! But there is no alternative in the current implementation
+                    iNode.ParentNode.InsertBefore(lComment, iNode);
+                    // very fast, but wrong output
+                    // iNode.ParentNode.InsertAfter(lComment, iNode);
+                    // alternative is even slower
+                    // XmlNode lParentNode = iNode.ParentNode; //necessary, in next line parent gets lost
+                    // lParentNode.ReplaceChild(lComment, iNode);
+                    // lParentNode.InsertAfter(iNode, lComment);
+                }
             }
         }
 
@@ -1304,7 +1307,7 @@ namespace OpenKNXproducer
         {
             [Option('h', "HeaderFileName", Required = false, HelpText = "Header file name", MetaValue = "FILE")]
             public string HeaderFileName { get; set; } = "";
-            [Option('p', "Prefix", Required = false, HelpText = "Prefix for generated contant names in header file", MetaValue = "STRING")]
+            [Option('p', "Prefix", Required = false, HelpText = "Prefix for generated constant names in header file", MetaValue = "STRING")]
             public string Prefix { get; set; } = "";
             [Option('d', "Debug", Required = false, HelpText = "Additional output of <xmlfile>.debug.xml, this file is the input file for knxprod converter")]
             public bool Debug { get; set; } = false;
@@ -1418,8 +1421,7 @@ namespace OpenKNXproducer
             ProcessInclude.Renumber = !opts.NoRenumber;
             ProcessInclude.AbsoluteSingleParameters = opts.AbsoluteSingleParameters;
             // additional configuration
-            if (opts.ConfigFileName != "")
-                ProcessInclude.LoadConfig(opts.ConfigFileName, WorkingDir);
+            if (opts.ConfigFileName != "") ProcessInclude.LoadConfig(opts.ConfigFileName, WorkingDir);
             CommentDebug = opts.CommentDebug;
             string lBaggageDirName = Path.Combine(WorkingDir, lInclude.BaggagesName);
             if (Directory.Exists(lBaggageDirName)) Directory.Delete(lBaggageDirName, true);
@@ -1430,6 +1432,8 @@ namespace OpenKNXproducer
             lInclude.SetNamespace();
             lInclude.ResetXsd();
             lInclude.SetToolAndVersion();
+            // check here for cmdline parameter supporting module copy (based on an included module)
+            // if (true) lInclude.AddEtsExtensions();
             XmlDocument lXml = lInclude.GetDocument();
             bool lSuccess = ProcessSanityChecks(lInclude, lWithVersions);
             string lTempXmlFileName = Path.GetTempFileName();
@@ -1438,6 +1442,7 @@ namespace OpenKNXproducer
             lTempXmlFileName = Path.ChangeExtension(lTempXmlFileName, "debug.xml");
             if (opts.Debug) Console.WriteLine("Writing debug file to {0}", lTempXmlFileName);
             lXml.Save(lTempXmlFileName);
+            // File.WriteAllText(Path.ChangeExtension(lTempXmlFileName, ".params.js"), ProcessInclude.ParameterInfo);
             // we check against old file content
             bool lIsEqual = false;
             string lHeaderGenerated = lInclude.HeaderGenerated;
