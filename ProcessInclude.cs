@@ -80,7 +80,12 @@ namespace OpenKNXproducer
                         {
                             string lParameterTypeId = lChild.SubId("Id", "_PT-");
                             if (lParameterTypeId != "" && !sParameterTypes.ContainsKey(lParameterTypeId))
-                                sParameterTypes.Add(lParameterTypeId, lChild);
+                            {
+                                // Speed: we don't add the full type node, just the type definition itself
+                                XmlNode lTypeChild = lChild.FirstChild;
+                                while (lTypeChild != null && lTypeChild.NodeType == XmlNodeType.Comment) lTypeChild = lTypeChild.NextSibling;
+                                sParameterTypes.Add(lParameterTypeId, lTypeChild);
+                            }
                         }
                 }
                 mParameterTypesFetched = true;
@@ -1042,7 +1047,8 @@ namespace OpenKNXproducer
                     {
                         string lParameterTypeId = iParameter.NodeAttr("ParameterType");
                         lSizeNode = ParameterType(lParameterTypeId);
-                        if (lSizeNode != null) lSizeInBitAttribute = lSizeNode.SelectSingleNode("*/@SizeInBit");
+                        // if (lSizeNode != null) lSizeInBitAttribute = lSizeNode.SelectSingleNode("*/@SizeInBit");
+                        if (lSizeNode != null) lSizeInBitAttribute = lSizeNode.Attributes.GetNamedItem("SizeInBit");
                     }
                     if (lSizeNode != null)
                     {
@@ -1244,20 +1250,17 @@ namespace OpenKNXproducer
                     // parse parameter type to fill additional information
                     string lParameterTypeId = lNode.NodeAttr("ParameterType");
                     XmlNode lParameterType = ParameterType(lParameterTypeId);
-                    XmlNode lTypeNumber = null;
-                    if (lParameterType != null) lTypeNumber = lParameterType.FirstChild;
-                    while (lTypeNumber != null && lTypeNumber.NodeType == XmlNodeType.Comment) lTypeNumber = lTypeNumber.NextSibling;
                     int lBits = 0;
                     int lBitBaseSize = 0;
                     string lType = "";
                     string lKnxAccessMethod = "";
                     bool lDirectType = false;
-                    if (lTypeNumber != null)
+                    if (lParameterType != null)
                     {
-                        XmlNode lBitsAttribute = lTypeNumber.Attributes.GetNamedItem("SizeInBit");
+                        XmlNode lBitsAttribute = lParameterType.Attributes.GetNamedItem("SizeInBit");
                         if (lBitsAttribute != null) lBits = int.Parse(lBitsAttribute.Value);
-                        XmlNode lTypeAttribute = lTypeNumber.Attributes.GetNamedItem("Type");
-                        if (lTypeNumber.Name == "TypeNumber" || lTypeNumber.Name == "TypeRestriction")
+                        XmlNode lTypeAttribute = lParameterType.Attributes.GetNamedItem("Type");
+                        if (lParameterType.Name == "TypeNumber" || lParameterType.Name == "TypeRestriction")
                         {
                             if (lTypeAttribute != null) lType = lTypeAttribute.Value;
                             if (lBits <= 8)
@@ -1289,13 +1292,13 @@ namespace OpenKNXproducer
                                 lType = "enum";
                             }
                         }
-                        else if (lTypeNumber.Name == "TypeText")
+                        else if (lParameterType.Name == "TypeText")
                         {
                             lType = string.Format("char*, {0} Byte", lBits / 8);
                             lKnxAccessMethod = "knx.paramData({0})";
                             lDirectType = true;
                         }
-                        else if (lTypeNumber.Name == "TypeFloat")
+                        else if (lParameterType.Name == "TypeFloat")
                         {
                             lType = "float";
                             lBits = 32;
@@ -1303,7 +1306,7 @@ namespace OpenKNXproducer
                             lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Single)";
                             lDirectType = true;
                         }
-                        else if (lTypeNumber.Name == "TypeColor")
+                        else if (lParameterType.Name == "TypeColor")
                         {
                             lType = "color, uint, 3 Byte";
                             lBits = 24;
@@ -1311,7 +1314,7 @@ namespace OpenKNXproducer
                             lKnxAccessMethod = "knx.paramInt({0})";
                             lDirectType = true;
                         }
-                        else if (lTypeNumber.Name == "TypeIPAddress")
+                        else if (lParameterType.Name == "TypeIPAddress")
                         {
                             lType = "IP address, 4 Byte";
                             lBits = 32;
@@ -1750,6 +1753,8 @@ namespace OpenKNXproducer
                 bool lIsDynamicPart = true;
                 if (lChildren.Count == 0 || "ParameterRef | ComObjectRef | ModuleDef | Baggage | #text".Contains(lChildren[0].LocalName))
                     lIsDynamicPart = false;
+                if (lChildren.Count == 0 && lIsPart)
+                    Program.Message(true, "usePart {1} without existing xpath {0} found!", lXPath, lIncludeNode.NodeAttr("name"));
                 if (lChildren.Count > 0 && ("ParameterType | Parameter | Union | ComObject | BusInterface | ParameterCalculation | ParameterValidation | SNIPPET".Contains(lChildren[0].LocalName) || lInclude.IsInnerInclude))
                 {
                     lIsDynamicPart = false;
@@ -1964,11 +1969,30 @@ namespace OpenKNXproducer
                 string lAccess = lNode.NodeAttr("Access");
                 if (lAccess != "None" && lAccess != "ReadOnly")
                 {
+                    XmlNode lType = ParameterType(lNode.NodeAttr("ParameterType"));
+                    string lTypeName = "";
+                    if (lType != null) lTypeName = lType.Name;
                     string lDefault = lNode.NodeAttr("Value");
                     string lName = lNode.NodeAttr("Name");
                     lParameterNames.Append($"{lDelimiter}\"{lName}\"");
                     if (lDefault.Contains('%'))
                         lParameterDefaults.Append($"{lDelimiter}null");
+                    else if ("TypeNumber,TypeRestriction".Contains(lTypeName))
+                    {
+                        _ = Int64.TryParse(lDefault, out long lDefaultInt);
+                        lParameterDefaults.Append($"{lDelimiter}{lDefaultInt}");
+                    }
+                    else if (lTypeName == "TypeFloat")
+                    {
+                        _ = double.TryParse(lDefault, NumberStyles.Float, CultureInfo.InvariantCulture, out double lDefaultFloat);
+                        lParameterDefaults.AppendFormat("{0}{1}", lDelimiter, lDefaultFloat.ToString(CultureInfo.InvariantCulture));
+                    }
+                    else if (lTypeName == "TypeColor")
+                    {
+                        if (lDefault.Length == 6) lDefault = "FF" + lDefault;
+                        _ = int.TryParse(lDefault, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int lDefaultHex);
+                        lParameterDefaults.Append($"{lDelimiter}{lDefaultHex}");
+                    }
                     else
                         lParameterDefaults.Append($"{lDelimiter}\"{lDefault}\"");
                     lDelimiter = ",";
