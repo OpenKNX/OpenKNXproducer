@@ -93,14 +93,14 @@ namespace OpenKNXproducer
 
         }
 
-        public static XmlNode ParameterType(string iId)
+        public static XmlNode ParameterType(string iId, bool iError = true)
         {
             string lId = "_PT-";
             if (iId.Contains(lId)) lId = iId;
             lId = lId.Split("_PT-")[1];
             if (sParameterTypes.ContainsKey(lId))
                 return sParameterTypes[lId];
-            else
+            else if (iError)
                 Program.Message(true, "ParameterType {0} was not declared, before it was used. Usually the declaration is missing or the include order of you used modules is wrong!", iId);
             return null;
         }
@@ -178,6 +178,11 @@ namespace OpenKNXproducer
         public XmlNodeList SelectNodes(string iXPath)
         {
             return mDocument.SelectNodes(iXPath, nsmgr);
+        }
+
+        public XmlNode SelectSingleNode(string iXPath)
+        {
+            return mDocument.SelectSingleNode(iXPath, nsmgr);
         }
 
 
@@ -709,7 +714,7 @@ namespace OpenKNXproducer
             if (lOldId == "%AID%") lNewId = "M-00FA_A" + lNewId;
 
             // support ModuleCopy
-            AddEtsExtensions(lApplicationVersion, lApplicationNumber);
+            ExtendedEtsSupport.AddEtsExtensions(this, lApplicationVersion, lApplicationNumber);
 
             int lParameterSeparatorCount = 1;
             int lParameterBlockCount = 1;
@@ -1748,7 +1753,7 @@ namespace OpenKNXproducer
                     ProcessConfig(lNode);
                 // we process parameter names for ets after any static defaults are replaced
                 if (lDefine.IsParameter || lXPath.Contains("Parameters/Parameter") || lXPath.Contains("Parameters/Union") || lXPath.Contains("Parameters//Parameter"))
-                    ExtendedEtsSupport(lInclude, lDefine);
+                    ExtendedEtsSupport.GenerateScriptContent(lInclude, lDefine);
                 lInclude.ModuleType = lDefine.ModuleType;
                 bool lIsDynamicPart = true;
                 if (lChildren.Count == 0 || "ParameterRef | ComObjectRef | ModuleDef | Baggage | #text".Contains(lChildren[0].LocalName))
@@ -1846,29 +1851,7 @@ namespace OpenKNXproducer
             }
         }
 
-        static readonly Dictionary<string, Dictionary<string, string>> sParameterInfo = new();
-
-        public static string ParameterInfo
-        {
-            get
-            {
-                string lResult = "\nvar channel_params = {";
-                foreach (var lEntry in sParameterInfo)
-                {
-                    Dictionary<string, string> lModuleParams = lEntry.Value;
-                    lResult += $"\n\"{lEntry.Key}\": {{";
-                    foreach (var lModuleParam in lModuleParams)
-                    {
-                        lResult += $"\n  {lModuleParam.Value},";
-                    }
-                    lResult = lResult[..^1] + "},";
-                }
-                lResult = lResult[..^1] + "\n};";
-                return lResult;
-            }
-        }
-
-        private XmlNode CreateElement(string iName, params string[] iAttr)
+        public XmlNode CreateElement(string iName, params string[] iAttr)
         {
             XmlNode lNode = mDocument.CreateElement(iName);
             for (int i = 0; i < iAttr.Length; i += 2)
@@ -1878,131 +1861,6 @@ namespace OpenKNXproducer
                 lNode.Attributes.Append(lAttr);
             }
             return lNode;
-        }
-        private bool GenerateModuleSelector(int iApplicationVersion, int iApplicationNumber)
-        {
-            XmlNode lRoot = CreateElement("ParameterType", "Id", "%AID%_PT-ModuleSelector", "Name", "ModuleSelector");
-            XmlNode lTypeRestriction = CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8");
-            lRoot.AppendChild(lTypeRestriction);
-            int lCount = 0;
-            string lVersionInformation = $"\nvar version_information = [0x{iApplicationNumber:X}, 0x{iApplicationVersion:X}];";
-            string lModuleOrder = "\nvar module_order = [";
-            XmlNodeList lChannels = mDocument.SelectNodes("//ApplicationProgram/Dynamic/Channel");
-            IEnumerator lIterator = lChannels.GetEnumerator();
-            lIterator.Reset();
-            foreach (var lEntry in sParameterInfo)
-            {
-                string lText = lEntry.Key;
-                if (lText == "BASE")
-                    lText = "Allgemein";
-                else
-                    for (int lIndex = 0; lIndex < lChannels.Count; lIndex++)
-                    {
-                        if (!lIterator.MoveNext())
-                        {
-                            lIterator.Reset();
-                            lIterator.MoveNext();
-                        }
-                        XmlNode lChannel = (XmlNode)lIterator.Current;
-                        if (lChannel.NodeAttr("Name").Contains(lText))
-                        {
-                            lText = lChannel.NodeAttr("Text");
-                            break;
-                        }
-                    }
-                lTypeRestriction.AppendChild(CreateElement("Enumeration", "Text", lText, "Value", lCount++.ToString(), "Id", "%ENID%"));
-                lModuleOrder += "\"" + lEntry.Key + "\",";
-            }
-            lModuleOrder = lModuleOrder[..^1] + "];\n";
-            XmlNode lNode = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
-            lNode?.InsertAfter(lRoot, null);
-            if (lNode != null)
-            {
-                lNode = mDocument.SelectSingleNode("//ApplicationProgram/Static/Script");
-                if (lNode != null)
-                    lNode.InnerText = lVersionInformation + lModuleOrder + lNode.InnerText;
-            }
-            return lNode != null;
-        }
-
-        public bool AddEtsExtensions(int iApplicationVersion, int iApplicationNumber)
-        {
-            XmlNode lScript = mDocument.SelectSingleNode("//ApplicationProgram/Static/Script");
-            if (lScript == null)
-                return false;
-            lScript.InnerText = ParameterInfo + "\n\n" + lScript.InnerText;
-            // return true;
-            return GenerateModuleSelector(iApplicationVersion, iApplicationNumber);
-        }
-
-        /// <summary>
-        /// Generate an array of field names for ETS extensions like channel copy
-        /// </summary>
-        private static void ExtendedEtsSupport(ProcessInclude iInclude, DefineContent iDefine)
-        {
-            Dictionary<string, string> lDict;
-            XmlNodeList lParameters = iInclude.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
-            string lSuffix = "share";
-            string lDelimiter = "";
-            StringBuilder lParameterNames = new();
-            StringBuilder lParameterDefaults = new();
-
-            if (sParameterInfo.ContainsKey(iDefine.prefix))
-                lDict = sParameterInfo[iDefine.prefix];
-            else
-            {
-                lDict = new();
-                sParameterInfo.Add(iDefine.prefix, lDict);
-                // add version information, if available
-                if (iDefine.NumChannels > 0)
-                    lDict.Add("channels", $"\"channels\": {iDefine.NumChannels}");
-                if (iDefine.VerifyVersion > 0)
-                    lDict.Add("version", $"\"version\": 0x{iDefine.VerifyVersion:X}");
-
-            }
-            if (iDefine.template.EndsWith(iInclude.XmlFileName))
-                lSuffix = "templ";
-            lParameterNames.Append('[');
-            lParameterDefaults.Append('[');
-            foreach (XmlNode lNode in lParameters)
-            {
-                string lAccess = lNode.NodeAttr("Access");
-                if (lAccess != "None" && lAccess != "ReadOnly")
-                {
-                    XmlNode lType = ParameterType(lNode.NodeAttr("ParameterType"));
-                    string lTypeName = "";
-                    if (lType != null) lTypeName = lType.Name;
-                    string lDefault = lNode.NodeAttr("Value");
-                    string lName = lNode.NodeAttr("Name");
-                    lParameterNames.Append($"{lDelimiter}\"{lName}\"");
-                    if (lDefault.Contains('%'))
-                        lParameterDefaults.Append($"{lDelimiter}null");
-                    else if ("TypeNumber,TypeRestriction".Contains(lTypeName))
-                    {
-                        _ = Int64.TryParse(lDefault, out long lDefaultInt);
-                        lParameterDefaults.Append($"{lDelimiter}{lDefaultInt}");
-                    }
-                    else if (lTypeName == "TypeFloat")
-                    {
-                        _ = double.TryParse(lDefault, NumberStyles.Float, CultureInfo.InvariantCulture, out double lDefaultFloat);
-                        lParameterDefaults.AppendFormat("{0}{1}", lDelimiter, lDefaultFloat.ToString(CultureInfo.InvariantCulture));
-                    }
-                    else if (lTypeName == "TypeColor")
-                    {
-                        if (lDefault.Length == 6) lDefault = "FF" + lDefault;
-                        _ = int.TryParse(lDefault, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int lDefaultHex);
-                        lParameterDefaults.Append($"{lDelimiter}{lDefaultHex}");
-                    }
-                    else
-                        lParameterDefaults.Append($"{lDelimiter}\"{lDefault}\"");
-                    lDelimiter = ",";
-                }
-            }
-            lParameterNames.Append(']');
-            lParameterDefaults.Append(']');
-            string lOutput = $"\"{lSuffix}\": {{\n    \"names\": {lParameterNames.ToString()},\n    \"defaults\": {lParameterDefaults.ToString()}\n    }}";
-            lDict.Add(lSuffix, lOutput);
-            // Console.WriteLine("{2}: {0}, {1} Bytes", lOutput, lOutput.Length, iDefine.prefix);
         }
 
         private void ExportHeader(DefineContent iDefine, string iHeaderPrefixName, ProcessInclude iInclude, XmlNodeList iChildren = null)
