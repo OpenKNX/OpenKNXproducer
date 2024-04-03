@@ -13,8 +13,8 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("OpenKNX")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("3.0.12.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("3.0.12")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("3.0.15.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("3.0.15")]
 [assembly: System.Reflection.AssemblyProductAttribute("OpenKNXproducer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OpenKNXproducer")]
-[assembly: System.Reflection.AssemblyVersionAttribute("3.0.12.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("3.0.15.0")]

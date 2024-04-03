@@ -111,7 +111,7 @@ static class ExtendedEtsSupport
                 lDict.Add("version", $"\"version\": 0x{iDefine.VerifyVersion:X}");
 
         }
-        if (iDefine.template.EndsWith(iInclude.XmlFileName))
+        if (iDefine.template.EndsWith(Path.GetFileName(iInclude.XmlFileName)))
             lSuffix = "templ";
         lParameterNames.Append('[');
         lParameterDefaults.Append('[');
@@ -159,6 +159,7 @@ static class ExtendedEtsSupport
                     }
                     else if (lTypeName == "TypeColor")
                     {
+                        if (lDefault.Length == 7 && lDefault.StartsWith('#')) lDefault = lDefault[1..];
                         if (lDefault.Length == 6) lDefault = "FF" + lDefault;
                         _ = int.TryParse(lDefault, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int lDefaultHex);
                         lDefault = lDefaultHex.ToString();

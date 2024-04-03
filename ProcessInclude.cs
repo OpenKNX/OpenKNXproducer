@@ -910,8 +910,8 @@ namespace OpenKNXproducer
                         if (!mBaggageId.ContainsKey(lIdNode.Value))
                             mBaggageId.Add(lIdNode.Value, lBaggageId);
                         lIdNode.Value = lBaggageId;
-                        DateTime lFileCreation = File.GetCreationTimeUtc(Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName));
-                        string lIsoDateTime = lFileCreation.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+                        DateTime lFileLastWrite = File.GetLastWriteTimeUtc(Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName));
+                        string lIsoDateTime = lFileLastWrite.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
                         XmlNode lTimeInfo = lBaggage.SelectSingleNode("FileInfo/@TimeInfo", nsmgr);
                         if (lTimeInfo != null && lTimeInfo.Value == "%DATETIME%")
                             lTimeInfo.Value = lIsoDateTime;
@@ -1408,7 +1408,6 @@ namespace OpenKNXproducer
 
             return lMaxSize;
         }
-
 
         string mCurrentDir = "";
         public string BaggagesBaseDir = "";

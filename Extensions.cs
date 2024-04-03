@@ -51,7 +51,10 @@ namespace OpenKNXproducer
 
             foreach (string newPath in Directory.GetFiles(directory.FullName, "*.*", SearchOption.AllDirectories))
             {
-                File.Copy(newPath, newPath.Replace(directory.FullName, destinationDir), true);
+                string lTargetPath = newPath.Replace(directory.FullName, destinationDir);
+                if (lTargetPath.EndsWith(".md"))
+                    lTargetPath = lTargetPath[..^3] + ".txt";
+                File.Copy(newPath, lTargetPath, true);
             }
         }
     }

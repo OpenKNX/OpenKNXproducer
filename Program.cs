@@ -10,6 +10,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
 using OpenKNXproducer.Signing;
+using System.Globalization;
 
 namespace OpenKNXproducer
 {
@@ -409,12 +410,15 @@ namespace OpenKNXproducer
                 // we add the node to parameter cache
                 string lNodeId = lNode.NodeAttr("Id");
                 string lMessage = string.Format("Parameter {0}", lNode.NodeAttr("Name"));
-                string lParameterValue = lNode.NodeAttr("Value", null);
-                if (lParameterValue == null)
+                XmlNode lParameterAttr = lNode.Attributes.GetNamedItem("Value");
+                if (lParameterAttr == null)
                 {
                     lCheck.WriteFail("{0} has no Value attribute", lMessage);
                 }
-                CheckParameterValueIntegrity(lXml, lCheck, lNode, lParameterValue, lMessage);
+                else
+                {
+                    lParameterAttr.Value = CheckParameterValueIntegrity(lXml, lCheck, lNode, lParameterAttr.Value, lMessage);
+                }
             }
             lCheck.Finish();
 
@@ -423,7 +427,6 @@ namespace OpenKNXproducer
             lNodes = lXml.SelectNodes("//ParameterRef[@Value]");
             foreach (XmlNode lNode in lNodes)
             {
-                string lParameterRefValue = lNode.NodeAttr("Value");
                 // find parameter
                 XmlNode lParameterNode = GetNodeById(lXml, lNode.NodeAttr("RefId"));
                 if (lParameterNode == null)
@@ -432,7 +435,8 @@ namespace OpenKNXproducer
                     break;
                 }
                 string lMessage = string.Format("ParameterRef {0}, referencing Parameter {1},", lNode.NodeAttr("Id"), lParameterNode.NodeAttr("Name"));
-                CheckParameterValueIntegrity(lXml, lCheck, lParameterNode, lParameterRefValue, lMessage);
+                XmlNode lParameterRefValueAttr = lNode.Attributes.GetNamedItem("Value");
+                lParameterRefValueAttr.Value = CheckParameterValueIntegrity(lXml, lCheck, lParameterNode, lParameterRefValueAttr.Value, lMessage);
             }
             if (lSkipTest)
                 lCheck.WriteFail("Test not possible due to Errors in ParameterRef definitions (sove above problems first)");
@@ -746,8 +750,9 @@ namespace OpenKNXproducer
 
         static Dictionary<string, XmlNode> sParameterTypes = null;
 
-        private static void CheckParameterValueIntegrity(XmlNode iTargetNode, CheckHelper iCheck, XmlNode iParameterNode, string iValue, string iMessage)
+        private static string CheckParameterValueIntegrity(XmlNode iTargetNode, CheckHelper iCheck, XmlNode iParameterNode, string iValue, string iMessage)
         {
+            string lValue = iValue;
             if (sParameterTypes == null)
             {
                 // init global parameter types cache
@@ -845,13 +850,22 @@ namespace OpenKNXproducer
                                 iCheck.WriteWarn(5, "Value of {0} cannot be greater than MaxInclusive {1}, value is '{2}'", iMessage, max, iValue);
                             break;
                         case "TypeFloat":
-                            float lDummyFloat;
-                            lSuccess = float.TryParse(iValue, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out lDummyFloat);
+                            lSuccess = double.TryParse(iValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double lDummyFloat);
                             if (!lSuccess || iValue.Contains(','))
-                            {
                                 iCheck.WriteFail("Value of {0} cannot be converted to a float, value is '{1}'", iMessage, iValue);
-                            }
+                            else
+                                lValue = lDummyFloat.ToString("E15", CultureInfo.InvariantCulture);
                             //TODO check value
+                            break;
+                        case "TypeColor":
+                            if (!iValue.StartsWith('#') && iValue.Length == 6)
+                            {
+                                iCheck.WriteWarn(6, "Value of {0} should be preceded by a '#' character, this is corrected by OpenKNXproducer in knxprod", iMessage, iValue);
+                                lValue = '#' + iValue;
+                            }
+                            lSuccess = int.TryParse(lValue[1..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int lDummyInt);
+                            if (!lSuccess || lValue.Length != 7)
+                                iCheck.WriteFail("Value of {0} should be a color in hex format #RRGGBB, but is {1}", iMessage, iValue);
                             break;
                         case "TypeRestriction":
                             lSuccess = false;
@@ -896,6 +910,7 @@ namespace OpenKNXproducer
                     }
                 }
             }
+            return lValue;
         }
 
         #region Reflection

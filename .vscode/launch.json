@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug SensorBigModule",
+            "name": "Debug LED-UP1-4X24V",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -13,7 +13,9 @@
             "args": [
                 "create",
                 "--Debug",
-                "../OAM-SensorBigModule/src/SensormodulBig"
+                "--HeaderFileName",
+                "../LED-UP1-4x24V/include/knxprod.h",
+                "../LED-UP1-4x24V/src/LED-UP1-4x24V"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
