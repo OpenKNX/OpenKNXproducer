@@ -190,6 +190,49 @@ namespace OpenKNXproducer
         }
 #nullable disable
 
+        private static bool EnsureEtsNamingConventionForKO(ProcessInclude iInclude)
+        {
+            bool lSuccess = true;
+            Console.Write("Converting KO-Ids to Ets naming convention... ");
+            // OpenKNX naming convention for KO: %AID%_O-%TT%%CC%nnn, where nnn is a user defined number
+            // ETS naming convention for KO: %AID%_O-n, where n is the KO-Number (the Number-Attribute of ComObject-Tag)
+            // This coding converts OpenKNX naming convention to ETS naming convention
+            XmlNodeList lComObjects = iInclude.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
+            Dictionary<string, string> lComObjectsMap = new();
+            // first we replace all ComObject-Ids and create a mapping table
+            foreach (XmlNode lComObject in lComObjects)
+            {
+                string lId = lComObject.NodeAttr("Id");
+                string lNumber = lComObject.NodeAttr("Number");
+                string lNewId = lId[..(lId.LastIndexOf("_O-") + 3)] + lNumber;
+                lComObject.Attributes.GetNamedItem("Id").Value = lNewId;
+                lComObjectsMap.Add(lId, lNewId);
+            }
+            XmlNodeList lComObjectRefs = iInclude.SelectNodes("//ApplicationProgram/Static/ComObjectRefs/ComObjectRef");
+            Dictionary<string, string> lComObjectRefsMap = new();
+            // now we replace all ComObjectRefs
+            foreach (XmlNode lComObjectRef in lComObjectRefs)
+            {
+                string lId = lComObjectRef.NodeAttr("Id");
+                string lRefId = lComObjectRef.NodeAttr("RefId");
+                string lNewRefId = lComObjectsMap[lRefId];
+                string lNewId = lId.Replace(lRefId, lNewRefId);
+                lComObjectRef.Attributes.GetNamedItem("Id").Value = lNewId;
+                lComObjectRef.Attributes.GetNamedItem("RefId").Value = lNewRefId;
+                lComObjectRefsMap.Add(lId, lNewId);
+            }
+            XmlNodeList lComObjectRefRefs = iInclude.SelectNodes("//ApplicationProgram/Dynamic//ComObjectRefRef");
+            // now we replace all ComObjectRefRefs
+            foreach (XmlNode lComObjectRefRef in lComObjectRefRefs)
+            {
+                string lRefId = lComObjectRefRef.NodeAttr("RefId");
+                string lNewRefId = lComObjectRefsMap[lRefId];
+                lComObjectRefRef.Attributes.GetNamedItem("RefId").Value = lNewRefId;
+            }
+            Console.WriteLine("OK");
+            return lSuccess;
+        }
+
         static bool ProcessSanityChecks(ProcessInclude iInclude, bool iWithVersions)
         {
 
@@ -1451,6 +1494,7 @@ namespace OpenKNXproducer
             // if (true) lInclude.AddEtsExtensions();
             XmlDocument lXml = lInclude.GetDocument();
             bool lSuccess = ProcessSanityChecks(lInclude, lWithVersions);
+            if (lSuccess) lSuccess = EnsureEtsNamingConventionForKO(lInclude);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
             if (opts.Debug) lTempXmlFileName = opts.XmlFileName;
