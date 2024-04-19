@@ -496,15 +496,41 @@ Im Folgenden werden die Befehle beschrieben, die für die Extraktion von Hilfete
 
     <!-- DOC -->
 
+### **Bildung von Dateinamen**
+
+Der OpenKNXproducer erzeugt für die Kontextsensitive Hilfe einzelne Markdown-Dateien für jedes einzelne Topic. Dabei werden die Dateinamen aus Texten (meist Kapitelüberschriften) erzeugt. 
+
+Da nicht alle Zeichen aus Kapitelüberschriften in Dateinamen vorkommen sollen bzw. dürfen, werden folgende Regeln zur Bildung der Dateinamen prozessiert:
+
+1. Alle Umlaute und das ß werden in die üblichen Doppelbuchstaben umgesetzt (ae, oe, ue, ss)
+1. Leerzeichen und Zeilenende-Zeichen werden durch ein - (Minus) ersetzt
+1. Es werden nur folgende Zeichen zugelassen (alle anderen werden gelöscht): A-Z, a-z, 0-9, - (Minus), _ (Unterstrich)
+1. Mehrere - (Minus) hintereinander werden durch ein - (Minus) ersetzt
+1. Am Ende wird ein Modulpräfix vor den Namen gehängt, gefolgt von einem - (Minus). In den Beispielen wird vom Modulpräfix PM ausgegangen.
+
+Aus
+
+    ### Präsenz (außen)
+
+wird
+
+    PM-Praesenz-aussen
+
+Dieser Name ist dann der, der im XML als Wert für das HelpContext-Attribut eingetragen werden muss.
+
+Der resultierende Dateiname ist 
+
+    PM-Praesenz-aussen.md
+
 ### **DOC**
 
-Der Befehl **DOC** über der Überschrift eines Kapitels extrahiert dieses Kapitel mit seiner Überschrift samt aller Unterkapitel.
+Der Befehl **DOC** über der Überschrift eines Kapitels extrahiert dieses Kapitel mit seiner Überschrift samt aller Unterkapitel in eine Datei, deren Name die Kapitelüberschrift ist.
 
     <!-- DOC -->
     ### Kapitel
 
     Hilfetext
-erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+erzeugt eine Datei "PM-Kapitel.md" mit dem Inhalt
 
     ### Kapitel
 
@@ -520,14 +546,14 @@ Der Befehl **DOC** kann noch ein Attribut HelpContext="*Text*" haben. Dann wird 
 
     Hilfetext
 
-erzeugt eine Datei "Mein Kapitel.md" mit dem Inhalt
+erzeugt eine Datei "PM-Mein-Kapitel.md" mit dem Inhalt
 
     ### Mein Kapitel
 
     Hilfetext
 
 
-Der Befehl **DOC HelpContext="*Text*"** kann auch innerhalb eines Kapitels steht, dann wird nur der folgende Text bis zum nächsten Kapitelanfang (egal ob es ein Unterkapitel ist) extrahiert. Der Hilfetext bekommt dann die Überschrift *Text*
+Der Befehl **DOC HelpContext="*Text*"** kann auch innerhalb eines Kapitels stehen, dann wird nur der folgende Text bis zum nächsten Kapitelanfang (egal ob es ein Unterkapitel ist) extrahiert. Der Hilfetext bekommt dann die Überschrift *Text*
 
     ### Kapitel
 
@@ -536,7 +562,7 @@ Der Befehl **DOC HelpContext="*Text*"** kann auch innerhalb eines Kapitels steht
     <!-- DOC HelpContext="Mein Kapitel" -->    
     Hilfetext Absatz 2
 
-erzeugt eine Datei "Mein Kapitel.md" mit dem Inhalt
+erzeugt eine Datei "PM-Mein-Kapitel.md" mit dem Inhalt
 
     ### Mein Kapitel
 
@@ -556,7 +582,7 @@ Der Befehl **DOC** kann auch das Attribut **Skip="*n*"** haben.
     Hilfetext Absatz 1
     Hilfetext Absatz 2
 
-erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+erzeugt eine Datei "PM-Kapitel.md" mit dem Inhalt
 
     ### Kapitel
 
@@ -575,7 +601,7 @@ Der Befehl **DOCEND** kann dazu benutzt werden, die Extraktion eines Kapitels vo
     <!-- DOCEND -->
     Hilfetext Absatz 2
 
-erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+erzeugt eine Datei "PM-Kapitel.md" mit dem Inhalt
 
     ### Kapitel
 
@@ -595,14 +621,14 @@ Um solche Kommentartexte zu extrahieren, wird der Befehl **DOCCONTENT** benutzt,
 
     Hilfetext, möglicherweise sehr lang
 
-    <!-- DOC HelpContext="Kapitel" -->
+    <!-- DOC HelpContext="Andere Überschrift" -->
     <!-- DOCCONTENT    
     Anders formulierter Hilfetext, eher kurz und prägnant
     DOCCONTENT -->
 
-erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+erzeugt eine Datei "PM-Andere-Ueberschrift.md" mit dem Inhalt
 
-    ### Kapitel
+    ### Andere Überschrift
 
     Anders formulierter Hilfetext, eher kurz und prägnant
 
