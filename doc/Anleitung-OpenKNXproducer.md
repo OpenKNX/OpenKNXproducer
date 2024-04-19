@@ -488,4 +488,122 @@ Hier muss der selbe Prefix angegeben werden, den der Modulentwickler für die kn
 
 ## Kontextsensitive Hilfe (Baggages)
 
+Der OpenKNXproducer kann aus einem Standard-Markdown-File (.md) Hilfetexte für die Kontextsensitive Hilfe in der ETS erzeugen. Dazu muss das Markdown-File durch Anweisungen für den OpenKNXproducer instrumentalisiert werden.
+
+Die Instrumentalisierung besteht aus einfachen Anweisungen, die für den Markdown-Interpreter Kommentare sind. Somit wird die Dokumentation damit nicht verändert.
+
+Im Folgenden werden die Befehle beschrieben, die für die Extraktion von Hilfetexten zur Verfügung stehen. Alle Befehle sind xml-Kommentare und müssen von den entsprechenden Kommentarzeichen umschlossen sein, z.B.
+
+    <!-- DOC -->
+
+### **DOC**
+
+Der Befehl **DOC** über der Überschrift eines Kapitels extrahiert dieses Kapitel mit seiner Überschrift samt aller Unterkapitel.
+
+    <!-- DOC -->
+    ### Kapitel
+
+    Hilfetext
+erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+
+    ### Kapitel
+
+    Hilfetext
+
+
+### **DOC HelpContext="*Text*"**
+
+Der Befehl **DOC** kann noch ein Attribut HelpContext="*Text*" haben. Dann wird eine Kapitelüberschrift *Text* erzeugt und eine eventuell vorhandene Kapitelüberschrift überschrieben.
+
+    <!-- DOC HelpContext="Mein Kapitel" -->
+    ### Kapitel
+
+    Hilfetext
+
+erzeugt eine Datei "Mein Kapitel.md" mit dem Inhalt
+
+    ### Mein Kapitel
+
+    Hilfetext
+
+
+Der Befehl **DOC HelpContext="*Text*"** kann auch innerhalb eines Kapitels steht, dann wird nur der folgende Text bis zum nächsten Kapitelanfang (egal ob es ein Unterkapitel ist) extrahiert. Der Hilfetext bekommt dann die Überschrift *Text*
+
+    ### Kapitel
+
+    Hilfetext Absatz 1
+
+    <!-- DOC HelpContext="Mein Kapitel" -->    
+    Hilfetext Absatz 2
+
+erzeugt eine Datei "Mein Kapitel.md" mit dem Inhalt
+
+    ### Mein Kapitel
+
+    Hilfetext Absatz 2
+
+### **DOC Skip="*n*"**
+
+Der Befehl **DOC** kann auch das Attribut **Skip="*n*"** haben. 
+*n* ist dabei eine Zahl ohne Vorzeichen und gibt eine Anzahl Zeilen an. Diese Anzahl Zeilen wird bei der Extraktion übersprungen.
+
+> Wichtig: Es sind physikalische Zeilen der Quelldatei gemeint, also durch ein Zeilenende abgeschlossene Zeilen. 
+
+    <!-- DOC -->
+    ### Kapitel
+
+    <!-- DOC Skip="1" -->
+    Hilfetext Absatz 1
+    Hilfetext Absatz 2
+
+erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+
+    ### Kapitel
+
+    Hilfetext Absatz 2
+
+> Achtung: Werden durch Skip Kapitelüberschriften übersprungen, erkennt der Parser nicht das Kapitelende und extrahiert das folgekapitel (und dessen Unterkapitel) womöglich auch.
+
+### **DOCEND**
+
+Der Befehl **DOCEND** kann dazu benutzt werden, die Extraktion eines Kapitels vor dem Ende des Kapitels zu beenden. Alle Zeilen hinter **DOCEND** werden nicht mehr extrahiert, bis der nächste **DOC** Befehl kommt.
+
+    <!-- DOC -->
+    ### Kapitel
+
+    Hilfetext Absatz 1
+    <!-- DOCEND -->
+    Hilfetext Absatz 2
+
+erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+
+    ### Kapitel
+
+    Hilfetext Absatz 1
+
+### **DOCCONTENT**
+
+Die Extraktion von Hilfetexten durch den OpenKNXproducer basiert auf den Idee, eine Quelle für jegliche Dokumentation einer Applikation zu haben und nicht 2 mal sehr ähnliche Texte schreiben zu müssen.
+
+Die oberen Befehle **DOCEND** und **DOC Skip** erlauben es, nicht alle Teile der Volldokumentation zu extrahieren und somit die Kontextsensitive Hilfe kürzer und prägnanter als die Volldokumentation zu gestalten. 
+
+Es kann aber auch passieren, dass man einen Text als Kontextsensitive Hilfe haben will, der nicht in der Volldokumentation erscheinen soll. Um zu vermeiden, dass solche Texte außerhalb der Volldokumentation gepflegt werden, können solche Texte als Kommentar in die Volldokumentation eingebettet werden (Single Source for Documentation).
+
+Um solche Kommentartexte zu extrahieren, wird der Befehl **DOCCONTENT** benutzt, zusammen mit **DOC HelpContext**. Dabei muss der Befehl **DOCCONTENT** am Anfang und Ende des Kommentarblocks stehen, den der eigentliche Hilfetext bildet:
+
+    ### Kapitel
+
+    Hilfetext, möglicherweise sehr lang
+
+    <!-- DOC HelpContext="Kapitel" -->
+    <!-- DOCCONTENT    
+    Anders formulierter Hilfetext, eher kurz und prägnant
+    DOCCONTENT -->
+
+erzeugt eine Datei "Kapitel.md" mit dem Inhalt
+
+    ### Kapitel
+
+    Anders formulierter Hilfetext, eher kurz und prägnant
+
 
