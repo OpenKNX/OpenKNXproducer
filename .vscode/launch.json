@@ -124,6 +124,23 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug SensorModule (rel)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../../OpenKNX-rel/OAM-SensorModule/include/knxprod.h",
+                "../../OpenKNX-rel/OAM-SensorModule/src/Sensormodul-Vpm"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug Dummy",
             "type": "coreclr",
             "request": "launch",

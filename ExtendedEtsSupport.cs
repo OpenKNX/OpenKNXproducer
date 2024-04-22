@@ -13,7 +13,7 @@ static class ExtendedEtsSupport
     {
         get
         {
-            string lResult = "\nvar channel_params = {";
+            string lResult = "\nvar uctChannelParams = {";
             foreach (var lEntry in sParameterInfo)
             {
                 Dictionary<string, string> lModuleParams = lEntry.Value;
@@ -32,12 +32,17 @@ static class ExtendedEtsSupport
 
     private static bool GenerateModuleSelector(ProcessInclude iInclude, int iApplicationVersion, int iApplicationNumber)
     {
-        XmlNode lRoot = iInclude.CreateElement("ParameterType", "Id", "%AID%_PT-ModuleSelector", "Name", "ModuleSelector");
+        XmlNode lModuleSelector = iInclude.CreateElement("ParameterType", "Id", "%AID%_PT-ModuleSelector", "Name", "ModuleSelector");
         XmlNode lTypeRestriction = iInclude.CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8");
-        lRoot.AppendChild(lTypeRestriction);
+        lTypeRestriction.AppendChild(iInclude.CreateElement("Enumeration", "Text", "Bitte wählen...", "Value", "255", "Id", "%ENID%"));
+        XmlNode lModuleSelectorCopy = iInclude.CreateElement("ParameterType", "Id", "%AID%_PT-ModuleSelectorWithChannels", "Name", "ModuleSelectorWithChannels");
+        lModuleSelector.AppendChild(lTypeRestriction);
+        XmlNode lTypeRestrictionCopy = iInclude.CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8");
+        lTypeRestrictionCopy.AppendChild(iInclude.CreateElement("Enumeration", "Text", "Bitte wählen...", "Value", "255", "Id", "%ENID%"));
+        lModuleSelectorCopy.AppendChild(lTypeRestrictionCopy);
         int lCount = 0;
-        string lVersionInformation = $"\nvar version_information = [0x{iApplicationNumber:X}, 0x{iApplicationVersion:X}];";
-        string lModuleOrder = "\nvar module_order = [";
+        string lVersionInformation = $"\nvar uctVersionInformation = [0x{iApplicationNumber:X}, 0x{iApplicationVersion:X}];";
+        string lModuleOrder = "\nvar uctModuleOrder = [";
         XmlNodeList lChannels = iInclude.SelectNodes("//ApplicationProgram/Dynamic/Channel");
         IEnumerator lIterator = lChannels.GetEnumerator();
         lIterator.Reset();
@@ -61,12 +66,19 @@ static class ExtendedEtsSupport
                         break;
                     }
                 }
+            // if (lEntry.Key != cConfigTransferPrefix)
+            // {
+            DefineContent lDefine = DefineContent.GetDefineContent(lEntry.Key);
+            if (lDefine != null && lDefine.NumChannels > 0)
+                lTypeRestrictionCopy.AppendChild(iInclude.CreateElement("Enumeration", "Text", lText, "Value", lCount.ToString(), "Id", "%ENID%"));
             lTypeRestriction.AppendChild(iInclude.CreateElement("Enumeration", "Text", lText, "Value", lCount++.ToString(), "Id", "%ENID%"));
             lModuleOrder += "\"" + lEntry.Key + "\",";
+            // }
         }
         lModuleOrder = lModuleOrder[..^1] + "];\n";
         XmlNode lNode = iInclude.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
-        lNode?.InsertAfter(lRoot, null);
+        lNode?.InsertAfter(lModuleSelector, null);
+        lNode?.InsertAfter(lModuleSelectorCopy, lModuleSelector);
         if (lNode != null)
         {
             lNode = iInclude.SelectSingleNode("//ApplicationProgram/Static/Script");
@@ -78,6 +90,8 @@ static class ExtendedEtsSupport
 
     public static bool AddEtsExtensions(ProcessInclude iInclude, int iApplicationVersion, int iApplicationNumber)
     {
+        if (!DefineContent.WithConfigTransfer)
+            return false;
         XmlNode lScript = iInclude.SelectSingleNode("//ApplicationProgram/Static/Script");
         if (lScript == null)
             return false;
@@ -91,6 +105,10 @@ static class ExtendedEtsSupport
     /// </summary>
     public static void GenerateScriptContent(ProcessInclude iInclude, DefineContent iDefine)
     {
+        if (iDefine.NoConfigTransfer)
+            return;
+        if (iDefine.template == "" && iDefine.share == "")
+            return; // pre-v1 
         Dictionary<string, string> lDict;
         XmlNodeList lParameters = iInclude.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
         string lSuffix = "share";

@@ -1,0 +1,39 @@
+- Bleibt: Timestamp vom ets.png wird von der ETS nicht korrekt geprüft
+    Warning	1	KNXMT3082: Baggage "A0\30\ets.png": TimeInfo is 02.04.2024 12:13:02, but file has last write time 19.12.2023 18:21:38 (UTC)	c:\users\robert\documents\visual studio 2013\Projects\KNXProduct128\KNXProduct128\M-00FA\Baggages.mtxml	0	0	KNXProduct128
+
+- Gelöst: Language im TemplateApplication.xml von de auf de-DE geändert. Wer ein eigenes TemplateApplication.xml hat, muss selber anpassen.
+    Warning	2	KNXMT3105: CatalogSection "[OpenKNX] OpenKNX": CatalogSection [OpenKNX] OpenKNX: the inline language de is not included in master data	
+    Warning	3	KNXMT3105: CatalogItem "OpenKNX: Logikmodul (dev)": CatalogItem OpenKNX: Logikmodul (dev): the inline language de is not included in master data	
+    Warning	4	KNXMT3105: Product "[OpenKnxLogicDev] OpenKNX: Logikmodul (dev)": Product [OpenKnxLogicDev] OpenKNX: Logikmodul (dev): the inline language de is not included in master data	
+    Warning	231	KNXMT3105: ApplicationProgram "[A031 A1] WP-Logic-Dev": ApplicationProgram [A031 A1] WP-Logic-Dev: the inline language de is not included in master data	
+
+- Gelöst: HelpContext soll als .txt-File erzeugt werden -> .md-Files werden vom Producer umbenannt
+    Warning	27	KNXMT3123: ApplicationProgram "[A031 A1] WP-Logic-Dev": Topic "BASE-OpenKNX.md" is not in TXT format	
+    Warning	331	KNXMT3124: ParameterBlock "BASE_General": Topic 'BASE-OpenKNX' not found in ContextHelpFile	
+
+- Gelöst: Icons sollen mindestens 32x32 Pixel sein -> in Common von Marco geändert, lokale Icons muss jeder selber machen
+    Warning	140	KNXMT3119: ApplicationProgram "[A031 A1] WP-Logic-Dev": Icon "abacus.png" is not quadratic with at least 32x32 pixels	
+
+- Bleibt: Es gibt ein paar ParameterTypes in Common, die allen zur Verfügung gestellt werden. Die Warnung kommt, wenn sie nie verwendet wurden
+    Warning	251	KNXMT3052: ParameterType "OnOffYesNoInverted": ParameterType is not used by any Parameter	
+
+- Bleibt: Die werden zum generieren der knxprod.h gebraucht
+    Warning	256	KNXMT3024: UnionParameter "[F42DDh] BASE_TimezoneSign": Parameter is not referenced by any ParameterRef	
+    Warning	257	KNXMT3024: UnionParameter "[F42DEh] BASE_TimezoneValue": Parameter is not referenced by any ParameterRef	
+    Warning	260	KNXMT3024: UnionParameter "[F42A2h] BASE_Dummy": Parameter is not referenced by any ParameterRef	
+
+- Bleibt: Immer wenn man Werte von einer kleineren auf eine größere Dropdown per Assign zuweist, kommt der Fehler. Man muss selber aufpassen, dass die Wertebereiche stimmen.
+    Error	5	KNXMT3035: Assign "[5F815D9h] LOG_f1E1Convert": SourceParameterRef [5F81511h] LOG_f1E1ConvertBool has different ParameterType (InputConvBool) than TargetParameterRef (InputConv)	c:\users\robert\documents\visual studio 2013\Projects\KNXProduct128\KNXProduct128\M-00FA\M-00FA_A-A031-A1-3C67.mtxml	0	0	KNXProduct128
+
+- Gelöst: Default-Werte von Fließkommazahlen (float/double) werden vom Producer ins wissenschaftliche Format umgewandelt
+    Error	258	KNXMT3015: UnionParameter "[F42CEh] BASE_Latitude": Property Value: Value "50.115377" is not formatted as expected (5.011537700000000E+001)	c:\users\robert\documents\visual studio 2013\Projects\KNXProduct128\KNXProduct128\M-00FA\M-00FA_A-A031-A1-3C67.mtxml	0	0	KNXProduct128
+
+- Bleibt: Ist ok, solange Überlappungen beabsichtigt sind 
+    Error	262	KNXMT3020: Union "[Rel#04h] Parameters+0041h": Parameter/Union overlaps Union '[Rel#04h] Parameters+0041h'	c:\users\robert\documents\visual studio 2013\Projects\KNXProduct128\KNXProduct128\M-00FA\M-00FA_A-A031-A1-3C67.mtxml	0	0	KNXProduct128
+
+- Gelöst mit Warning: Defaults für Farben sollte man zukünftig mit führendem #rrggbb definieren und alte Sachen umstellen.
+    Error	295	KNXMT3015: UnionParameter "[F4674h] LOG_f1OOnRGB": Property Value: Value "FFFFFF" is not compatible with ParameterType ValueColor: must be in form #RRGGBB	c:\users\robert\documents\visual studio 2013\Projects\KNXProduct128\KNXProduct128\M-00FA\M-00FA_A-A031-A1-3C67.mtxml	0	0	KNXProduct128
+
+- Gelöst: Producer benennt bei KOs unseren Namensraum _O-ttccnnn in _O-<KO-Nummer> um. Wir bleiben bei unserem Namensraum für Checks etc!!! 
+    Error	315	KNXMT1003: ComObject "[0001h] BASE_Heartbeat-Zyklisch": ID is not what is expected by ID convention; found: "M-00FA_A-A031-A1-3C67_O-1000001", expected: "M-00FA_A-A031-A1-3C67_O-1"	c:\users\robert\documents\visual studio 2013\Projects\KNXProduct128\KNXProduct128\M-00FA\M-00FA_A-A031-A1-3C67.mtxml	0	0	KNXProduct128
+

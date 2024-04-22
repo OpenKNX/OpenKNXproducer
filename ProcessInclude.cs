@@ -587,6 +587,7 @@ namespace OpenKNXproducer
                     {
                         Directory.CreateDirectory(lTargetDirName);
                         File.Copy(lSourceFileName, lTargetFileName, true);
+                        File.SetLastWriteTimeUtc(lTargetFileName, DateTime.Now);
                         lFileNameAttr.Value = Path.GetFileName(lFileName);
                     }
                 }
@@ -911,7 +912,7 @@ namespace OpenKNXproducer
                             mBaggageId.Add(lIdNode.Value, lBaggageId);
                         lIdNode.Value = lBaggageId;
                         DateTime lFileLastWrite = File.GetLastWriteTimeUtc(Path.Combine(mCurrentDir, mBaggagesName, lPath, lFileName));
-                        string lIsoDateTime = lFileLastWrite.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+                        string lIsoDateTime = lFileLastWrite.ToString("o", CultureInfo.InvariantCulture);
                         XmlNode lTimeInfo = lBaggage.SelectSingleNode("FileInfo/@TimeInfo", nsmgr);
                         if (lTimeInfo != null && lTimeInfo.Value == "%DATETIME%")
                             lTimeInfo.Value = lIsoDateTime;
@@ -1787,10 +1788,11 @@ namespace OpenKNXproducer
                 }
 
                 DateTime lStart = DateTime.Now;
-                if (!lInclude.IsInnerInclude && !lInclude.IsScript && lInclude.OriginalChannelCount > 0)
+                if (!lInclude.IsInnerInclude && !lInclude.IsScript)
                 {
-                    ReplaceDocumentStrings(lInclude.mDocument, "%N%", lInclude.OriginalChannelCount.ToString());
                     ReplaceDocumentStrings(lInclude.mDocument, "%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
+                    if (lInclude.OriginalChannelCount > 0)
+                        ReplaceDocumentStrings(lInclude.mDocument, "%N%", lInclude.OriginalChannelCount.ToString());
                 }
                 // here we do template processing and repeat the template as many times as
                 // the Channels parameter in header file

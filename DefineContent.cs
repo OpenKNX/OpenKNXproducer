@@ -5,6 +5,11 @@ namespace OpenKNXproducer
     public class DefineContent
     {
         private static readonly Dictionary<string, DefineContent> sDefines = new();
+        public static DefineContent Empty = new();
+        private static bool sWithConfigTransfer = false;
+
+        private bool mNoConfigTransfer = false;
+
         public string prefix = "LOG";
         public int KoOffset = 1;
         public int KoSingleOffset;
@@ -21,7 +26,18 @@ namespace OpenKNXproducer
         public int VerifyVersion = -1;
         public string share;
         public string template;
-        public static DefineContent Empty = new();
+
+        public static bool WithConfigTransfer
+        {
+            get { return sWithConfigTransfer; }
+            private set { sWithConfigTransfer = value; }
+        }
+
+        public bool NoConfigTransfer
+        {
+            get { return mNoConfigTransfer; }
+            private set { mNoConfigTransfer = value; }
+        }
 
         public static DefineContent Factory(XmlNode iDefineNode)
         {
@@ -56,6 +72,12 @@ namespace OpenKNXproducer
                     // int.TryParse(lVerify.NodeAttr("ModuleVersion", "-1"), out lResult.VerifyVersion);
                 }
                 lResult.share = iDefineNode.NodeAttr("share");
+                lResult.NoConfigTransfer = iDefineNode.NodeAttr("noConfigTransfer") == "true";
+                if (lResult.share.Contains("ConfigTransfer.share.xml"))
+                {
+                    lResult.NoConfigTransfer = true;
+                    DefineContent.WithConfigTransfer = true;
+                }
                 lResult.template = iDefineNode.NodeAttr("template");
                 lResult.IsParameter = false;
                 lResult.IsTemplate = false;
