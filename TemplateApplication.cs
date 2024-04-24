@@ -108,10 +108,13 @@ class TemplateApplication
             }
             else if (lAttribute.Name == "ReplacesVersions")
             {
-                string[] lVersions = lValue.Split(' ');
-                for (int lPos = 0; lPos < lVersions.Length; lPos++)
-                    lVersions[lPos] = ParseNumberValue("ReplacesVersions", lVersions[lPos]).ToString();
-                lValue = string.Join(' ', lVersions);
+                if (lValue != "")
+                {
+                    string[] lVersions = lValue.Split(' ');
+                    for (int lPos = 0; lPos < lVersions.Length; lPos++)
+                        lVersions[lPos] = ParseNumberValue("ReplacesVersions", lVersions[lPos]).ToString();
+                    lValue = string.Join(' ', lVersions);
+                }
             }
             // TODO: we have to check, if these values should also go to config (additional replacement option)?
             lResult[lConfigName] = lValue;
