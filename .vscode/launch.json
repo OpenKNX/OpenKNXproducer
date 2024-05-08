@@ -39,6 +39,23 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug Fingerprint",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net6.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-Fingerprint/include/knxprod.h",
+                "../OAM-Fingerprint/src/FingerprintModule"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug SOM-UP",
             "type": "coreclr",
             "request": "launch",

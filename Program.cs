@@ -754,9 +754,9 @@ namespace OpenKNXproducer
             XmlNode lScript = lXml.SelectSingleNode("//Script");
             if (lScript != null)
             {
-                Regex lFindFunctions = new(@"function\s*([A-Za-z0-9_]*)\s*\(");
+                Regex lFindFunctions = new(@"(//\s*)?function\s*([A-Za-z0-9_]*)\s*\(");
                 MatchCollection lFunctions = lFindFunctions.Matches(lScript.InnerText);
-                XmlNodeList lAttributes = lXml.SelectNodes("//Button/@EventHandler|//ParameterCalculation/@LRTransformationFunc|//ParameterCalculation/@RLTransformationFunc");
+                XmlNodeList lAttributes = lXml.SelectNodes("//Button/@EventHandler|//ParameterCalculation/@LRTransformationFunc|//ParameterCalculation/@RLTransformationFunc|//ParameterValidation/@ValidationFunc");
                 // speedup: transfer function call into a Hashtable
                 Dictionary<string, bool> lFunctionCalls = new();
                 foreach (XmlNode lAttribute in lAttributes)
@@ -765,11 +765,16 @@ namespace OpenKNXproducer
                 // check unused javascript functions
                 foreach (Match lFunction in lFunctions.Cast<Match>())
                 {
-                    string lFunctionName = lFunction.Groups[1].Value;
-                    if (lFunctionCalls.ContainsKey(lFunctionName))
-                        lFunctionCalls[lFunctionName] = true;
+                    string lFunctionName = lFunction.Groups[2].Value;
+                    if (lFunction.Value.StartsWith("//"))
+                        lCheck.WriteWarn(3, "Function with name {0} is commented in <Script> block, you should remove it to reduce application size", lFunctionName);
                     else
-                        lCheck.WriteWarn(3, "Function with name {0} was never called form xml", lFunctionName);
+                    {
+                        if (lFunctionCalls.ContainsKey(lFunctionName))
+                            lFunctionCalls[lFunctionName] = true;
+                        else
+                            lCheck.WriteWarn(3, "Function with name {0} was never called form xml", lFunctionName);
+                    }
                 }
                 foreach (var lFunctionCall in lFunctionCalls)
                     if (!lFunctionCall.Value)

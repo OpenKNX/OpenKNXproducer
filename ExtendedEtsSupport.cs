@@ -7,7 +7,7 @@ using OpenKNXproducer;
 
 static class ExtendedEtsSupport
 {
-    static readonly Dictionary<string, Dictionary<string, string>> sParameterInfo = new();
+    static readonly Dictionary<DefineContent, Dictionary<string, string>> sParameterInfo = new();
 
     public static string ParameterInfo
     {
@@ -17,7 +17,7 @@ static class ExtendedEtsSupport
             foreach (var lEntry in sParameterInfo)
             {
                 Dictionary<string, string> lModuleParams = lEntry.Value;
-                lResult += $"\n\"{lEntry.Key}\": {{";
+                lResult += $"\n\"{lEntry.Key.prefix}\": {{";
                 foreach (var lModuleParam in lModuleParams)
                 {
                     lResult += $"\n  {lModuleParam.Value},";
@@ -48,12 +48,14 @@ static class ExtendedEtsSupport
         lIterator.Reset();
         foreach (var lEntry in sParameterInfo)
         {
-            string lText = lEntry.Key;
-            if (lText == "BASE")
-                lText = "Allgemein";
-            else
-                for (int lIndex = 0; lIndex < lChannels.Count; lIndex++)
-                {
+            string lText = lEntry.Key.prefix;
+            if (lEntry.Key.ConfigTransferName != "")
+                lText = lEntry.Key.ConfigTransferName;
+            // if (lText == "BASE")
+            //     lText = "Allgemein";
+            // else
+            for (int lIndex = 0; lIndex < lChannels.Count; lIndex++)
+            {
                     if (!lIterator.MoveNext())
                     {
                         lIterator.Reset();
@@ -66,14 +68,10 @@ static class ExtendedEtsSupport
                         break;
                     }
                 }
-            // if (lEntry.Key != cConfigTransferPrefix)
-            // {
-            DefineContent lDefine = DefineContent.GetDefineContent(lEntry.Key);
-            if (lDefine != null && lDefine.NumChannels > 0)
+            if (lEntry.Key.NumChannels > 0)
                 lTypeRestrictionCopy.AppendChild(iInclude.CreateElement("Enumeration", "Text", lText, "Value", lCount.ToString(), "Id", "%ENID%"));
             lTypeRestriction.AppendChild(iInclude.CreateElement("Enumeration", "Text", lText, "Value", lCount++.ToString(), "Id", "%ENID%"));
-            lModuleOrder += "\"" + lEntry.Key + "\",";
-            // }
+            lModuleOrder += "\"" + lEntry.Key.prefix + "\",";
         }
         lModuleOrder = lModuleOrder[..^1] + "];\n";
         XmlNode lNode = iInclude.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
@@ -116,12 +114,12 @@ static class ExtendedEtsSupport
         StringBuilder lParameterNames = new();
         StringBuilder lParameterDefaults = new();
 
-        if (sParameterInfo.ContainsKey(iDefine.prefix))
-            lDict = sParameterInfo[iDefine.prefix];
+        if (sParameterInfo.ContainsKey(iDefine))
+            lDict = sParameterInfo[iDefine];
         else
         {
             lDict = new();
-            sParameterInfo.Add(iDefine.prefix, lDict);
+            sParameterInfo.Add(iDefine, lDict);
             // add version information, if available
             if (iDefine.NumChannels > 0)
                 lDict.Add("channels", $"\"channels\": {iDefine.NumChannels}");

@@ -836,6 +836,7 @@ namespace OpenKNXproducer
                     lValue = lValue.Replace("%SerialNumberEncoded%", lSerialNumberEncoded);
                     lValue = lValue.Replace("%VersionCheck%", lInlineData);
                     lValue = lValue.Replace("%VersionMessage%", lVersionMessage);
+                    lValue = lValue.Replace("%MaxKoNumber%", sMaxKoNumber.ToString());
                     lNode.Value = lValue;
                 }
             }
@@ -1068,17 +1069,16 @@ namespace OpenKNXproducer
                                 Console.WriteLine("Parse error in include {0} in line {1}", mXmlFileName, lSizeNode.InnerXml);
                             }
                         }
-                        else if (lSizeNode.SelectSingleNode("TypeFloat") != null)
+                        else
                         {
-                            lResult = 4;
-                        }
-                        else if (lSizeNode.SelectSingleNode("TypeIPAddress") != null)
-                        {
-                            lResult = 4;
-                        }
-                        else if (lSizeNode.SelectSingleNode("TypeColor") != null)
-                        {
-                            lResult = 3;
+                            if (lSizeNode.Name == "ParameterType")
+                                lSizeNode = lSizeNode.SelectSingleNode("*[not(comment())]");
+                            if (lSizeNode.Name == "TypeFloat")
+                                lResult = 4;
+                            else if (lSizeNode.Name == "TypeIPAddress")
+                                lResult = 4;
+                            else if (lSizeNode.Name == "TypeColor")
+                                lResult = 3;
                         }
                     }
                 }

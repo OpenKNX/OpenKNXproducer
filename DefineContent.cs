@@ -9,6 +9,7 @@ namespace OpenKNXproducer
         private static bool sWithConfigTransfer = false;
 
         private bool mNoConfigTransfer = false;
+        private string mConfigTransferName = "";
 
         public string prefix = "LOG";
         public int KoOffset = 1;
@@ -37,6 +38,12 @@ namespace OpenKNXproducer
         {
             get { return mNoConfigTransfer; }
             private set { mNoConfigTransfer = value; }
+        }
+
+        public string ConfigTransferName
+        {
+            get { return mConfigTransferName; }
+            private set { mConfigTransferName = value; }
         }
 
         public static DefineContent Factory(XmlNode iDefineNode)
@@ -73,6 +80,7 @@ namespace OpenKNXproducer
                 }
                 lResult.share = iDefineNode.NodeAttr("share");
                 lResult.NoConfigTransfer = iDefineNode.NodeAttr("noConfigTransfer") == "true";
+                lResult.ConfigTransferName = iDefineNode.NodeAttr("configTransferName");
                 if (lResult.share.Contains("ConfigTransfer.share.xml"))
                 {
                     lResult.NoConfigTransfer = true;
