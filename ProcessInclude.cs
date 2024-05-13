@@ -281,7 +281,7 @@ namespace OpenKNXproducer
             {
                 do
                 {
-                    lMatch = Regex.Match(lResult, @"%(C{1,3})(\*\d{1,3})?([\+\-]\d{1,3})?%");
+                    lMatch = Regex.Match(lResult, @"%(C{1,4})(\*\d{1,3})?([\+\-]\d{1,3})?%");
                     lReplaced = false;
                     if (lMatch.Captures.Count > 0)
                     {
@@ -296,7 +296,7 @@ namespace OpenKNXproducer
                 } while (lReplaced);
                 do
                 {
-                    lMatch = Regex.Match(lResult, @"%(Z{1,3})%");
+                    lMatch = Regex.Match(lResult, @"%(Z{1,4})%");
                     lReplaced = false;
                     if (lMatch.Captures.Count > 0)
                     {
@@ -319,7 +319,7 @@ namespace OpenKNXproducer
 
         static void ReplaceKoTemplateFinal(XmlNode iTargetNode)
         {
-            Regex lRegex = new(@"%!K(\d{1,3})!C(\d{1,3})!(\w*)!%");
+            Regex lRegex = new(@"%!K(\d{1,3})!C(\d{1,4})!(\w*)!%");
             XmlNodeList lNodes = iTargetNode.SelectNodes("//*/@*[contains(.,'%!K')]");
             foreach (XmlAttribute lNode in lNodes)
             {
@@ -371,7 +371,7 @@ namespace OpenKNXproducer
                     {
                         if (iInclude != null && !iInclude.mHeaderKoBlockGenerated)
                         {
-                            lResult = iValue.Replace(lMatch.Value, string.Format("%!K{0}!C{1:D03}!{2}!%", lMatch.Groups[1].Value, iChannel, iDefine.prefix));
+                            lResult = iValue.Replace(lMatch.Value, string.Format("%!K{0}!C{1:D04}!{2}!%", lMatch.Groups[1].Value, iChannel, iDefine.prefix));
                         }
                         else if (int.TryParse(lMatch.Groups[1].Value, out int lShift))
                         {
