@@ -754,7 +754,7 @@ namespace OpenKNXproducer
             XmlNode lScript = lXml.SelectSingleNode("//Script");
             if (lScript != null)
             {
-                Regex lFindFunctions = new(@"(//\s*)?function\s*([A-Za-z0-9_]*)\s*\(");
+                Regex lFindFunctions = new(@"(//[ \t]*)?function[ \t\t]*([A-Za-z0-9_]*)\s*\(");
                 MatchCollection lFunctions = lFindFunctions.Matches(lScript.InnerText);
                 XmlNodeList lAttributes = lXml.SelectNodes("//Button/@EventHandler|//ParameterCalculation/@LRTransformationFunc|//ParameterCalculation/@RLTransformationFunc|//ParameterValidation/@ValidationFunc");
                 // speedup: transfer function call into a Hashtable
