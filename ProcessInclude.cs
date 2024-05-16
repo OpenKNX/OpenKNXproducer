@@ -1432,14 +1432,14 @@ namespace OpenKNXproducer
 
         public string BaggagesName { get { return mBaggagesName; } }
         public string CurrentDir { get { return mCurrentDir; } }
-
+        
 
         private bool VerifyModuleDependency(DefineContent iDefine, string iCurrentDir)
         {
             bool lResult = true;
             if (iDefine.VerifyFile != "")
             {
-                string lFileName = Path.Combine(iCurrentDir, iDefine.VerifyFile);
+                string lFileName = PathHelper.BuildFullPath(iCurrentDir, iDefine.VerifyFile);
                 string lVersion = "-1";
                 int lVersionInt = -1;
                 try
@@ -1502,9 +1502,10 @@ namespace OpenKNXproducer
             bool lIsNew = false;
             if (!mLoaded)
             {
-                string lCurrentDir = Path.GetDirectoryName(Path.GetFullPath(iFileName));
+                string labsoluteFilePath = PathHelper.BuildFullPath(Directory.GetCurrentDirectory(), iFileName);;
+                string lCurrentDir = Path.GetDirectoryName(labsoluteFilePath);
                 mCurrentDir = lCurrentDir;
-                string lFileData = File.ReadAllText(iFileName);
+                string lFileData = File.ReadAllText(labsoluteFilePath);
                 lFileData = ReplaceXmlns(lFileData);
                 mLoaded = true;
                 lIsNew = true;
