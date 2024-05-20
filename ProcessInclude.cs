@@ -468,8 +468,14 @@ namespace OpenKNXproducer
             }
         }
 
-        static void ProcessParameter(int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        static void ProcessParameter(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
+            // ensure property parameters are correctly replaced
+            XmlNode lProperty = iTargetNode.SelectSingleNode("Property");
+            if (lProperty != null)
+            {
+                ProcessAttributes(iDefine, iChannel, lProperty, iInclude);
+            }
             //calculate new offset
             XmlNode lMemory = iTargetNode.SelectSingleNode("Memory");
             if (lMemory != null)
@@ -486,7 +492,7 @@ namespace OpenKNXproducer
         static void ProcessUnion(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
         {
             //calculate new offset
-            ProcessParameter(iChannel, iTargetNode, iInclude);
+            ProcessParameter(iDefine, iChannel, iTargetNode, iInclude);
             XmlNodeList lChildren = iTargetNode.ChildNodes;
             foreach (XmlNode lChild in lChildren)
             {
@@ -621,7 +627,7 @@ namespace OpenKNXproducer
                 ProcessAttributes(iDefine, iChannel, iTargetNode, iInclude);
                 if (iTargetNode.Name == "Parameter")
                 {
-                    ProcessParameter(iChannel, iTargetNode, iInclude);
+                    ProcessParameter(iDefine, iChannel, iTargetNode, iInclude);
                 }
                 else
                 if (iTargetNode.Name == "Union")
@@ -1329,8 +1335,8 @@ namespace OpenKNXproducer
                             lDirectType = true;
                         }
                     }
-                    int lOffset = int.Parse(lMemory.Attributes.GetNamedItem("Offset").Value);
-                    int lBitOffset = int.Parse(lMemory.Attributes.GetNamedItem("BitOffset").Value);
+                    int.TryParse(lMemory.Attributes.GetNamedItem("Offset").Value, out int lOffset);
+                    int.TryParse(lMemory.Attributes.GetNamedItem("BitOffset").Value, out int lBitOffset);
                     // Offset and BitOffset might be also defined in Parameter
                     XmlNode lParamOffsetNode = lNode.Attributes.GetNamedItem("Offset");
                     if (lParamOffsetNode != null) lOffset += int.Parse(lParamOffsetNode.Value);
