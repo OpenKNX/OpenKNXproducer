@@ -460,7 +460,7 @@ namespace OpenKNXproducer
                     {
                         XmlNode lParameter = lParameterLookup[lId];
                         string lText = lParameter.NodeAttr("Text");
-                        lText = ParseDocumentation.GetChapterId(lText, iDefine.prefix);
+                        lText = ParseDocumentation.GetChapterId(lText, iDefine.prefixDoc);
                         // Console.WriteLine(lText);
                         lAttribute.Value = lText;
                     }
@@ -1526,10 +1526,54 @@ namespace OpenKNXproducer
                 {
                     using StringReader sr = new(lFileData);
                     mDocument.Load(sr);
+                    // ResolveNaming();
                     ResolveIncludes(lCurrentDir);
                 }
             }
             return lIsNew;
+        }
+
+        private readonly Dictionary<string, string> mParameterNames = new();
+        private readonly Dictionary<string, string> mComObjectNames = new();
+
+        const char cNameMarker = '#';
+
+        public void ResolveNaming()
+        {
+            XmlNodeList lParameters = mDocument.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
+            foreach (XmlNode lParameter in lParameters)
+            {
+                string lName = cNameMarker + lParameter.NodeAttr("Name") + cNameMarker;
+                string lId = lParameter.NodeAttr("Id");
+                mParameterNames.Add(lName, lId);
+            }
+            XmlNodeList lIdAttributes = mDocument.SelectNodes($"*//@*[contains(.,'{cNameMarker}')]");
+            foreach (XmlNode lIdAttribute in lIdAttributes)
+            {
+                string lValue = lIdAttribute.Value;
+                string lRefIdSuffix = "";
+                if (lValue.Length < 5 || !lValue.StartsWith(cNameMarker) || (!lValue.EndsWith(cNameMarker) && lValue[^3] != cNameMarker))
+                    continue;
+                if (!lValue.EndsWith(cNameMarker))
+                {
+                    lRefIdSuffix = lValue[^2..];
+                    lValue = lValue[..^2];
+                }
+                if (mParameterNames.ContainsKey(lValue))
+                {
+                    lValue = mParameterNames[lValue];
+                    if (lRefIdSuffix != "")
+                    {
+                        lValue = lValue + "_R" + lValue[lValue.IndexOf("-%T")..] + lRefIdSuffix;
+                    }
+                    lIdAttribute.Value = lValue;
+                }
+                else
+                {
+                    Program.Message(true, "Attribute {0} with Value {1} could not be replaced, use original key for this object", lIdAttribute.Name, lIdAttribute.Value);
+                }
+            }
+
         }
 
         public static string ReplaceXmlns(string iXmlString)

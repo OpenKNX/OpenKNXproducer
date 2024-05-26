@@ -12,6 +12,7 @@ namespace OpenKNXproducer
         private string mConfigTransferName = "";
 
         public string prefix = "LOG";
+        public string prefixDoc = "LOG";
         public int KoOffset = 1;
         public int KoSingleOffset;
         public int KoBlockSize = 0;
@@ -57,6 +58,7 @@ namespace OpenKNXproducer
             else
             {
                 lResult.prefix = lPrefix;
+                lResult.prefixDoc = iDefineNode.NodeAttr("prefixDoc", lPrefix);
                 lResult.header = iDefineNode.NodeAttr("header");
 
                 if (!int.TryParse(iDefineNode.NodeAttr("NumChannels"), out lResult.NumChannels)) lResult.NumChannels = 0;
