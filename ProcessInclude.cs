@@ -281,7 +281,7 @@ namespace OpenKNXproducer
             {
                 do
                 {
-                    lMatch = Regex.Match(lResult, @"%(C{1,4})(\*\d{1,3})?([\+\-]\d{1,3})?%");
+                    lMatch = Regex.Match(lResult, @"%(C{1,4})(\*\d{1,3})?([\+\-]\d{1,4})?%");
                     lReplaced = false;
                     if (lMatch.Captures.Count > 0)
                     {
