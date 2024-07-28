@@ -5,3 +5,5 @@ Check.*
 Check-Verify.*
 release/*
 debug/*
+.vs
+*.user

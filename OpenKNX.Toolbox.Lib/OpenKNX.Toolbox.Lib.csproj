@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Octokit" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Extensions.cs"/>
+    <Compile Include="../KnxProdHelper.cs"/>
+    <Compile Include="../Signing/ApplicationSigner.cs" Link="Signing/ApplicationSigner.cs"/>
+    <Compile Include="../Signing/CatalogIdPatcher.cs" Link="Signing/CatalogIdPatcher.cs"/>
+    <Compile Include="../Signing/HardwareSigner.cs" Link="Signing/HardwareSigner.cs"/>
+    <Compile Include="../Signing/XmlSigner.cs" Link="Signing/XmlSigner.cs"/>
+  </ItemGroup>
+
+</Project>

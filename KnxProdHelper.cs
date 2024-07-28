@@ -6,7 +6,7 @@ using System.Xml.Schema;
 
 namespace OpenKNXproducer
 {
-    public static class KnxProdHelper
+    internal static class KnxProdHelper
     {
         struct EtsVersion
         {

@@ -15,6 +15,14 @@
     <Content Remove="TemplateApplication.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="OpenKNX.Toolbox.Lib\**" />
+    <Compile Remove="OpenKNX.Toolbox.WinForms\**" />
+    <EmbeddedResource Remove="OpenKNX.Toolbox.Lib\**" />
+    <EmbeddedResource Remove="OpenKNX.Toolbox.WinForms\**" />
+    <None Remove="OpenKNX.Toolbox.Lib\**" />
+    <None Remove="OpenKNX.Toolbox.WinForms\**" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="xml/NewDevice.xml" />
     <EmbeddedResource Include="xml/TemplateApplication.xml" />
   </ItemGroup>

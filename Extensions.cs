@@ -4,7 +4,7 @@ using System.IO;
 
 namespace OpenKNXproducer
 {
-    public static class ExtensionMethods
+    internal static class ExtensionMethods
     {
 
         public static string NodeAttr(this XmlNode iNode, string iAttributeName, string iDefault = "")
