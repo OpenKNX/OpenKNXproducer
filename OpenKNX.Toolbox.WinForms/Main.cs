@@ -1,6 +1,10 @@
+using System;
+using System.Diagnostics;
+using Microsoft.VisualBasic.Devices;
 using OpenKNX.Toolbox.Lib;
 using OpenKNX.Toolbox.Lib.Data;
 using OpenKNX.Toolbox.WinForms.Properties;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OpenKNX.Toolbox.WinForms
 {
@@ -192,10 +196,27 @@ namespace OpenKNX.Toolbox.WinForms
             var firmware = (ReleaseContentFirmware)inFirmwareVariant.SelectedItem;
             var uploadDrive = (string)inFirmwareTarget.SelectedItem;
 
-            if (Rp2040UploadHelper.UploadFirmware(uploadDrive, firmware.FilePathUf2))
+            var progress = new Progress<KeyValuePair<long, long>>();
+            progress.ProgressChanged += FirmwareUploadProgress_ProgressChanged;
+
+            var task = Task.Run(() => Rp2040UploadHelper.UploadFirmware(uploadDrive, firmware.FilePathUf2, progress));
+            while (!task.IsCompleted)
+            {
+                task.Wait(100);
+                Application.DoEvents();
+            }
+
+            if (task.Result)
                 MessageBox.Show("Die Firmware wurde erfolgreich hochgeladen.", "Firmware-Upload erfolgreich", MessageBoxButtons.OK, MessageBoxIcon.Information);
             else
                 MessageBox.Show("Die Firmware konnte nicht hochgeladen werden.", "Firmware-Upload fehlgeschlagen", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            RefreshFirmwareTargets();
+        }
+
+        private void FirmwareUploadProgress_ProgressChanged(object? sender, KeyValuePair<long, long> e)
+        {
+            outFirmwareUploadProgress.Invoke(() => outFirmwareUploadProgress.Value = (int)(e.Key / (double)e.Value * 100));
         }
 
         private void inKnxprodPath_TextChanged(object sender, EventArgs e)

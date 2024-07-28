@@ -57,6 +57,7 @@
             inKnxprodPathSelect = new Button();
             inKnxprodBuild = new Button();
             inKnxprodPath = new TextBox();
+            outFirmwareUploadProgress = new ProgressBar();
             grpReleaseZip.SuspendLayout();
             grpReleaseGitHub.SuspendLayout();
             grpRelease.SuspendLayout();
@@ -238,6 +239,7 @@
             // 
             // grpFirmware
             // 
+            grpFirmware.Controls.Add(outFirmwareUploadProgress);
             grpFirmware.Controls.Add(lblFirmwareVariant);
             grpFirmware.Controls.Add(inFirmwareVariant);
             grpFirmware.Controls.Add(inFirmwareTargetRefresh);
@@ -247,7 +249,7 @@
             grpFirmware.Enabled = false;
             grpFirmware.Location = new Point(384, 8);
             grpFirmware.Name = "grpFirmware";
-            grpFirmware.Size = new Size(304, 160);
+            grpFirmware.Size = new Size(304, 176);
             grpFirmware.TabIndex = 6;
             grpFirmware.TabStop = false;
             grpFirmware.Text = "2. Schritt: Firmware hochladen";
@@ -309,7 +311,7 @@
             grpKnxprod.Controls.Add(inKnxprodBuild);
             grpKnxprod.Controls.Add(inKnxprodPath);
             grpKnxprod.Enabled = false;
-            grpKnxprod.Location = new Point(384, 176);
+            grpKnxprod.Location = new Point(384, 192);
             grpKnxprod.Name = "grpKnxprod";
             grpKnxprod.Size = new Size(304, 144);
             grpKnxprod.TabIndex = 7;
@@ -372,6 +374,13 @@
             inKnxprodPath.TabIndex = 2;
             inKnxprodPath.TextChanged += inKnxprodPath_TextChanged;
             // 
+            // outFirmwareUploadProgress
+            // 
+            outFirmwareUploadProgress.Location = new Point(16, 144);
+            outFirmwareUploadProgress.Name = "outFirmwareUploadProgress";
+            outFirmwareUploadProgress.Size = new Size(272, 16);
+            outFirmwareUploadProgress.TabIndex = 8;
+            // 
             // Main
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -431,5 +440,6 @@
         private Label lblKnxprodPath;
         private Label outKnxprodApp;
         private Label lblKnxprodApp;
+        private ProgressBar outFirmwareUploadProgress;
     }
 }
