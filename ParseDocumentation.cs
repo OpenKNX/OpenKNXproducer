@@ -9,6 +9,7 @@ namespace OpenKNXproducer
         static readonly Regex sRegexChapterId = new("[^a-zA-Z0-9-_ ÄäÖöÜüß\\n]");
         static readonly Regex sRegexChapterWhitespaces = new("--*");
         static readonly Regex sRegexChapterName = new("[#*]");
+        static readonly Regex sRegexLink = new(@"\[([^\]]*)\]\([^)]*\)");
         static readonly Dictionary<string, string> sCharReplace = new() { { " ", "-" }, { "\n", "-" }, { "Ä", "Ae" }, { "ä", "ae" }, { "Ö", "Oe" }, { "ö", "oe" }, { "Ü", "Ue" }, { "ü", "ue" }, { "ß", "ss" } };
         public static string GetChapterId(string iLine, string iPraefix)
         {
@@ -46,8 +47,10 @@ namespace OpenKNXproducer
         private static void WriteBaggage(string iPath, string iFileName, StringBuilder iBaggage)
         {
             // ensure right extension
+            string lBaggage = iBaggage.ToString();
+            lBaggage = sRegexLink.Replace(lBaggage, "$1");
             iFileName = Path.ChangeExtension(iFileName, "md");
-            File.WriteAllText(Path.Combine(iPath, iFileName), iBaggage.ToString(), Encoding.UTF8);
+            File.WriteAllText(Path.Combine(iPath, iFileName), lBaggage, Encoding.UTF8);
         }
 
         public static int ExportBaggages(string iWorkingDir, string iBaggageDir, string iDocFileName, string iPraefix)
@@ -137,7 +140,9 @@ namespace OpenKNXproducer
                     {
                         // we have a new chapter, but the old is still active, we save the old one
                         lActiveDoc = 0;
-                        Console.WriteLine("\n\n", lBaggageFileName);
+                        Console.WriteLine();
+                        Console.WriteLine();
+                        Console.WriteLine(lBaggageFileName);
                         WriteBaggage(iBaggageDir, lBaggageFileName, lBaggage);
                         lBaggage.Clear();
                     }
@@ -169,11 +174,14 @@ namespace OpenKNXproducer
                         lActiveSkip = 1;
                     }
                     Console.ForegroundColor = ConsoleColor.DarkCyan;
-                    Console.WriteLine("--> {0}.md\n", lBaggageFileName);
-                    string lChapterNameFormatted = $"### {lChapterName}\n";
+                    Console.WriteLine("--> {0}.md", lBaggageFileName);
+                    Console.WriteLine();
+                    string lChapterNameFormatted = $"### {lChapterName}";
                     lBaggage.AppendLine(lChapterNameFormatted);
+                    lBaggage.AppendLine();
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.WriteLine(lChapterNameFormatted);
+                    Console.WriteLine();
                     Console.ResetColor();
                 }
                 else if (lActiveDoc > 0)
@@ -183,7 +191,9 @@ namespace OpenKNXproducer
                     {
                         // chapter is ended
                         lActiveDoc = 0;
-                        Console.WriteLine("\n\n");
+                        Console.WriteLine("");
+                        Console.WriteLine("");
+                        Console.WriteLine("");
                         WriteBaggage(iBaggageDir, lBaggageFileName, lBaggage);
                         lBaggage.Clear();
                         continue;

@@ -842,7 +842,11 @@ namespace OpenKNXproducer
                     lValue = lValue.Replace("%SerialNumberEncoded%", lSerialNumberEncoded);
                     lValue = lValue.Replace("%VersionCheck%", lInlineData);
                     lValue = lValue.Replace("%VersionMessage%", lVersionMessage);
+                    // TODO: solve this in a more generic way
                     lValue = lValue.Replace("%MaxKoNumber%", sMaxKoNumber.ToString());
+                    lValue = lValue.Replace("-%MaxKoNumber%", (-sMaxKoNumber).ToString());
+                    lValue = lValue.Replace("%MaxKoNumber-1%", (sMaxKoNumber - 1).ToString());
+                    lValue = lValue.Replace("-%MaxKoNumber-1%", (-sMaxKoNumber + 1).ToString());
                     lNode.Value = lValue;
                 }
             }
@@ -1843,7 +1847,12 @@ namespace OpenKNXproducer
                 {
                     ReplaceDocumentStrings(lInclude.mDocument, "%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
                     if (lInclude.OriginalChannelCount > 0)
+                    {
+                        // TODO: Improve this in a more generic way
                         ReplaceDocumentStrings(lInclude.mDocument, "%N%", lInclude.OriginalChannelCount.ToString());
+                        ReplaceDocumentStrings(lInclude.mDocument, "%N-1%", (lInclude.OriginalChannelCount - 1).ToString());
+                        ReplaceDocumentStrings(lInclude.mDocument, "-%N-%", (-lInclude.OriginalChannelCount + 1).ToString());
+                    }
                 }
                 // here we do template processing and repeat the template as many times as
                 // the Channels parameter in header file

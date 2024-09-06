@@ -1271,7 +1271,10 @@ namespace OpenKNXproducer
                     System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
 
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("Output of {0} successful", iKnxprodFileName);
+                // derive version from appId
+                int lVersion = int.Parse(appId.Substring(14, 1), System.Globalization.NumberStyles.HexNumber);
+                int lRevision = int.Parse(appId.Substring(15, 1), System.Globalization.NumberStyles.HexNumber);
+                Console.WriteLine("Output of {0} (version {1}.{2}) successful", iKnxprodFileName, lVersion, lRevision);
                 Console.ResetColor();
                 return 0;
             }
