@@ -134,7 +134,7 @@ static class ExtendedEtsSupport
         foreach (XmlNode lNode in lParameters)
         {
             string lAccess = lNode.NodeAttr("Access");
-            if (lAccess != "None" && lAccess != "ReadOnly")
+            if (lAccess != "None" && lAccess != "Read")
             {
                 XmlNode lType = ProcessInclude.ParameterType(lNode.NodeAttr("ParameterType"), false);
                 string lTypeName = "";
