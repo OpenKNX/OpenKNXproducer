@@ -161,7 +161,7 @@ static class ExtendedEtsSupport
                     if (lParameterRefs.Count > 1 || (lParameterRefs.Count == 1 && lRefSuffix != 1))
                         lName = $"{lName}:{lRefSuffix}";
                     // determine default
-                    if (lDefault.Contains('%'))
+                    if (lDefault.StartsWith('%') && lDefault.EndsWith('%'))
                         lDefault = null;
                     else if ("TypeNumber,TypeRestriction".Contains(lTypeName))
                     {
