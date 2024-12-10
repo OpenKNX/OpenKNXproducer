@@ -18,18 +18,19 @@ namespace OpenKNXproducer.Signing
             //with HashStore Method
             Assembly asm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.XmlSigning.dll"));
 
-            string asmVersion = asm.GetName().Version.ToString();
-            if(asm.GetName().Version.ToString().StartsWith("6.2.")) { //ab ETS6.2
+            System.Version lVersion = asm.GetName().Version;
+            // string asmVersion = asm.GetName().Version.ToString();
+            if(lVersion >= new System.Version("6.2.0")) { //ab ETS6.2
                 Assembly objm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.Common.dll"));
                 System.Type scheme = objm.GetType("Knx.Ets.Common.Schema.KnxXmlSchemaVersion");
                 object knxSchemaVersion = Enum.ToObject(scheme, nsVersion);
                 _type = asm.GetType("Knx.Ets.XmlSigning.Signer.ApplicationProgramHasher");
                 _instance = Activator.CreateInstance(_type, applProgFile, mapBaggageIdToFileIntegrity, patchIds, knxSchemaVersion);
-            } else if(asm.GetName().Version.ToString().StartsWith("6.")) { //ab ETS6.0/6.1
+            } else if(lVersion >= new System.Version("6.0.0")) { //ab ETS6.0/6.1
                 Assembly objm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.Xml.ObjectModel.dll"));
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
                 _type = asm.GetType("Knx.Ets.XmlSigning.Signer.ApplicationProgramHasher");
-                if (asmVersion.StartsWith("6.0"))
+                if (lVersion < new System.Version("6.1.0)"))
                     _type = asm.GetType("Knx.Ets.XmlSigning.ApplicationProgramHasher");
                 _instance = Activator.CreateInstance(_type, applProgFile, mapBaggageIdToFileIntegrity, patchIds, knxSchemaVersion);
             } else { //für ETS5 und früher

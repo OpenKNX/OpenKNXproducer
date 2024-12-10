@@ -236,10 +236,10 @@ Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Linux       ..." -a
 
 # Copy publish version to release folder structure
 Write-Host "- Copy publish openKNXproducer binaries to release folder structure ..." -ForegroundColor Green -NoNewline
-Copy-Item bin/Debug/net6.0/win-x64/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x64.exe
-Copy-Item bin/Debug/net6.0/win-x86/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x86.exe
-Copy-Item bin/Debug/net6.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer
-Copy-Item bin/Debug/net6.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer
+Copy-Item bin/Debug/net8.0/win-x64/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x64.exe
+Copy-Item bin/Debug/net8.0/win-x86/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x86.exe
+Copy-Item bin/Debug/net8.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer
+Copy-Item bin/Debug/net8.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer
 Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
 
 
