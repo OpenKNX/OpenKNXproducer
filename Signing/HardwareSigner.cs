@@ -32,7 +32,7 @@ namespace OpenKNXproducer.Signing
                 // registrationKey= Knx.Ets.Xml.ObjectModel.RegistrationKey.knxconv (is an enum)
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
                 _type = asm.GetType("Knx.Ets.XmlSigning.Signer.HardwareSigner");
-                if (lVersion < new System.Version("6.1.0)"))
+                if (lVersion < new System.Version("6.1.0"))
                     _type = asm.GetType("Knx.Ets.XmlSigning.HardwareSigner");
                 _instance = Activator.CreateInstance(_type, hardwareFile, applProgIdMappings, applProgHashes, patchIds, registrationKey, knxSchemaVersion);
             } else {

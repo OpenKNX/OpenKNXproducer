@@ -26,7 +26,7 @@ namespace OpenKNXproducer.Signing
                 Assembly objm = Assembly.LoadFrom(Path.Combine(basePath, "Knx.Ets.Xml.ObjectModel.dll"));
                 object knxSchemaVersion = Enum.ToObject(objm.GetType("Knx.Ets.Xml.ObjectModel.KnxXmlSchemaVersion"), nsVersion);
                 _type = asm.GetType("Knx.Ets.XmlSigning.Signer.CatalogIdPatcher");
-                if (lVersion < new System.Version("6.1.0)"))
+                if (lVersion < new System.Version("6.1.0"))
                     _type = asm.GetType("Knx.Ets.XmlSigning.CatalogIdPatcher");
                 _instance = Activator.CreateInstance(_type, catalogFile, hardware2ProgramIdMapping, knxSchemaVersion);
             } else {
