@@ -226,6 +226,7 @@ New-Item -Path release/tools/Windows -ItemType Directory | Out-Null
 New-Item -Path release/tools/MacOS -ItemType Directory | Out-Null
 New-Item -Path release/tools/Linux -ItemType Directory | Out-Null
 New-Item -Path release/tools/bossac -ItemType Directory | Out-Null
+New-Item -Path release/tools/esptools -ItemType Directory | Out-Null
 
 # Build OpenKNXproducer
 Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj"
@@ -249,6 +250,13 @@ Copy-Item -Path tools/bossac/Windows -Destination release/tools/bossac/Windows -
 Copy-Item -Path tools/bossac/MacOS -Destination release/tools/bossac/MacOS -Recurse
 Copy-Item -Path tools/bossac/Linux -Destination release/tools/bossac/Linux -Recurse
 Copy-Item tools/bossac/LICENSE.txt release/tools/bossac/LICENSE.txt
+Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
+
+# Copy esptools  tool to the release package into the dedicated folder 
+Write-Host "- Copy external esp tools to release folder structure ..." -ForegroundColor Green -NoNewline
+Copy-Item -Path tools/esptools/Windows -Destination release/tools/esptools/Windows -Recurse
+Copy-Item tools/esptools/LICENSE release/tools/esptools/LICENSE
+Copy-Item tools/esptools/Readme.md release/tools/esptools/Readme.md
 Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
 
 

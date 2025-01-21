@@ -121,6 +121,30 @@
         },
         "ExecuteCommand1": "chmod +x /usr/local/bin/bossac"
       }
+    },{
+      "Name": "esptools",
+      "Windows": {
+        "x64": {
+          "FilesAndFolders": {
+            "esptool_exe": {
+              "SourcePath": "tools\\esptools\\Windows\\x64\\esptool.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\esptool.exe"
+            },
+            "espota_exe": {
+              "SourcePath": "tools\\esptools\\Windows\\x64\\espota.exe",
+              "DestinationPath": "$env:USERPROFILE\\bin\\espota.exe"
+            },
+            "esptools_readme": {
+              "SourcePath": "tools\\esptools\\Readme.md",
+              "DestinationPath": "$env:USERPROFILE\\bin\\esptools\\Readme.md"
+            },
+            "esptools_license": {
+              "SourcePath": "tools\\esptools\\LICENSE",
+              "DestinationPath": "$env:USERPROFILE\\bin\\esptools\\LICENSE"
+            }
+          }
+        }
+      }
     }
   ]
 }
