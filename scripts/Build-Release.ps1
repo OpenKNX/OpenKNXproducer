@@ -254,7 +254,7 @@ Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
 
 # Copy esptools  tool to the release package into the dedicated folder 
 Write-Host "- Copy external esp tools to release folder structure ..." -ForegroundColor Green -NoNewline
-Copy-Item -Path tools/esptools/Windows -Destination release/tools/esptools/Windows -Recurse
+Copy-Item -Path tools/esptools/Windows -Destination release/tools/esptools/Windows/ -Recurse
 Copy-Item tools/esptools/LICENSE release/tools/esptools/LICENSE
 Copy-Item tools/esptools/Readme.md release/tools/esptools/Readme.md
 Write-Host "`t$checkmarkChar Done" -ForegroundColor Green

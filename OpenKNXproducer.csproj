@@ -18,6 +18,9 @@
     <EmbeddedResource Include="xml/NewDevice.xml" />
     <EmbeddedResource Include="xml/TemplateApplication.xml" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign.csproj" />
+  </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>

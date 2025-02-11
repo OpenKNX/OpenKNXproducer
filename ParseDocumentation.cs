@@ -6,27 +6,23 @@ namespace OpenKNXproducer
     public class ParseDocumentation
     {
 
-        static readonly Regex sRegexChapterId = new("[^a-zA-Z0-9-_ ÄäÖöÜüß\\n]");
-        static readonly Regex sRegexChapterWhitespaces = new("--*");
-        static readonly Regex sRegexChapterName = new("[#*]");
-        static readonly Regex sRegexLink = new(@"\[([^\]]*)\]\([^)]*\)");
         static readonly Dictionary<string, string> sCharReplace = new() { { " ", "-" }, { "\n", "-" }, { "Ä", "Ae" }, { "ä", "ae" }, { "Ö", "Oe" }, { "ö", "oe" }, { "Ü", "Ue" }, { "ü", "ue" }, { "ß", "ss" } };
         public static string GetChapterId(string iLine, string iPraefix)
         {
             // get rid of forbidden characters
-            string lResult = sRegexChapterId.Replace(iLine, "");
+            string lResult = FastRegex.DocChapterId().Replace(iLine, "");
             // get rid of whitespaces at start and end
             lResult = lResult.Trim();
             foreach (var lEntry in sCharReplace)
                 lResult = lResult.Replace(lEntry.Key, lEntry.Value);
             if (iPraefix != "") lResult = iPraefix + "-" + lResult;
-            lResult = sRegexChapterWhitespaces.Replace(lResult, "-");
+            lResult = FastRegex.DocChapterWhitespaces().Replace(lResult, "-");
             return lResult;
         }
 
         private static string GetChapterName(string iLine)
         {
-            string lResult = sRegexChapterName.Replace(iLine, "").Trim();
+            string lResult = FastRegex.DocChapterName().Replace(iLine, "").Trim();
             return lResult;
         }
 
@@ -48,7 +44,7 @@ namespace OpenKNXproducer
         {
             // ensure right extension
             string lBaggage = iBaggage.ToString();
-            lBaggage = sRegexLink.Replace(lBaggage, "$1");
+            lBaggage = FastRegex.DocLink().Replace(lBaggage, "$1");
             iFileName = Path.ChangeExtension(iFileName, "md");
             File.WriteAllText(Path.Combine(iPath, iFileName), lBaggage, Encoding.UTF8);
         }
@@ -62,18 +58,10 @@ namespace OpenKNXproducer
             StringBuilder lBaggage = new();
 
             using var lFile = File.OpenText(iDocFileName);
-            Regex lRegexDocStart = new("<!--\\s*DOC\\s*(HelpContext=\"(.*)\")?\\s*-->");
-            Regex lRegexDocEnd = new("<!--\\s*DOCEND\\s*-->");
             int lActiveDoc = 0;
-            Regex lRegexDocSkip = new("<!--\\s*DOC\\s*(Skip=\"(.*)\")\\s*-->");
             int lActiveSkip = 0;
-            Regex lRegexDocContentStart = new("<!--\\s*DOCCONTENT");
-            Regex lRegexDocContentEnd = new("\\s*DOCCONTENT\\s*-->");
             bool lActiveContent = false;
-            Regex lRegexCommentStart = new("^(?=\\s*<!--\\s)(?:(?!DOC).)*$");
-            Regex lRegexCommentEnd = new(".*-->\\s*");
             bool lActiveComment = false;
-            Regex lRegexCleanupTitle = new(@"##(#?#?#?)\s*\*\*(.*)\*\*");
 
             string lLine = "";
             while (!lFile.EndOfStream)
@@ -90,7 +78,7 @@ namespace OpenKNXproducer
                 }
                 if (lActiveSkip == 0)
                 {
-                    lMatch = lRegexDocSkip.Match(lLine);
+                    lMatch = FastRegex.DocSkip().Match(lLine);
                     if (lMatch.Success)
                     {
                         lActiveSkip = int.Parse(lMatch.Groups[2].Value);
@@ -100,14 +88,14 @@ namespace OpenKNXproducer
                 // skip commented lines
                 if (!lActiveComment)
                 {
-                    lMatch = lRegexCommentStart.Match(lLine);
+                    lMatch = FastRegex.DocCommentStart().Match(lLine);
                     lActiveComment = lMatch.Success;
                 }
                 if (lActiveComment)
                 {
                     if (!lActiveContent)
                     {
-                        lMatch = lRegexDocContentStart.Match(lLine);
+                        lMatch = FastRegex.DocContentStart().Match(lLine);
                         if (lMatch.Success)
                         {
                             lActiveContent = true;
@@ -116,14 +104,14 @@ namespace OpenKNXproducer
                     }
                     if (lActiveContent)
                     {
-                        lMatch = lRegexDocContentEnd.Match(lLine);
+                        lMatch = FastRegex.DocContentEnd().Match(lLine);
                         if (lMatch.Success)
                         {
                             lActiveContent = false;
                             continue;
                         }
                     }
-                    lMatch = lRegexCommentEnd.Match(lLine);
+                    lMatch = FastRegex.DocCommentEnd().Match(lLine);
                     if (lMatch.Success)
                     {
                         lActiveComment = false;
@@ -133,7 +121,7 @@ namespace OpenKNXproducer
                         continue;
                 }
                 // process document lines
-                lMatch = lRegexDocStart.Match(lLine);
+                lMatch = FastRegex.DocStart().Match(lLine);
                 if (lMatch.Success)
                 {
                     if (lActiveDoc > 0)
@@ -186,7 +174,7 @@ namespace OpenKNXproducer
                 }
                 else if (lActiveDoc > 0)
                 {
-                    lMatch = lRegexDocEnd.Match(lLine);
+                    lMatch = FastRegex.DocEnd().Match(lLine);
                     if (lFile.EndOfStream || lMatch.Success || (lLine.StartsWith("#") && lActiveDoc >= CountCharAtStart(lLine, '#')))
                     {
                         // chapter is ended
@@ -200,7 +188,7 @@ namespace OpenKNXproducer
                     }
                     if (!lActiveContent)
                     {
-                        lMatch = lRegexDocContentStart.Match(lLine);
+                        lMatch = FastRegex.DocContentStart().Match(lLine);
                         if (lMatch.Success)
                         {
                             lActiveContent = true;
@@ -209,7 +197,7 @@ namespace OpenKNXproducer
                     }
                     if (lActiveContent)
                     {
-                        lMatch = lRegexDocContentEnd.Match(lLine);
+                        lMatch = FastRegex.DocContentEnd().Match(lLine);
                         if (lMatch.Success)
                         {
                             lActiveContent = false;
@@ -220,7 +208,7 @@ namespace OpenKNXproducer
 
                 if (lActiveDoc > 0 && lActiveSkip == 0)
                 {
-                    lMatch = lRegexCleanupTitle.Match(lLine);
+                    lMatch = FastRegex.DocCleanupTitle().Match(lLine);
                     if (lMatch.Success)
                         lLine = lLine.Replace("**", "");
                     lBaggage.AppendLine(lLine);

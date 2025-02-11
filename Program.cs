@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
-using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
-using OpenKNXproducer.Signing;
+// using OpenKNXproducer.Signing;
 using System.Globalization;
 
 namespace OpenKNXproducer
@@ -521,7 +517,7 @@ namespace OpenKNXproducer
 
             lCheck.Start("- RefId-Id-Comparison...");
             lNodes = lXml.SelectNodes("//ParameterRef|//ComObjectRef");
-            Regex regex = new("(_O-|_UP-|_P-|_R-)");
+            Regex regex = FastRegex.ParamAndComobjectRef();
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
@@ -542,7 +538,7 @@ namespace OpenKNXproducer
 
             lCheck.Start("- RefId-RefRef-Comparison...");
             lNodes = lXml.SelectNodes("//ParameterRefRef|//ComObjectRefRef");
-            Regex regex1 = new Regex("(_UP-|_P-)");
+            Regex regex1 = FastRegex.ParamAndComobjectRefRef();
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.NodeAttr("RefId");
@@ -566,12 +562,13 @@ namespace OpenKNXproducer
             string lRefNs = lApplicationId; //.Replace("M-00FA_A", "");
             if (lRefNs.StartsWith("M-")) lRefNs = lRefNs.Substring(8);
             // check all nodes according to refid
+            Regex regex3 = FastRegex.IdNamespace();
             lNodes = lXml.SelectNodes("//*/@*[string-length() > '13']");
             foreach (XmlNode lNode in lNodes)
             {
                 if (lNode.Value != null)
                 {
-                    var lMatch = Regex.Match(lNode.Value, "-[0-9A-F]{4}-[0-9A-F]{2}-[0-9A-F]{4}");
+                    var lMatch = regex3.Match(lNode.Value);
                     if (lMatch.Success)
                     {
                         if (lMatch.Value != lRefNs)
@@ -738,7 +735,7 @@ namespace OpenKNXproducer
 
             lCheck.Start("- Not replaced config entries...");
             lNodes = lXml.SelectNodes("//@*[contains(.,'%')]");
-            Regex lConfigName = new(@"%[A-Za-z0-9\-_]*%");
+            Regex lConfigName = FastRegex.ConfigName();
             foreach (XmlAttribute lAttr in lNodes)
             {
                 // if (lAttr.Value.Contains('%'))
@@ -754,11 +751,11 @@ namespace OpenKNXproducer
             XmlNode lScript = lXml.SelectSingleNode("//Script");
             if (lScript != null)
             {
-                Regex lFindFunctions = new(@"(//[ \t]*)?function[ \t\t]*([A-Za-z0-9_]*)\s*\(");
+                Regex lFindFunctions = FastRegex.ScriptMethodName();
                 MatchCollection lFunctions = lFindFunctions.Matches(lScript.InnerText);
                 XmlNodeList lAttributes = lXml.SelectNodes("//Button/@EventHandler|//ParameterCalculation/@LRTransformationFunc|//ParameterCalculation/@RLTransformationFunc|//ParameterValidation/@ValidationFunc");
                 // speedup: transfer function call into a Hashtable
-                Dictionary<string, bool> lFunctionCalls = new();
+                Dictionary<string, bool> lFunctionCalls = [];
                 foreach (XmlNode lAttribute in lAttributes)
                     if (!lFunctionCalls.ContainsKey(lAttribute.Value))
                         lFunctionCalls[lAttribute.Value] = false;
@@ -805,9 +802,12 @@ namespace OpenKNXproducer
             {
                 // init global parameter types cache
                 XmlNodeList lParameterTypeNodes = iTargetNode.SelectNodes("//ParameterType[@Id]");
-                sParameterTypes = new();
+                sParameterTypes = [];
                 foreach (XmlNode lNode in lParameterTypeNodes)
-                    sParameterTypes.Add(lNode.NodeAttr("Id"), lNode);
+                    if (sParameterTypes.ContainsKey(lNode.NodeAttr("Id")))
+                        iCheck.WriteFail("ParameterType {0} is defined more than once", lNode.NodeAttr("Id"));
+                    else
+                        sParameterTypes.Add(lNode.NodeAttr("Id"), lNode);
             }
             string lParameterType = iParameterNode.NodeAttr("ParameterType");
             if (lParameterType == "")
@@ -949,7 +949,7 @@ namespace OpenKNXproducer
                                 iCheck.WriteFail("String Length of {0} can not be greater than {2}, length is '{1}'", iMessage, maxSize, iValue.Length);
                             break;
                         case "TypeIPAddress":
-                            Regex lRegex = new(@"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}");
+                            Regex lRegex = FastRegex.IpAddress();
                             if (!lRegex.IsMatch(iValue))
                                 iCheck.WriteFail($"Value {iValue} for IPAddress is not in the expected format xxx.xxx.xxx.xxx");
                             break;
@@ -1054,7 +1054,7 @@ namespace OpenKNXproducer
             if (string.IsNullOrEmpty(iXsdFileName) && iAutoXsd)
             {
                 // we try to find a schema in the xml document
-                Regex lRegex = new Regex("<\\?xml-model.* href=\"(.*.xsd)\" ");
+                Regex lRegex = FastRegex.XmlSchema();
                 Match lMatch = lRegex.Match(lContent);
                 iXsdFileName = lMatch.Groups[1].Value;
                 // in case of an -editor.xsd, we use the original xsd
@@ -1094,197 +1094,257 @@ namespace OpenKNXproducer
             return lError;
         }
 
-        private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iBaggageName, string iXsdFileName, bool iIsDebug, bool iAutoXsd)
+        private static int ExportKnxprod(string iWorkingDir, string iKnxprodFileName, string iTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd, string iXml = null)
         {
-            if (iPathETS == "")
-            {
-                Console.WriteLine("No ETS found, skipped knxprod creation!");
-                return 0;
-            }
+            // if (iPathETS == "")
+            // {
+            //     Console.WriteLine("No ETS found, skipped knxprod creation!");
+            //     return 0;
+            // }
+            if (ValidateXsd(iWorkingDir, iTempXmlFileName, iTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
+            // delete output in case it exists
+            File.Delete(iKnxprodFileName);
+            int lResult = 0;
             try
             {
-                if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
-
-                Console.WriteLine("Generating knxprod file...");
-
-                XDocument xdoc = null;
-                string xmlContent = File.ReadAllText(lTempXmlFileName);
-                xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
-
-                XNode lXmlModel = xdoc.FirstNode;
-                if (lXmlModel.NodeType == XmlNodeType.ProcessingInstruction)
-                    lXmlModel.Remove();
-
-                string ns = xdoc.Root.Name.NamespaceName;
-                XElement xmanu = xdoc.Root.Element(XName.Get("ManufacturerData", ns)).Element(XName.Get("Manufacturer", ns));
-
-                string manuId = xmanu.Attribute("RefId").Value;
-                string localPath = AppDomain.CurrentDomain.BaseDirectory;
-                if (Directory.Exists(Path.Combine(localPath, "Temp")))
-                    Directory.Delete(Path.Combine(localPath, "Temp"), true);
-
-                Directory.CreateDirectory(Path.Combine(localPath, "Temp"));
-                Directory.CreateDirectory(Path.Combine(localPath, "Temp", manuId)); //Get real Manu
-
-
-                XElement xcata = xmanu.Element(XName.Get("Catalog", ns));
-                XElement xhard = xmanu.Element(XName.Get("Hardware", ns));
-                XElement xappl = xmanu.Element(XName.Get("ApplicationPrograms", ns));
-                XElement xbagg = xmanu.Element(XName.Get("Baggages", ns));
-
-                List<XElement> xcataL = new List<XElement>();
-                List<XElement> xhardL = new List<XElement>();
-                List<XElement> xapplL = new List<XElement>();
-                List<XElement> xbaggL = new List<XElement>();
-                XElement xlangs = xmanu.Element(XName.Get("Languages", ns));
-
-                if (xlangs != null)
+                var lTask = OpenKNX.Toolbox.Sign.SignHelper.ExportKnxprodAsync(iWorkingDir, iKnxprodFileName, iTempXmlFileName, iXsdFileName, iIsDebug, iAutoXsd);
+                Console.WriteLine();
+                Console.Write("Generating knxprod file...");
+                Thread.Sleep(500);
+                for (int i = 0; i < 200; i++)
                 {
-                    xlangs.Remove();
-                    foreach (XElement xTrans in xlangs.Descendants(XName.Get("TranslationUnit", ns)).ToList())
-                    {
-                        DocumentCategory lCategory = GetDocumentCategory(xTrans);
-                        switch (lCategory)
-                        {
-                            case DocumentCategory.Catalog:
-                                AddTranslationUnit(xTrans, xcataL, ns);
-                                break;
-                            case DocumentCategory.Hardware:
-                                AddTranslationUnit(xTrans, xhardL, ns);
-                                break;
-                            case DocumentCategory.Application:
-                                AddTranslationUnit(xTrans, xapplL, ns);
-                                break;
-                            default:
-                                throw new Exception("Unknown Translation Type: " + lCategory.ToString());
-                        }
-
-                    }
+                    Console.Write(".");
+                    Thread.Sleep(500);
+                    if (lTask.IsCanceled || lTask.IsCompleted)  break;
                 }
-                xhard.Remove();
-                if (xbagg != null) xbagg.Remove();
+                Console.WriteLine();
+                Console.WriteLine();
+                lResult = lTask.IsCompleted ? 0 : 1;                
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("Error duriing knxprod file generation:");
+                Console.WriteLine(e.ToString());
+                lResult = 1;
+            }
 
-                //Save Catalog
-                xappl.Remove();
-                if (xcataL.Count > 0)
-                {
-                    xlangs.Elements().Remove();
-                    foreach (XElement xlang in xcataL)
-                        xlangs.Add(xlang);
-                    xmanu.Add(xlangs);
-                }
-                xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
-                if (xcataL.Count > 0) xlangs.Remove();
-                xcata.Remove();
+            // if (!iIsDebug)
+            //     System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
 
-                // Save Hardware
-                xmanu.Add(xhard);
-                if (xhardL.Count > 0)
-                {
-                    xlangs.Elements().Remove();
-                    foreach (XElement xlang in xhardL)
-                        xlangs.Add(xlang);
-                    xmanu.Add(xlangs);
-                }
-                xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
-                if (xhardL.Count > 0) xlangs.Remove();
-                xhard.Remove();
-
-                if (xbagg != null)
-                {
-                    // Save Baggages
-                    xmanu.Add(xbagg);
-                    if (xbaggL.Count > 0)
-                    {
-                        xlangs.Elements().Remove();
-                        foreach (XElement xlang in xbaggL)
-                            xlangs.Add(xlang);
-                        xmanu.Add(xlangs);
-                    }
-                    xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Baggages.xml"));
-                    if (xbaggL.Count > 0) xlangs.Remove();
-                    xbagg.Remove();
-                }
-
-                xmanu.Add(xappl);
-                if (xapplL.Count > 0)
-                {
-                    xlangs.Elements().Remove();
-                    foreach (XElement xlang in xapplL)
-                        xlangs.Add(xlang);
-                    xmanu.Add(xlangs);
-                }
-                string appId = xappl.Elements(XName.Get("ApplicationProgram", ns)).First().Attribute("Id").Value;
-                xdoc.Save(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
-                if (xapplL.Count > 0) xlangs.Remove();
-
-                // Copy baggages to output dir
-                string lSourceBaggageName = Path.Combine(iWorkingDir, iBaggageName);
-                var lSourceBaggageDir = new DirectoryInfo(lSourceBaggageName);
-                if (lSourceBaggageDir.Exists)
-                    lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
-
-                IDictionary<string, string> applProgIdMappings = new Dictionary<string, string>();
-                IDictionary<string, string> applProgHashes = new Dictionary<string, string>();
-                IDictionary<string, string> mapBaggageIdToFileIntegrity = new Dictionary<string, string>(50);
-
-                FileInfo hwFileInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
-                FileInfo catalogFileInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
-                FileInfo appInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
-
-                int nsVersion = int.Parse(ns.Substring(ns.LastIndexOf('/') + 1));
-                ApplicationProgramHasher aph = new ApplicationProgramHasher(appInfo, mapBaggageIdToFileIntegrity, iPathETS, nsVersion, true);
-                aph.Hash();
-
-                applProgIdMappings.Add(aph.OldApplProgId, aph.NewApplProgId);
-                if (!applProgHashes.ContainsKey(aph.NewApplProgId))
-                    applProgHashes.Add(aph.NewApplProgId, aph.GeneratedHashString);
-
-                HardwareSigner hws = new HardwareSigner(hwFileInfo, applProgIdMappings, applProgHashes, iPathETS, nsVersion, true);
-                hws.SignFile();
-                IDictionary<string, string> hardware2ProgramIdMapping = hws.OldNewIdMappings;
-
-                CatalogIdPatcher cip = new CatalogIdPatcher(catalogFileInfo, hardware2ProgramIdMapping, iPathETS, nsVersion);
-                cip.Patch();
-
-                XmlSigning.SignDirectory(Path.Combine(localPath, "Temp", manuId), iPathETS);
-
-                Directory.CreateDirectory(Path.Combine(localPath, "Masters"));
-                ns = ns.Substring(ns.LastIndexOf("/") + 1);
-                // Console.WriteLine("localPath is {0}", localPath);
-                if (!File.Exists(Path.Combine(localPath, "Masters", $"project-{ns}.xml")))
-                {
-                    // var client = new System.Net.WebClient();
-                    // client.DownloadFile($"https://update.knx.org/data/XML/project-{ns}/knx_master.xml", Path.Combine(localPath, "Masters", $"project-{ns}.xml"));
-                    HttpClient client = new HttpClient();
-                    var task = client.GetStringAsync($"https://update.knx.org/data/XML/project-{ns}/knx_master.xml");
-                    while (!task.IsCompleted) { }
-                    File.WriteAllText(Path.Combine(localPath, "Masters", $"project-{ns}.xml"), task.Result.ToString());
-                }
-
-                File.Copy(Path.Combine(localPath, "Masters", $"project-{ns}.xml"), Path.Combine(localPath, "Temp", $"knx_master.xml"));
-                if (File.Exists(iKnxprodFileName)) File.Delete(iKnxprodFileName);
-                System.IO.Compression.ZipFile.CreateFromDirectory(Path.Combine(localPath, "Temp"), iKnxprodFileName);
-
-
-                if (!iIsDebug)
-                    System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
-
+            if (lResult == 0) {
                 Console.ForegroundColor = ConsoleColor.Green;
                 // derive version from appId
-                int lVersion = int.Parse(appId.Substring(14, 1), System.Globalization.NumberStyles.HexNumber);
-                int lRevision = int.Parse(appId.Substring(15, 1), System.Globalization.NumberStyles.HexNumber);
+                string lXml;
+                if (iXml == null) {
+                    lXml = File.ReadAllText(iTempXmlFileName);
+                } else {
+                    lXml = iXml;
+                }
+                Regex rs = FastRegex.ApplicationId();
+                Match match = rs.Match(lXml);
+                var appId = match.Groups[1].Value;
+                int lVersion = int.Parse(appId.Substring(0, 1), System.Globalization.NumberStyles.HexNumber);
+                int lRevision = int.Parse(appId.Substring(1, 1), System.Globalization.NumberStyles.HexNumber);
                 Console.WriteLine("Output of {0} (version {1}.{2}) successful", iKnxprodFileName, lVersion, lRevision);
                 Console.ResetColor();
-                return 0;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("ETS-Error during knxprod creation:");
-                Console.WriteLine(ex.ToString());
-                return 1;
-            }
+            return lResult;
         }
+
+        // private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iBaggageName, string iXsdFileName, bool iIsDebug, bool iAutoXsd)
+        // {
+            
+        //     if (iPathETS == "")
+        //     {
+        //         Console.WriteLine("No ETS found, skipped knxprod creation!");
+        //         return 0;
+        //     }
+        //     try
+        //     {
+        //         if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
+
+        //         Console.WriteLine("Generating knxprod file...");
+
+        //         XDocument xdoc = null;
+        //         string xmlContent = File.ReadAllText(lTempXmlFileName);
+        //         xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
+
+        //         XNode lXmlModel = xdoc.FirstNode;
+        //         if (lXmlModel.NodeType == XmlNodeType.ProcessingInstruction)
+        //             lXmlModel.Remove();
+
+        //         string ns = xdoc.Root.Name.NamespaceName;
+        //         XElement xmanu = xdoc.Root.Element(XName.Get("ManufacturerData", ns)).Element(XName.Get("Manufacturer", ns));
+
+        //         string manuId = xmanu.Attribute("RefId").Value;
+        //         string localPath = AppDomain.CurrentDomain.BaseDirectory;
+        //         if (Directory.Exists(Path.Combine(localPath, "Temp")))
+        //             Directory.Delete(Path.Combine(localPath, "Temp"), true);
+
+        //         Directory.CreateDirectory(Path.Combine(localPath, "Temp"));
+        //         Directory.CreateDirectory(Path.Combine(localPath, "Temp", manuId)); //Get real Manu
+
+
+        //         XElement xcata = xmanu.Element(XName.Get("Catalog", ns));
+        //         XElement xhard = xmanu.Element(XName.Get("Hardware", ns));
+        //         XElement xappl = xmanu.Element(XName.Get("ApplicationPrograms", ns));
+        //         XElement xbagg = xmanu.Element(XName.Get("Baggages", ns));
+
+        //         List<XElement> xcataL = new List<XElement>();
+        //         List<XElement> xhardL = new List<XElement>();
+        //         List<XElement> xapplL = new List<XElement>();
+        //         List<XElement> xbaggL = new List<XElement>();
+        //         XElement xlangs = xmanu.Element(XName.Get("Languages", ns));
+
+        //         if (xlangs != null)
+        //         {
+        //             xlangs.Remove();
+        //             foreach (XElement xTrans in xlangs.Descendants(XName.Get("TranslationUnit", ns)).ToList())
+        //             {
+        //                 DocumentCategory lCategory = GetDocumentCategory(xTrans);
+        //                 switch (lCategory)
+        //                 {
+        //                     case DocumentCategory.Catalog:
+        //                         AddTranslationUnit(xTrans, xcataL, ns);
+        //                         break;
+        //                     case DocumentCategory.Hardware:
+        //                         AddTranslationUnit(xTrans, xhardL, ns);
+        //                         break;
+        //                     case DocumentCategory.Application:
+        //                         AddTranslationUnit(xTrans, xapplL, ns);
+        //                         break;
+        //                     default:
+        //                         throw new Exception("Unknown Translation Type: " + lCategory.ToString());
+        //                 }
+
+        //             }
+        //         }
+        //         xhard.Remove();
+        //         if (xbagg != null) xbagg.Remove();
+
+        //         //Save Catalog
+        //         xappl.Remove();
+        //         if (xcataL.Count > 0)
+        //         {
+        //             xlangs.Elements().Remove();
+        //             foreach (XElement xlang in xcataL)
+        //                 xlangs.Add(xlang);
+        //             xmanu.Add(xlangs);
+        //         }
+        //         xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
+        //         if (xcataL.Count > 0) xlangs.Remove();
+        //         xcata.Remove();
+
+        //         // Save Hardware
+        //         xmanu.Add(xhard);
+        //         if (xhardL.Count > 0)
+        //         {
+        //             xlangs.Elements().Remove();
+        //             foreach (XElement xlang in xhardL)
+        //                 xlangs.Add(xlang);
+        //             xmanu.Add(xlangs);
+        //         }
+        //         xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
+        //         if (xhardL.Count > 0) xlangs.Remove();
+        //         xhard.Remove();
+
+        //         if (xbagg != null)
+        //         {
+        //             // Save Baggages
+        //             xmanu.Add(xbagg);
+        //             if (xbaggL.Count > 0)
+        //             {
+        //                 xlangs.Elements().Remove();
+        //                 foreach (XElement xlang in xbaggL)
+        //                     xlangs.Add(xlang);
+        //                 xmanu.Add(xlangs);
+        //             }
+        //             xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Baggages.xml"));
+        //             if (xbaggL.Count > 0) xlangs.Remove();
+        //             xbagg.Remove();
+        //         }
+
+        //         xmanu.Add(xappl);
+        //         if (xapplL.Count > 0)
+        //         {
+        //             xlangs.Elements().Remove();
+        //             foreach (XElement xlang in xapplL)
+        //                 xlangs.Add(xlang);
+        //             xmanu.Add(xlangs);
+        //         }
+        //         string appId = xappl.Elements(XName.Get("ApplicationProgram", ns)).First().Attribute("Id").Value;
+        //         xdoc.Save(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
+        //         if (xapplL.Count > 0) xlangs.Remove();
+
+        //         // Copy baggages to output dir
+        //         string lSourceBaggageName = Path.Combine(iWorkingDir, iBaggageName);
+        //         var lSourceBaggageDir = new DirectoryInfo(lSourceBaggageName);
+        //         if (lSourceBaggageDir.Exists)
+        //             lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
+
+        //         IDictionary<string, string> applProgIdMappings = new Dictionary<string, string>();
+        //         IDictionary<string, string> applProgHashes = new Dictionary<string, string>();
+        //         IDictionary<string, string> mapBaggageIdToFileIntegrity = new Dictionary<string, string>(50);
+
+        //         FileInfo hwFileInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
+        //         FileInfo catalogFileInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
+        //         FileInfo appInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
+
+        //         int nsVersion = int.Parse(ns.Substring(ns.LastIndexOf('/') + 1));
+        //         ApplicationProgramHasher aph = new ApplicationProgramHasher(appInfo, mapBaggageIdToFileIntegrity, iPathETS, nsVersion, true);
+        //         aph.Hash();
+
+        //         applProgIdMappings.Add(aph.OldApplProgId, aph.NewApplProgId);
+        //         if (!applProgHashes.ContainsKey(aph.NewApplProgId))
+        //             applProgHashes.Add(aph.NewApplProgId, aph.GeneratedHashString);
+
+        //         HardwareSigner hws = new HardwareSigner(hwFileInfo, applProgIdMappings, applProgHashes, iPathETS, nsVersion, true);
+        //         hws.SignFile();
+        //         IDictionary<string, string> hardware2ProgramIdMapping = hws.OldNewIdMappings;
+
+        //         CatalogIdPatcher cip = new CatalogIdPatcher(catalogFileInfo, hardware2ProgramIdMapping, iPathETS, nsVersion);
+        //         cip.Patch();
+
+        //         XmlSigning.SignDirectory(Path.Combine(localPath, "Temp", manuId), iPathETS);
+
+        //         Directory.CreateDirectory(Path.Combine(localPath, "Masters"));
+        //         ns = ns.Substring(ns.LastIndexOf("/") + 1);
+        //         // Console.WriteLine("localPath is {0}", localPath);
+        //         if (!File.Exists(Path.Combine(localPath, "Masters", $"project-{ns}.xml")))
+        //         {
+        //             // var client = new System.Net.WebClient();
+        //             // client.DownloadFile($"https://update.knx.org/data/XML/project-{ns}/knx_master.xml", Path.Combine(localPath, "Masters", $"project-{ns}.xml"));
+        //             HttpClient client = new HttpClient();
+        //             var task = client.GetStringAsync($"https://update.knx.org/data/XML/project-{ns}/knx_master.xml");
+        //             while (!task.IsCompleted) { }
+        //             File.WriteAllText(Path.Combine(localPath, "Masters", $"project-{ns}.xml"), task.Result.ToString());
+        //         }
+
+        //         File.Copy(Path.Combine(localPath, "Masters", $"project-{ns}.xml"), Path.Combine(localPath, "Temp", $"knx_master.xml"));
+        //         if (File.Exists(iKnxprodFileName)) File.Delete(iKnxprodFileName);
+        //         System.IO.Compression.ZipFile.CreateFromDirectory(Path.Combine(localPath, "Temp"), iKnxprodFileName);
+
+
+        //         if (!iIsDebug)
+        //             System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
+
+        //         Console.ForegroundColor = ConsoleColor.Green;
+        //         // derive version from appId
+        //         int lVersion = int.Parse(appId.Substring(14, 1), System.Globalization.NumberStyles.HexNumber);
+        //         int lRevision = int.Parse(appId.Substring(15, 1), System.Globalization.NumberStyles.HexNumber);
+        //         Console.WriteLine("Output of {0} (version {1}.{2}) successful", iKnxprodFileName, lVersion, lRevision);
+        //         Console.ResetColor();
+        //         return 0;
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Console.WriteLine("ETS-Error during knxprod creation:");
+        //         Console.WriteLine(ex.ToString());
+        //         return 1;
+        //     }
+        // }
 
         class EtsOptions
         {
@@ -1531,8 +1591,8 @@ namespace OpenKNXproducer
             if (opts.OutputFile == "") lOutputFileName = Path.ChangeExtension(opts.XmlFileName, "knxprod");
             if (lSuccess)
             {
-                string lEtsPath = FindEtsPath(lInclude.GetNamespace());
-                lResult = ExportKnxprod(lEtsPath, WorkingDir, lOutputFileName, lTempXmlFileName, lInclude.BaggagesName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
+                // string lEtsPath = FindEtsPath(lInclude.GetNamespace());
+                lResult = ExportKnxprod(WorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
             }
             else
                 lResult = 1;
@@ -1577,10 +1637,10 @@ namespace OpenKNXproducer
 
             string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
             string xml = File.ReadAllText(opts.XmlFileName);
-            System.Text.RegularExpressions.Regex rs = new System.Text.RegularExpressions.Regex("xmlns=\"(http:\\/\\/knx\\.org\\/xml\\/project\\/[0-9]{1,2})\"");
-            System.Text.RegularExpressions.Match match = rs.Match(xml);
-            string lEtsPath = FindEtsPath(match.Groups[1].Value);
-            return ExportKnxprod(lEtsPath, lWorkingDir, lOutputFileName, opts.XmlFileName, Path.GetFileName(opts.XmlFileName).Replace(".xml", ".baggages"), opts.XsdFileName, false, !opts.NoXsd);
+            Regex rs = FastRegex.EtsProject();
+            Match match = rs.Match(xml);
+            // string lEtsPath = FindEtsPath(match.Groups[1].Value);
+            return ExportKnxprod(lWorkingDir, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
         }
 
         static private int VerbBaggages(BaggagesOptions opts)

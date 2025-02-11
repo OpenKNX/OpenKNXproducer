@@ -4,6 +4,9 @@
 			"path": "."
 		},
 		{
+			"path": "../OpenKNX.Toolbox.Sign"
+		},
+		{
 			"path": "../Organization"
 		}
 	],

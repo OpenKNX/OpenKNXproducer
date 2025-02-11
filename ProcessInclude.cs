@@ -79,7 +79,10 @@ namespace OpenKNXproducer
                         if (lChild.NodeType == XmlNodeType.Element)
                         {
                             string lParameterTypeId = lChild.SubId("Id", "_PT-");
-                            if (lParameterTypeId != "" && !sParameterTypes.ContainsKey(lParameterTypeId))
+                            if (lParameterTypeId == "") continue;
+                            if (sParameterTypes.ContainsKey(lParameterTypeId))
+                                Program.Message(true, "ParameterType {0} was declared more than once!", lParameterTypeId);
+                            else
                             {
                                 // Speed: we don't add the full type node, just the type definition itself
                                 XmlNode lTypeChild = lChild.FirstChild;
@@ -98,10 +101,10 @@ namespace OpenKNXproducer
             string lId = "_PT-";
             if (iId.Contains(lId)) lId = iId;
             lId = lId.Split("_PT-")[1];
-            if (sParameterTypes.ContainsKey(lId))
-                return sParameterTypes[lId];
+            if (sParameterTypes.TryGetValue(lId, out XmlNode value))
+                return value;
             else if (iError)
-                Program.Message(true, "ParameterType {0} was not declared, before it was used. Usually the declaration is missing or the include order of you used modules is wrong!", iId);
+                Program.Message(true, "ParameterType {0} was not declared, before it was used. Usually the declaration is missing or the include order of your used modules is wrong!", iId);
             return null;
         }
 
@@ -275,13 +278,15 @@ namespace OpenKNXproducer
         {
             string lResult = iValue;
             bool lReplaced = false;
+            Regex lChannelNumberRegex = FastRegex.ChannelNumberPattern();
+            Regex lChannelLetterRegex = FastRegex.ChannelLetterPattern();
             Match lMatch;
             // support multiple occurrences 
             if (iValue.Contains('%'))
             {
                 do
                 {
-                    lMatch = Regex.Match(lResult, @"%(C{1,4})(\*\d{1,3})?([\+\-]\d{1,4})?%");
+                    lMatch = lChannelNumberRegex.Match(lResult);
                     lReplaced = false;
                     if (lMatch.Captures.Count > 0)
                     {
@@ -296,7 +301,7 @@ namespace OpenKNXproducer
                 } while (lReplaced);
                 do
                 {
-                    lMatch = Regex.Match(lResult, @"%(Z{1,4})%");
+                    lMatch = lChannelLetterRegex.Match(lResult);
                     lReplaced = false;
                     if (lMatch.Captures.Count > 0)
                     {
@@ -319,7 +324,7 @@ namespace OpenKNXproducer
 
         static void ReplaceKoTemplateFinal(XmlNode iTargetNode)
         {
-            Regex lRegex = new(@"%!K(\d{1,3})!C(\d{1,4})!(\w*)!%");
+            Regex lRegex = FastRegex.KoTemplateFinal();
             XmlNodeList lNodes = iTargetNode.SelectNodes("//*/@*[contains(.,'%!K')]");
             foreach (XmlAttribute lNode in lNodes)
             {
@@ -366,7 +371,8 @@ namespace OpenKNXproducer
                     }
                     // too slow!!!
                     // MatchCollection lMatches = Regex.Matches(iValue, @"%K(\d{1,3})%");
-                    Match lMatch = Regex.Match(iValue, @"%K(\d{1,3})%");
+                    Regex lRegex = FastRegex.KoTemplate();
+                    Match lMatch = lRegex.Match(iValue);
                     if (lMatch.Captures.Count > 0)
                     {
                         if (iInclude != null && !iInclude.mHeaderKoBlockGenerated)
@@ -946,7 +952,7 @@ namespace OpenKNXproducer
         {
             if (lFiles != null)
             {
-                Regex lLinkPattern = new(@"!?\[.*\]\(.*\)");
+                Regex lLinkPattern = FastRegex.LinkPattern();
                 foreach (var lFileName in lFiles)
                 {
                     using var lFile = File.OpenText(lFileName);
