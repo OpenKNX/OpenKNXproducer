@@ -235,6 +235,7 @@ Write-Host "- Current Directory: $(Get-Location)" -ForegroundColor Green
 Get-ChildItem -Path ".."
 Get-ChildItem -Path "..\OpenKNX.Toolbox.Sign"
 Get-ChildItem -Path "..\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign"
+Write-Host "/Users/runner/work/OpenKNXproducer/OpenKNXproducer/OpenKNX.Toolbox.Sign/OpenKNX.Toolbox.Sign.csproj"
 Test-Path -Path  "/Users/runner/work/OpenKNXproducer/OpenKNXproducer/OpenKNX.Toolbox.Sign/OpenKNX.Toolbox.Sign.csproj"
 dotnet build OpenKNXproducer.csproj
 Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj"

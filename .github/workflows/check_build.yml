@@ -25,7 +25,7 @@ jobs:
       with:
         repository: OpenKNX/OpenKNX.Toolbox.Sign
         ref: main
-        path: OpenKNX.Toolbox.Sign/OpenKNX.Toolbox.Sign
+        path: OpenKNX.Toolbox.Sign
 
     - name: Show dir
       run: ls
