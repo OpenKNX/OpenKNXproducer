@@ -7,6 +7,9 @@ jobs:
     runs-on: macos-latest
 
     steps:
+    - name: Show dir
+      run: ls
+
     - name: Checkout code OpenKNX.Toolbox.Lib
       uses: actions/checkout@v4
       with:
@@ -14,12 +17,18 @@ jobs:
         ref: main
         path: OpenKNX.Toolbox.Lib
 
+    - name: Show dir
+      run: ls
+
     - name: Checkout code OpenKNX.Toolbox.Sign
       uses: actions/checkout@v4
       with:
         repository: OpenKNX/OpenKNX.Toolbox.Sign
         ref: main
         path: OpenKNX.Toolbox.Sign
+
+    - name: Show dir
+      run: ls
 
     - name: Checkout code OpenKNXproducer
       uses: actions/checkout@v4
@@ -34,6 +43,9 @@ jobs:
 
     - name: Change directory to OpenKNXproducer
       run: cd OpenKNXproducer
+
+    - name: Show dir
+      run: ls
 
     - name: Run build script
       run: pwsh OpenKNXproducer/scripts/Build-Release.ps1 -Verbose -WorkingDirectory OpenKNXproducer
