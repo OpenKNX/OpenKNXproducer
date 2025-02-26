@@ -34,7 +34,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: test-workflow
-        path: OpenKNXproducer
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -45,4 +44,4 @@ jobs:
       run: ls
 
     - name: Run build script
-      run: pwsh OpenKNXproducer/scripts/Build-Release.ps1 -Verbose
+      run: pwsh scripts/Build-Release.ps1 -Verbose
