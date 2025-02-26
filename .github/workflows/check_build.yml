@@ -26,4 +26,4 @@ jobs:
         dotnet-version: '7.0'
 
     - name: Run build script
-      run: cd OpenKNXproducer && pwsh scripts/Build-Release.ps1 -Verbose
+      run: dotnet build OpenKNXproducer/OpenKNXproducer.csproj
