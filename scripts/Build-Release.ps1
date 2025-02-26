@@ -187,7 +187,10 @@ function Invoke-DotnetExecute {
   }
 
   Write-Host "Current Directory: $(Get-Location)"
-  Get-ChildItem
+  Get-ChiltItem -Path ".."
+  Get-ChildItem -Path "..\OpenKNX.Toolbox.Lib"
+  Test-Path "..\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign.csproj"
+  Test-Path "..\OpenKNX.Toolbox.Lib\OpenKNX.Toolbox.Lib.csproj"
   Write-Host $message  -ForegroundColor Green -NoNewline
   $process = [System.Diagnostics.Process]::Start($processStartInfo)
   # Capture and suppress standard output and standard error
