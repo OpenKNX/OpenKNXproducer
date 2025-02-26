@@ -7,19 +7,6 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Show dir
-      run: ls
-
-    - name: Checkout code OpenKNX.Toolbox.Lib
-      uses: actions/checkout@v4
-      with:
-        repository: OpenKNX/OpenKNX.Toolbox.Lib
-        ref: main
-        path: OpenKNX.Toolbox.Lib
-
-    - name: Show dir
-      run: ls
-
     - name: Checkout code OpenKNX.Toolbox.Sign
       uses: actions/checkout@v4
       with:
@@ -27,28 +14,16 @@ jobs:
         ref: main
         path: OpenKNX.Toolbox.Sign
 
-    - name: Show dir
-      run: ls
-
     - name: Checkout code OpenKNXproducer
       uses: actions/checkout@v4
       with:
-        ref: test-workflow
+        ref: ${{ github.head_ref || github.ref_name }}
         path: OpenKNXproducer
-
-    - name: Show dir
-      run: ls
-
-    - name: Show dir
-      run: ls OpenKNXproducer
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '7.0'
-
-    - name: Show dir
-      run: cd OpenKNXproducer
 
     - name: Run build script
       run: cd OpenKNXproducer && pwsh scripts/Build-Release.ps1 -Verbose
