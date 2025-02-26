@@ -187,7 +187,7 @@ function Invoke-DotnetExecute {
   }
 
   Write-Host "Current Directory: $(Get-Location)"
-  
+  Get-ChildItem
   Write-Host $message  -ForegroundColor Green -NoNewline
   $process = [System.Diagnostics.Process]::Start($processStartInfo)
   # Capture and suppress standard output and standard error
