@@ -185,9 +185,7 @@ function Invoke-DotnetExecute {
   if ($workingDirectory) {
     $processStartInfo.WorkingDirectory = $workingDirectory
   }
-
-  Write-Host "Current Directory: $(Get-Location)"
-  Get-ChildItem
+  
   Test-Path "..\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign.csproj"
   Test-Path "..\OpenKNX.Toolbox.Lib\OpenKNX.Toolbox.Lib.csproj"
   Write-Host $message  -ForegroundColor Green -NoNewline
