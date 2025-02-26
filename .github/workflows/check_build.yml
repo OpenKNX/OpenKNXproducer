@@ -7,15 +7,14 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: main
-
     - name: Checkout code OpenKNX.Lib
       uses: actions/checkout@v4
       with:
         repository: OpenKNX/OpenKNX.Toolbox.Lib
+        ref: main
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
         ref: main
 
     - name: Setup .NET
