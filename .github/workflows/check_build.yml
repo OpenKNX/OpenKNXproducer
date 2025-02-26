@@ -47,5 +47,8 @@ jobs:
       with:
         dotnet-version: '7.0'
 
+    - name: Show dir
+      run: cd OpenKNXproducer
+
     - name: Run build script
       run: pwsh scripts/Build-Release.ps1 -Verbose
