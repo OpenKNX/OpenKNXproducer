@@ -12,6 +12,12 @@ jobs:
       with:
         ref: main
 
+    - name: Checkout code OpenKNX.Lib
+      uses: actions/checkout@v4
+      with:
+        repository: OpenKNX/OpenKNX.Toolbox.Lib
+        ref: main
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
