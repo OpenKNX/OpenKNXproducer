@@ -233,6 +233,7 @@ New-Item -Path release/tools/esptools -ItemType Directory | Out-Null
 # Print the current directory
 Write-Host "- Current Directory: $(Get-Location)" -ForegroundColor Green
 Get-ChildItem -Path ".."
+Get-ChildItem -Path "..\OpenKNX.Toolbox.Sign"
 dotnet build OpenKNXproducer.csproj
 Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj"
 Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x64 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x64   --self-contained true /p:PublishSingleFile=true"
