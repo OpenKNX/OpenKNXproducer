@@ -185,7 +185,7 @@ function Invoke-DotnetExecute {
   if ($workingDirectory) {
     $processStartInfo.WorkingDirectory = $workingDirectory
   }
-  
+
   Test-Path "..\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign.csproj"
   Test-Path "..\OpenKNX.Toolbox.Lib\OpenKNX.Toolbox.Lib.csproj"
   Write-Host $message  -ForegroundColor Green -NoNewline
@@ -231,6 +231,8 @@ New-Item -Path release/tools/bossac -ItemType Directory | Out-Null
 New-Item -Path release/tools/esptools -ItemType Directory | Out-Null
 
 # Build OpenKNXproducer
+
+dotnet build OpenKNXproducer.csproj
 Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj"
 Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x64 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x64   --self-contained true /p:PublishSingleFile=true"
 Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x86 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x86   --self-contained true /p:PublishSingleFile=true"
