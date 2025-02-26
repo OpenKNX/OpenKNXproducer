@@ -51,4 +51,4 @@ jobs:
       run: cd OpenKNXproducer
 
     - name: Run build script
-      run: pwsh scripts/Build-Release.ps1 -Verbose
+      run: cd OpenKNXproducer && pwsh scripts/Build-Release.ps1 -Verbose
