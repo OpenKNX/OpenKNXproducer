@@ -33,7 +33,7 @@ jobs:
     - name: Checkout code OpenKNXproducer
       uses: actions/checkout@v4
       with:
-        ref: main
+        ref: test-workflow
         path: OpenKNXproducer
 
     - name: Setup .NET
