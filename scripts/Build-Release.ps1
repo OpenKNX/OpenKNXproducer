@@ -187,8 +187,9 @@ function Invoke-DotnetExecute {
   }
 
   Write-Host "Current Directory: $(Get-Location)"
-  Get-ChiltItem -Path ".."
+  Get-ChildItem -Path ".."
   Get-ChildItem -Path "..\OpenKNX.Toolbox.Lib"
+  Get-ChildItem -Path "..\OpenKNX.Toolbox.Sign"
   Test-Path "..\OpenKNX.Toolbox.Sign\OpenKNX.Toolbox.Sign.csproj"
   Test-Path "..\OpenKNX.Toolbox.Lib\OpenKNX.Toolbox.Lib.csproj"
   Write-Host $message  -ForegroundColor Green -NoNewline
