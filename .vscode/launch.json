@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug SensorModule (delivery)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "args": [
+                "knxprod",
+                "--NoXsd",
+                "--Output=C:/Users/Schule/Downloads/SensorModule-Big-4.2.2/SensorModule.knxprod",
+                "C:/Users/Schule/Downloads/SensorModule-Big-4.2.2/data/SensorModule.xml"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug LED-UP1-4X24V",
             "type": "coreclr",
             "request": "launch",

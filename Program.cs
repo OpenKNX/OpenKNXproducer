@@ -1119,13 +1119,20 @@ namespace OpenKNXproducer
                 }
                 Console.WriteLine();
                 Console.WriteLine();
-                lResult = lTask.IsCompleted ? 0 : 1;                
+                lResult = lTask.IsCompletedSuccessfully ? 0 : 1; 
+                if (lResult == 1)               
+                {
+                    Console.WriteLine();
+                    Console.WriteLine();
+                    Console.WriteLine("Error during knxprod file generation:");
+                    Console.WriteLine(lTask.Exception.ToString());
+                }
             }
             catch (System.Exception e)
             {
                 Console.WriteLine();
                 Console.WriteLine();
-                Console.WriteLine("Error duriing knxprod file generation:");
+                Console.WriteLine("Error during knxprod file generation:");
                 Console.WriteLine(e.ToString());
                 lResult = 1;
             }
