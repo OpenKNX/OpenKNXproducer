@@ -1,4 +1,4 @@
-name: Build
+name: Check Build
 
 on: [push]
 
@@ -7,21 +7,23 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout code OpenKNX.Toolbox.Sign
       uses: actions/checkout@v4
       with:
-        ref: cross-platform
+        repository: OpenKNX/OpenKNX.Toolbox.Sign
+        ref: main
+        path: OpenKNX.Toolbox.Sign
+
+    - name: Checkout code OpenKNXproducer
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref || github.ref_name }}
+        path: OpenKNXproducer
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '7.0'
+        dotnet-version: '8.0'
 
     - name: Run build script
-      run: pwsh scripts/Build-Release.ps1 -Verbose
-
-    - name: Upload test artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-release
-        path: release/*.zip
+      run: dotnet build OpenKNXproducer/OpenKNXproducer.csproj
