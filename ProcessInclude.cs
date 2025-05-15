@@ -67,10 +67,33 @@ namespace OpenKNXproducer
             }
         }
 
+        private bool MergeParameterTypes(XmlNode iMergeTarget, XmlNode iMergeSource)
+        {
+            // check merge preconditions
+            if (iMergeTarget == null || iMergeSource == null) return false;
+            XmlNode lSourceChild = iMergeSource.FirstChild;
+            XmlNode lTargetChild = iMergeTarget;
+            if (lSourceChild.Name != lTargetChild.Name || lSourceChild.NodeAttr("Base") != lTargetChild.NodeAttr("Base") || lSourceChild.NodeAttr("SizeInBit") != lTargetChild.NodeAttr("SizeInBit"))
+            {
+                // we have to check the parameter types, if they are compatible
+                // if not, we cannot merge them
+                Program.Message(true, "Merging ParameterType {0}: Source and Target are not compatible!", iMergeTarget.Name);
+                return false;
+            }
+  
+            // we merge the parameter types of the source into the target
+            foreach (XmlNode lChild in lSourceChild.ChildNodes)
+            {
+                lTargetChild.AppendChild(lChild.Clone());
+            }
+            return true;
+        }
+
         private void FetchParameterTypes()
         {
             if (!mParameterTypesFetched)
             {
+                List<XmlNode> lMergedList = new();
                 // before we start with template processing, we calculate all Parameter relevant info
                 XmlNode lParameterTypes = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
                 if (lParameterTypes != null)
@@ -81,7 +104,11 @@ namespace OpenKNXproducer
                             string lParameterTypeId = lChild.SubId("Id", "_PT-");
                             if (lParameterTypeId == "") continue;
                             if (sParameterTypes.ContainsKey(lParameterTypeId))
-                                Program.Message(true, "ParameterType {0} was declared more than once!", lParameterTypeId);
+                            {
+                                // we try to merge parameter types 
+                                bool lMerged = MergeParameterTypes(sParameterTypes[lParameterTypeId], lChild);
+                                if (lMerged) lMergedList.Add(lChild);
+                            }
                             else
                             {
                                 // Speed: we don't add the full type node, just the type definition itself
@@ -90,6 +117,12 @@ namespace OpenKNXproducer
                                 sParameterTypes.Add(lParameterTypeId, lTypeChild);
                             }
                         }
+                    // we remove all merged parameter types from the document
+                    // this is necessary, because the parameter types are not allowed to be duplicated
+                    // has to be done after the loop, otherwise we get an exception
+                    if (lMergedList.Count > 0)
+                        foreach (XmlNode lChild in lMergedList)
+                            lChild.ParentNode.RemoveChild(lChild);
                 }
                 mParameterTypesFetched = true;
             }
