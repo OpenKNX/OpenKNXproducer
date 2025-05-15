@@ -1807,7 +1807,14 @@ namespace OpenKNXproducer
                 string lXPath = lIncludeNode.NodeAttr("xpath", lIsPart ? "/KNY" : "//*");
                 XmlDocument lDocument = lInclude.GetDocument();
                 if (lIsPart)
+                {
                     lDocument = ProcessPart.GetDocument(lIncludeNode);
+                    if (lDocument == null)
+                    {
+                        Program.Message(true, "Part {0} not found!", lIncludeNode.OuterXml);
+                        continue;
+                    }
+                }
                 XmlNodeList lChildren = lDocument.SelectNodes(lXPath);
                 // we replace config params before we multiply all channels (faster)
                 foreach (XmlNode lNode in lChildren)

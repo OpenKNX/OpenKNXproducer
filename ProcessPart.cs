@@ -249,6 +249,7 @@ namespace OpenKNXproducer
             List<XmlNode> lIncludeNodes = new();
             foreach (XmlNode lNode in iNodes)
             {
+                ProcessInclude.ProcessConfig(lNode);
                 lIncludeNodes.Add(lNode);
                 if (lNode.LocalName == "part")
                 {
