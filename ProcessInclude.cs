@@ -591,6 +591,8 @@ namespace OpenKNXproducer
                     lSourceDirName = Path.Combine(iInclude.mCurrentDir, "Baggages", lTargetPath);
                 string lTargetDirRoot = Path.Combine(mCurrentDir, mBaggagesName);
                 lPathAttr.Value = Path.Combine(BaggagesBaseDir, lTargetPath);
+                // on MacOS/Linux we have to replace the path separator
+                lPathAttr.Value = lPathAttr.Value.Replace("/", "\\");
                 if (lBaggageId.StartsWith("%FILE-HELP") || lBaggageId.StartsWith("%FILE-ICONS"))
                 {
                     // context sensitive help and icons have to be merged
@@ -952,6 +954,12 @@ namespace OpenKNXproducer
                     {
                         // We need to create according Id from Baggage filename
                         lPath = lBaggage.NodeAttr("TargetPath");
+                        if (!System.OperatingSystem.IsWindows() && lPath.Contains("\\"))
+                        {
+                            // convert xml path back to OS specific path
+                            lPath = lPath.Replace("\\", Path.DirectorySeparatorChar.ToString());
+                            lPath = lPath.Replace(Path.AltDirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString());
+                        }
                         lFileName = lBaggage.NodeAttr("Name");
                         lIdNode = lBaggage.Attributes.GetNamedItem("Id");
                         if (HandleZipFile("%FILE-HELP", ref lWithHelp)) continue;

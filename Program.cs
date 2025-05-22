@@ -692,7 +692,15 @@ namespace OpenKNXproducer
             lNodes = lXml.SelectNodes("//Baggage[@TargetPath]");
             foreach (XmlNode lNode in lNodes)
             {
-                string lFileName = Path.Combine(iInclude.BaggagesName, lNode.NodeAttr("TargetPath"), lNode.NodeAttr("Name"));
+
+                string lBaggagePath = lNode.NodeAttr("TargetPath");
+                if (!System.OperatingSystem.IsWindows() && lBaggagePath.Contains("\\"))
+                {
+                    // convert xml path back to OS specific path
+                    lBaggagePath = lBaggagePath.Replace("\\", Path.DirectorySeparatorChar.ToString());
+                    lBaggagePath = lBaggagePath.Replace(Path.AltDirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString());
+                }
+                string lFileName = Path.Combine(iInclude.BaggagesName, lBaggagePath, lNode.NodeAttr("Name"));
                 if (!File.Exists(Path.Combine(iInclude.CurrentDir, lFileName)))
                     lCheck.WriteFail("File {0} not found in baggage dir", lFileName);
             }
@@ -1105,6 +1113,11 @@ namespace OpenKNXproducer
             // delete output in case it exists
             File.Delete(iKnxprodFileName);
             int lResult = 0;
+            if (OpenKNX.Toolbox.Sign.SignHelper.FindEtsPath(0) == "")
+            {
+                Console.WriteLine("No ETS found, skipped knxprod creation!");
+                return 0;
+            }
             try
             {
                 var lTask = OpenKNX.Toolbox.Sign.SignHelper.ExportKnxprodAsync(iWorkingDir, iKnxprodFileName, iTempXmlFileName, iXsdFileName, iIsDebug, iAutoXsd);
@@ -1115,12 +1128,12 @@ namespace OpenKNXproducer
                 {
                     Console.Write(".");
                     Thread.Sleep(500);
-                    if (lTask.IsCanceled || lTask.IsCompleted)  break;
+                    if (lTask.IsCanceled || lTask.IsCompleted) break;
                 }
                 Console.WriteLine();
                 Console.WriteLine();
-                lResult = lTask.IsCompletedSuccessfully ? 0 : 1; 
-                if (lResult == 1)               
+                lResult = lTask.IsCompletedSuccessfully ? 0 : 1;
+                if (lResult == 1)
                 {
                     Console.WriteLine();
                     Console.WriteLine();
