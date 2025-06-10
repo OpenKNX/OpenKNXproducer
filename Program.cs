@@ -1113,7 +1113,7 @@ namespace OpenKNXproducer
             // delete output in case it exists
             File.Delete(iKnxprodFileName);
             int lResult = 0;
-            if (OpenKNX.Toolbox.Sign.SignHelper.FindEtsPath(0) == "")
+            if (OpenKNX.Toolbox.Sign.SignHelper.FindEtsPath(20) == "")
             {
                 Console.WriteLine("No ETS found, skipped knxprod creation!");
                 return 0;
