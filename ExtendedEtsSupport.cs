@@ -33,11 +33,11 @@ static class ExtendedEtsSupport
     private static bool GenerateModuleSelector(ProcessInclude iInclude, int iApplicationVersion, int iApplicationNumber)
     {
         XmlNode lModuleSelector = iInclude.CreateElement("ParameterType", "Id", "%AID%_PT-ModuleSelector", "Name", "ModuleSelector");
-        XmlNode lTypeRestriction = iInclude.CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8");
+        XmlNode lTypeRestriction = iInclude.CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8", "UIHint", "DropDown");
         lTypeRestriction.AppendChild(iInclude.CreateElement("Enumeration", "Text", "Bitte wählen...", "Value", "255", "Id", "%ENID%"));
         XmlNode lModuleSelectorCopy = iInclude.CreateElement("ParameterType", "Id", "%AID%_PT-ModuleSelectorWithChannels", "Name", "ModuleSelectorWithChannels");
         lModuleSelector.AppendChild(lTypeRestriction);
-        XmlNode lTypeRestrictionCopy = iInclude.CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8");
+        XmlNode lTypeRestrictionCopy = iInclude.CreateElement("TypeRestriction", "Base", "Value", "SizeInBit", "8", "UIHint", "DropDown");
         lTypeRestrictionCopy.AppendChild(iInclude.CreateElement("Enumeration", "Text", "Bitte wählen...", "Value", "255", "Id", "%ENID%"));
         lModuleSelectorCopy.AppendChild(lTypeRestrictionCopy);
         int lCount = 0;
@@ -46,6 +46,8 @@ static class ExtendedEtsSupport
         XmlNodeList lChannels = iInclude.SelectNodes("//ApplicationProgram/Dynamic/Channel");
         IEnumerator lIterator = lChannels.GetEnumerator();
         lIterator.Reset();
+        var lModuleSelectorCopyCounter = 0;
+        var lModuleSelectorCopyValue = 255;
         foreach (var lEntry in sParameterInfo)
         {
             string lText = lEntry.Key.prefix;
@@ -56,22 +58,41 @@ static class ExtendedEtsSupport
             // else
             for (int lIndex = 0; lIndex < lChannels.Count; lIndex++)
             {
-                    if (!lIterator.MoveNext())
-                    {
-                        lIterator.Reset();
-                        lIterator.MoveNext();
-                    }
-                    XmlNode lChannel = (XmlNode)lIterator.Current;
-                    if (lChannel.NodeAttr("Name").Contains(lText))
-                    {
-                        lText = lChannel.NodeAttr("Text");
-                        break;
-                    }
+                if (!lIterator.MoveNext())
+                {
+                    lIterator.Reset();
+                    lIterator.MoveNext();
                 }
+                XmlNode lChannel = (XmlNode)lIterator.Current;
+                if (lChannel.NodeAttr("Name").Contains(lText))
+                {
+                    lText = lChannel.NodeAttr("Text");
+                    break;
+                }
+            }
             if (lEntry.Key.NumChannels > 0)
+            {
                 lTypeRestrictionCopy.AppendChild(iInclude.CreateElement("Enumeration", "Text", lText, "Value", lCount.ToString(), "Id", "%ENID%"));
+                lModuleSelectorCopyCounter++;
+                lModuleSelectorCopyValue = lCount;
+            }
             lTypeRestriction.AppendChild(iInclude.CreateElement("Enumeration", "Text", lText, "Value", lCount++.ToString(), "Id", "%ENID%"));
             lModuleOrder += "\"" + lEntry.Key.prefix + "\",";
+        }
+        // special handling if there is just on entry in ModuleSelectorCopy dropdown
+        if (lModuleSelectorCopyCounter == 1)
+        {
+            // we remove the "please choose" entry from dropdown
+            lTypeRestrictionCopy.RemoveChild(lTypeRestrictionCopy.FirstChild);
+            // and we replace the default values of according parameters to the new entry
+            XmlNodeList lParameters = iInclude.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter[@ParameterType='%AID%_PT-ModuleSelectorWithChannels']");
+            foreach (XmlNode lParameter in lParameters)
+            {
+                if (lParameter.NodeAttr("Value") == "255")
+                {
+                    lParameter.Attributes["Value"].Value = lModuleSelectorCopyValue.ToString();
+                }
+            }
         }
         lModuleOrder = lModuleOrder[..^1] + "];\n";
         XmlNode lNode = iInclude.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
