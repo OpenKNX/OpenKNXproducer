@@ -529,11 +529,11 @@ namespace OpenKNXproducer
                     // seems to be OpenKNX naming convention
                     if (lIds[2] != lRefIds[2])
                     {
-                        if (lNode.NodeAttr("op:noError") == "true")
+                        if (lNode.NodeAttr("op:noerror") == "true")
                         {
                             // this is an exception, no error
                             lCheck.WriteWarn(7, "{0} {1}: The first Id-Part {2}{3} should fit to the RefId-Part {2}{4} (OpenKNX naming convention)", lNode.Name, lId, lIds[1], lIds[2], lRefIds[2]);
-                            lNode.Attributes.RemoveNamedItem("op:noError");
+                            lNode.Attributes.RemoveNamedItem("op:noerror");
                         }
                         else
                         {
