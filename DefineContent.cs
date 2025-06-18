@@ -73,6 +73,8 @@ namespace OpenKNXproducer
                 }
                 lResult.ModuleType = int.Parse(iDefineNode.NodeAttr("ModuleType"));
                 XmlNode lVerify = iDefineNode.FirstChild;
+                while (lVerify != null && lVerify.NodeType != XmlNodeType.Element)
+                    lVerify = lVerify.NextSibling;
                 if (lVerify != null && lVerify.Name == "op:verify")
                 {
                     lResult.VerifyFile = lVerify.NodeAttr("File");
