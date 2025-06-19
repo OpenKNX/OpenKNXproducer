@@ -256,7 +256,7 @@ namespace OpenKNXproducer
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
                 string lId2 = "";
                 if (lId.Contains("_P-"))
-                    lId2 = lId.Replace("_p-", "_UP-");
+                    lId2 = lId.Replace("_P-", "_UP-");
                 else if (lId.Contains("_UP-"))
                     lId2 = lId.Replace("_UP-", "_P-");
                 if (gIds.ContainsKey(lId))
