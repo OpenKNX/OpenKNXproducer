@@ -32,10 +32,10 @@ jobs:
         with:
           dotnet-version: '8.0'
 
-      - name: DEBUG Clone Result
-        run: |
-          pwd
-          find OpenKNXproducer
+      # - name: DEBUG Clone Result
+      #   run: |
+      #     pwd
+      #     find OpenKNXproducer
           
           
       - name: Run PUBLISH ${{ matrix.publish_target }}
@@ -44,13 +44,13 @@ jobs:
           cd OpenKNXproducer
           dotnet publish ./OpenKNXproducer.csproj -c Release -r ${{ matrix.publish_target }} --self-contained true /p:PublishSingleFile=true
 
-      - name: DEBUG Build Result
-        if: matrix.publish_target == 'linux-x64'
-        run: |
-          ls -l OpenKNXproducer/bin/Release/net8.0/linux-x64/publish
-          ls -l OpenKNXproducer/bin/Release/net8.0/linux-x64/publish/OpenKNXproducer
-          pwd
-          find OpenKNXproducer
+      # - name: DEBUG Build Result
+      #   if: matrix.publish_target == 'linux-x64'
+      #   run: |
+      #     ls -l OpenKNXproducer/bin/Release/net8.0/linux-x64/publish
+      #     ls -l OpenKNXproducer/bin/Release/net8.0/linux-x64/publish/OpenKNXproducer
+      #     pwd
+      #     find OpenKNXproducer
 
       - name: Upload Build Artifact
         if: matrix.publish_target == 'linux-x64'
@@ -131,7 +131,7 @@ jobs:
 
     uses: ./.github/workflows/producer-oam-check.yml
     with:
-      KNXPROD_PREFIX: ${{ matrix.prefix }}
       oam: ${{ matrix.oam }}
-      target: ${{ matrix.target }}
       ref: ${{ matrix.ref }}
+      KNXPROD_PREFIX: ${{ matrix.prefix }}
+      target: ${{ matrix.target }}
