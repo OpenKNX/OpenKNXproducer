@@ -104,11 +104,13 @@ jobs:
           #  prefix: InfraredGateway
           #  target: ""
           #  # knxprod_xml: InfraredGateway
-          - oam: OAM-IP-Router
-            ref: main
-            prefix: IP-Router
-            target: Release
-            # knxprod_xml: IP-Router-Release
+          # Failing Build on main and latest release
+          # - oam: OAM-IP-Router
+          #   # failed using `ref: main`
+          #   ref: d0c9aa559d8eb39b6ca0561253297ce8f2defe78
+          #   prefix: IP-Router
+          #   target: Release
+          #   # knxprod_xml: IP-Router-Release
           - oam: OAM-InternetServices
             ref: v1
             prefix: InternetServices
