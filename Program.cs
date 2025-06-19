@@ -254,10 +254,17 @@ namespace OpenKNXproducer
             foreach (XmlNode lNode in lNodes)
             {
                 string lId = lNode.Attributes.GetNamedItem("Id").Value;
+                string lId2 = "";
+                if (lId.Contains("_P-"))
+                    lId2 = lId.Replace("_p-", "_UP-");
+                else if (lId.Contains("_UP-"))
+                    lId2 = lId.Replace("_UP-", "_P-");
                 if (gIds.ContainsKey(lId))
-                    lCheck.WriteFail("{0} is a duplicate Id in {1}", lId, lNode.NodeAttr("Name"));
+                        lCheck.WriteFail("{0} is a duplicate Id in {1}", lId, lNode.NodeAttr("Name"));
+                else if (lId2 != "" && gIds.ContainsKey(lId2))
+                        lCheck.WriteFail("{0} is a duplicate Id (mixture of _P- and _UP-) in {1}", lId, lNode.NodeAttr("Name"));
                 else
-                    gIds.Add(lId, lNode);
+                        gIds.Add(lId, lNode);
             }
             lCheck.Finish();
 

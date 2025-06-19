@@ -489,6 +489,21 @@
             "stopAtEntry": false
         },
         {
+            "name": "Debug version string",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "enableStepFiltering": false,
+            // "justMyCode": false,
+            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "args": [
+                "version"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug Temp File",
             "type": "coreclr",
             "request": "launch",
