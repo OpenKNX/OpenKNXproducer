@@ -36,7 +36,7 @@ jobs:
     #   PRODUCER_CHECKSUM: 40e30f59deb949704c3ec21e26b3fceb18b418a46443d904383bf4fd99d56461d1d8c39fac756de09079004469d1e868ce33c50768dbe1e3314b304a6fc20c2f
     #   PRODUCER_FILENAME: OpenKNXproducer-${PRODUCER_VERSION}.zip
 
-    name: Check ${{ inputs.oam }} (${{ inputs.target }})
+    name: ${{ inputs.oam }} (${{ inputs.target }})
     steps:
 
       # - name: Check for Same Name Branch in Reference OAM
