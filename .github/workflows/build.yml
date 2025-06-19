@@ -81,7 +81,47 @@ jobs:
             ref: v1
             prefix: Sensormodul
             target: Big
-            # knxprod_xml: Logikmodul-Release
+            # knxprod_xml: Sensormodul-Big
+          - oam: OAM-PresenceModule
+            ref: v1
+            prefix: PMmodul
+            target: Big
+            # knxprod_xml: PMmodul-Big
+          - oam: OAM-Meter
+            ref: v1
+            prefix: MeterModule
+            target: ""
+            # knxprod_xml: MeterModule
+          - oam: SEN-UP1-8xTH
+            ref: v1
+            prefix: SEN-UP1-8xTH
+            target: Release
+            # knxprod_xml: SEN-UP1-8xTH-Release
+          - oam: OAM-InfraredGateway
+            ref: v1
+            prefix: InfraredGateway
+            target: ""
+            # knxprod_xml: InfraredGateway
+          - oam: OAM-IP-Router
+            ref: v1
+            prefix: IP-Router
+            target: Release
+            # knxprod_xml: IP-Router-Release
+          - oam: OAM-InternetServices
+            ref: v1
+            prefix: InternetServices
+            target: Beta
+            # knxprod_xml: InternetServices-Beta
+          - oam: OAM-SmartHomeBridge
+            ref: v1
+            prefix: SmartHomeBridge
+            target: Beta
+            # knxprod_xml: InternetServices-Beta
+          - oam: OAM-VirtualButton
+            ref: main
+            prefix: VirtualButtonModule
+            target: ""
+            # knxprod_xml: VirtualButtonModule
 
     uses: ./.github/workflows/producer-oam-check.yml
     with:
