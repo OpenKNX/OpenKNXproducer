@@ -126,7 +126,7 @@ static class ExtendedEtsSupport
     {
         if (iDefine.NoConfigTransfer)
             return;
-        if (iDefine.template == "" && iDefine.share == "")
+        if (string.IsNullOrEmpty(iDefine.template) && string.IsNullOrEmpty(iDefine.share))
             return; // pre-v1 
         Dictionary<string, string> lDict;
         XmlNodeList lParameters = iInclude.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
