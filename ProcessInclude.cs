@@ -84,7 +84,8 @@ namespace OpenKNXproducer
             // we merge the parameter types of the source into the target
             foreach (XmlNode lChild in lSourceChild.ChildNodes)
             {
-                lTargetChild.AppendChild(lChild.Clone());
+                XmlNode lImportNode = lTargetChild.OwnerDocument.ImportNode(lChild.Clone(), true);
+                lTargetChild.AppendChild(lImportNode);
             }
             return true;
         }
@@ -748,6 +749,8 @@ namespace OpenKNXproducer
                 lVersionInformation.AppendLine();
                 lVersionInformation.AppendFormat("#define MAIN_ApplicationVersion {0}", lAppVersion - lAppRevision);
                 lVersionInformation.AppendLine();
+                lVersionInformation.AppendFormat("#define MAIN_ApplicationEncoding {0}", """iso-8859-15""");
+                lVersionInformation.AppendLine();
             }
             // change all Id-Attributes / renumber ParameterSeparator and ParameterBlock
             string lApplicationId = lApplicationProgramNode.Attributes.GetNamedItem("Id").Value;
@@ -860,6 +863,26 @@ namespace OpenKNXproducer
                 lVersionInformation.AppendFormat("#define MAIN_OrderNumber \"{0}\"", lOrderNumberAttribute.Value);
                 lVersionInformation.AppendLine();
                 mHeaderGenerated.Insert(0, lVersionInformation);
+
+                // finally we add also FIRMWARE_NAME
+                XmlNode lCatalogItemNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/Catalog/CatalogSection/CatalogItem");
+                string lCatalogItemName = "";
+                if (lCatalogItemNode != null)
+                {
+                    lCatalogItemName = lCatalogItemNode.NodeAttr("Name");
+                }
+                if (lCatalogItemName != "")
+                {
+                    lCatalogItemName = lCatalogItemName.Replace("OpenKNX: ", "");
+                    lCatalogItemName = NormalizeString(lCatalogItemName);
+                    StringBuilder lFirmwareName = new();
+                    lFirmwareName.AppendLine("#ifndef FIRMWARE_NAME");
+                    lFirmwareName.AppendFormat("    #define FIRMWARE_NAME \"{0}\"", lCatalogItemName);
+                    lFirmwareName.AppendLine();
+                    lFirmwareName.AppendLine("#endif");
+                    mHeaderGenerated.Insert(0, lFirmwareName);
+                }
+
             }
             // XmlNodeList lCatalog = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Catalog/descendant::*/@*");
             // XmlNodeList lHardware = iTargetNode.SelectNodes("/KNX/ManufacturerData/Manufacturer/Hardware/descendant::*/@*");
@@ -893,6 +916,31 @@ namespace OpenKNXproducer
             }
             return lWithVersions;
         }
+
+        static readonly Dictionary<string, string> sNormalizeChars = new() { { "Ä", "Ae" }, { "ä", "ae" }, { "Ö", "Oe" }, { "ö", "oe" }, { "Ü", "Ue" }, { "ü", "ue" }, { "ß", "ss" } };
+
+
+        public static string NormalizeString(string iSource, string iForbiddenCharReplace = "-")
+        {
+            string lResult = iSource;
+
+            // replace special characters
+            foreach (var lEntry in sNormalizeChars)
+                lResult = lResult.Replace(lEntry.Key, lEntry.Value);
+
+            // get rid of forbidden characters
+            foreach (char lChar in iSource)
+                if (lChar < 32 || lChar > 126)
+                    lResult = lResult.Replace(lChar.ToString(), iForbiddenCharReplace);
+
+            // replace multiple dashes with single dashes
+            lResult = FastRegex.DocChapterWhitespaces().Replace(lResult, "-");
+
+            // get rid of whitespaces at start and end
+            lResult = lResult.Trim(' ', '-');
+            return lResult;
+        }
+
 
         Dictionary<string, string> mBaggageId = new Dictionary<string, string>();
         private void PreprocessBaggages(XmlNode iTargetNode)
@@ -1926,6 +1974,17 @@ namespace OpenKNXproducer
                             else if (!lInclude.IsPart)
                                 if (lHeaderPrefixName != "" && lChild.NodeType != XmlNodeType.Text) ProcessTemplate(lDefine, lChannel, lImportNode, lInclude);
                             lParent.InsertAfter(lImportNode, lInsertNode);
+                            // for merge processing of ParameterTypes we have to update global ParameterTypes chache
+                            if (lChild.LocalName == "ParameterType")
+                            {
+                                var lChildName = lChild.NodeAttr("Name", "#unknown");
+                                if (sParameterTypes.ContainsKey(lChildName))
+                                {
+                                    var lTypeChild = lImportNode.FirstChild;
+                                    while (lTypeChild != null && lTypeChild.NodeType == XmlNodeType.Comment) lTypeChild = lTypeChild.NextSibling;
+                                    sParameterTypes[lChildName] = lTypeChild;
+                                }
+                            }
                             lInsertNode = lImportNode;
                         }
                     }
