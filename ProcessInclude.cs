@@ -386,7 +386,6 @@ namespace OpenKNXproducer
                 }
 
             }
-            // sKoTemplateFinalList.Clear();
         }
 
         static string ReplaceKoTemplate(DefineContent iDefine, string iValue, int iChannel, ProcessInclude iInclude, bool iIsName, XmlAttribute iAttr = null)
@@ -699,6 +698,11 @@ namespace OpenKNXproducer
             Console.WriteLine("Processing merged file...");
             ProcessConfig(iTargetNode);
             ReplaceKoTemplateFinal(iTargetNode);
+            // ensure, that we found maxKoNumber
+            XmlNodeList lKoNumbers = iTargetNode.SelectNodes("//ComObject/@Number");
+            foreach (XmlAttribute lKoNumber in lKoNumbers)
+                if (int.TryParse(lKoNumber.Value, out int lKoValue))
+                    sMaxKoNumber = (lKoValue > sMaxKoNumber) ? lKoValue : sMaxKoNumber;
             bool lWithVersions = false;
             XmlNode lApplicationProgramNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
             // evaluate oknxp:version, if available
