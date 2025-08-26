@@ -1,4 +1,5 @@
 using System.Collections;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -27,6 +28,52 @@ static class ExtendedEtsSupport
             lResult = lResult[..^1] + "\n};";
             return lResult;
         }
+    }
+
+    private static void GenerateModuleList(ProcessInclude iInclude)
+    {
+        // we generate a list of modules, which is used in ETS to enable/disable module visibility
+        // each module needs a parameter, we search for the insertion point
+        XmlNode lParameterInsert = iInclude.SelectSingleNode("//ApplicationProgram/Static/Parameters/Parameter[@Id='OpenKNXproducer']");
+        // each parameter needs a parameterRef, we search for the insertion point
+        XmlNode lParameterRefInsert = iInclude.SelectSingleNode("//ApplicationProgram/Static/ParameterRefs/ParameterRef[@RefId='OpenKNXproducer']");
+        // all Parameters will be checkboxes within a ParameterBlock, we search for the insertion point
+        XmlNode lParameterRefRefInsert = iInclude.SelectSingleNode("//ParameterRefRef[@RefId='OpenKNXproducer']");
+        // finally, we search all Channels, which are used to generate the module list
+        XmlNodeList lChannels = iInclude.SelectNodes("//ApplicationProgram/Dynamic/Channel");
+        int moduleCount = 0;
+        foreach (XmlNode lChannel in lChannels)
+        {
+            if (lChannel.NodeAttr("Text").Contains("OpenKNX")) continue; // skip Common
+            moduleCount++;            
+            string lId = "%AID%_P-00999" + moduleCount.ToString("D2");
+            // we create a new parameter for each channel  
+            XmlNode lParameter = lParameterInsert.CloneNode(true);
+            lParameter.Attributes["Id"].Value = lId;
+            lParameter.Attributes["Name"].Value = lParameter.Attributes["Name"].Value.Replace("%MM%", moduleCount.ToString("D2"));
+            lParameter.Attributes["Text"].Value = lParameter.Attributes["Text"].Value.Replace("%Modulname%", lChannel.NodeAttr("Text"));
+            lParameterInsert.ParentNode.InsertBefore(lParameter, lParameterInsert);
+            // we create a new parameterRef for each channel
+            XmlNode lParameterRef = lParameterRefInsert.CloneNode(true);
+            string lRefId = lId + "_R-00999" + moduleCount.ToString("D2") + "01";
+            lParameterRef.Attributes["Id"].Value = lRefId;
+            lParameterRef.Attributes["RefId"].Value = lId;
+            lParameterRefInsert.ParentNode.InsertBefore(lParameterRef, lParameterRefInsert);
+            // and the correct entry as a ParameterRefRef
+            XmlNode lParameterRefRef = lParameterRefRefInsert.CloneNode(true);
+            lParameterRefRef.Attributes["RefId"].Value = lRefId;
+            lParameterRefRefInsert.ParentNode.InsertBefore(lParameterRefRef, lParameterRefRefInsert);
+            // around each channel, we have to genarate a choose
+            XmlNode lChoose = iInclude.CreateElement("choose", "ParamRefId", lRefId);
+            XmlNode lWhen = iInclude.CreateElement("when", "test", "1");
+            lChoose.AppendChild(lWhen);
+            lChannel.ParentNode.ReplaceChild(lChoose, lChannel);
+            lWhen.AppendChild(lChannel);
+        }
+        // we delete all template nodes
+        lParameterInsert.ParentNode.RemoveChild(lParameterInsert);
+        lParameterRefInsert.ParentNode.RemoveChild(lParameterRefInsert);
+        lParameterRefRefInsert.ParentNode.RemoveChild(lParameterRefRefInsert);
     }
 
 
@@ -116,7 +163,9 @@ static class ExtendedEtsSupport
             return false;
         lScript.InnerText = ParameterInfo + "\n\n" + lScript.InnerText;
         // return true;
-        return GenerateModuleSelector(iInclude, iApplicationVersion, iApplicationNumber);
+        GenerateModuleSelector(iInclude, iApplicationVersion, iApplicationNumber);
+        GenerateModuleList(iInclude);
+        return true;
     }
 
     /// <summary>
