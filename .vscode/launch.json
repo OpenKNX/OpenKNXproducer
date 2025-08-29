@@ -72,16 +72,17 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug SensorModule (delivery)",
+            "name": "Debug SensorModule (temp)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
             "args": [
-                "knxprod",
-                "--NoXsd",
-                "--Output=C:/Users/Schule/Downloads/SensorModule-Big-4.2.2/SensorModule.knxprod",
-                "C:/Users/Schule/Downloads/SensorModule-Big-4.2.2/data/SensorModule.xml"
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../../OpenKNXtmp/OAM-SensorModule/include/knxprod.h",
+                "../../OpenKNXtmp/OAM-SensorModule/src/Sensormodul.xml"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
