@@ -114,7 +114,16 @@ jobs:
       - name: Create knxprod
         run: |
           cd ${{ inputs.oam }}
-          OpenKNXproducer create --Debug -h include/knxprod.h src/${{inputs.KNXPROD_PREFIX}}${{ inputs.target != '' && format('-{0}', inputs.target) || '' }}
+          OpenKNXproducer create --Debug -h include/knxprod.h src/${{inputs.KNXPROD_PREFIX}}${{ inputs.target != '' && format('-{0}', inputs.target) || '' }} 2>&1 | tee producer.log
+          exit_code=${PIPESTATUS[0]}
+          if [ $exit_code -ne 0 ]; then
+            # Collect all outputs starting with "-->"
+            error_lines=$(grep -E '^\s*-->' producer.log | tr '\n' ' // ')
+            if [ -n "$error_lines" ]; then
+              echo "::error:: $error_lines"
+            fi
+            exit $exit_code
+          fi
 
       # - name: Install Python
       #   uses: actions/setup-python@v5
