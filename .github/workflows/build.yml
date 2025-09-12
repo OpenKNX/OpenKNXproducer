@@ -62,42 +62,74 @@ jobs:
 
   check-with-oams:
     needs: build
-    name: Check with '${{ matrix.oam }}'
+    name: Check @${{ matrix.ref }} of '${{ matrix.oam }}'
     strategy:
       fail-fast: false
       matrix:
         include:
+
           - oam: OAM-StateEngine
             ref: v1
             prefix: StateEngine
             target: DFA16-Release
             # knxprod_xml: StateEngine-DFA16-Release
+          - oam: OAM-StateEngine
+            ref: v1dev
+            prefix: StateEngine
+            target: DFA16
+            # knxprod_xml: StateEngine-DFA16
+
           - oam: OAM-LogicModule
             ref: v1
             prefix: Logikmodul
             target: Release
             # knxprod_xml: Logikmodul-Release
+          - oam: OAM-LogicModule
+            ref: v1dev
+            prefix: Logikmodul
+            target: ""
+            # knxprod_xml: Logikmodul
+
           - oam: OAM-SensorModule
             ref: v1
             prefix: Sensormodul
             target: Big
             # knxprod_xml: Sensormodul-Big
+          - oam: OAM-SensorModule
+            ref: v1dev
+            prefix: Sensormodul
+            target: ""
+            # knxprod_xml: Sensormodul
+
           - oam: OAM-PresenceModule
             ref: v1
             prefix: PMmodul
             target: Big
             # knxprod_xml: PMmodul-Big
+          - oam: OAM-PresenceModule
+            ref: v1dev
+            prefix: PMmodul
+            target: ""
+            # knxprod_xml: PMmodul
+
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the MTR Module to ModuleVersion 0.2
           # - oam: OAM-Meter
           #   ref: v1
           #   prefix: MeterModule
           #   target: ""
           #   # knxprod_xml: MeterModule
+
           - oam: SEN-UP1-8xTH
             ref: v1
             prefix: SEN-UP1-8xTH
             target: Release
             # knxprod_xml: SEN-UP1-8xTH-Release
+          - oam: SEN-UP1-8xTH
+            ref: v1dev
+            prefix: SEN-UP1-8xTH
+            target: ""
+            # knxprod_xml: SEN-UP1-8xTH
+
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the IR Module to ModuleVersion 0.1
           #- oam: OAM-InfraredGateway
           #  ref: v1
@@ -111,11 +143,18 @@ jobs:
           #   prefix: IP-Router
           #   target: Release
           #   # knxprod_xml: IP-Router-Release
+
           - oam: OAM-InternetServices
             ref: v1
             prefix: InternetServices
             target: Release
-            # knxprod_xml: InternetServices-Beta
+            # knxprod_xml: InternetServices-Release
+          - oam: OAM-InternetServices
+            ref: v1dev
+            prefix: InternetServices
+            target: ""
+            # knxprod_xml: InternetServices
+
           # --> HelpContext BRI-Eingang-invertieren not found in HelpContext baggage
           # - oam: OAM-SmartHomeBridge
           #   ref: v1
