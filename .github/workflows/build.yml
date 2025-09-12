@@ -114,7 +114,7 @@ jobs:
           - oam: OAM-InternetServices
             ref: v1
             prefix: InternetServices
-            target: Beta
+            target: Release
             # knxprod_xml: InternetServices-Beta
           # --> HelpContext BRI-Eingang-invertieren not found in HelpContext baggage
           # - oam: OAM-SmartHomeBridge
