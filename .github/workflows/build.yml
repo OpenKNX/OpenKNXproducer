@@ -76,8 +76,8 @@ jobs:
           - oam: OAM-StateEngine
             ref: v1dev
             prefix: StateEngine
-            target: DFA16
-            # knxprod_xml: StateEngine-DFA16
+            target: ""
+            # knxprod_xml: StateEngine
 
           - oam: OAM-LogicModule
             ref: v1
@@ -125,7 +125,8 @@ jobs:
             target: Release
             # knxprod_xml: SEN-UP1-8xTH-Release
           - oam: SEN-UP1-8xTH
-            ref: v1dev
+            # TODO check later inclusion of v1dev-branch
+            ref: v1
             prefix: SEN-UP1-8xTH
             target: ""
             # knxprod_xml: SEN-UP1-8xTH
