@@ -158,6 +158,7 @@ namespace OpenKNXproducer
             {
                 if (!mSingletonDefinesAdded)
                 {
+                    mHeaderGenerated.Insert(0, ExtendedEtsSupport.GeneratedHeaderAddon);
                     mHeaderGenerated.Insert(0, @"
 #define paramDelay(time) (uint32_t)( \
             (time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : \
@@ -689,6 +690,9 @@ namespace OpenKNXproducer
             XmlNodeList lAttributes = iNode.SelectNodes($"//*/@*[contains(., '{iSourceText}')]");
             foreach (XmlAttribute lAttribute in lAttributes)
             {
+                XmlNode lNode = lAttribute.OwnerElement;
+                XmlNode lComment = lNode.OwnerDocument.CreateComment("Replaced " + iSourceText + " by " + iTargetText);
+                lNode.ParentNode.InsertBefore(lComment, lNode);
                 lAttribute.Value = lAttribute.Value.Replace(iSourceText, iTargetText);
             }
         }
@@ -1908,6 +1912,8 @@ namespace OpenKNXproducer
                         continue;
                     }
                 }
+                if (lDefine.prefix=="BASE")
+                    ExtendedEtsSupport.GenerateModuleListPreprocess(lInclude, lDocument);
                 XmlNodeList lChildren = lDocument.SelectNodes(lXPath);
                 // we replace config params before we multiply all channels (faster)
                 foreach (XmlNode lNode in lChildren)

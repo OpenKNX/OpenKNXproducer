@@ -11,6 +11,9 @@ static class ExtendedEtsSupport
 {
     static readonly Dictionary<DefineContent, Dictionary<string, string>> sParameterInfo = new();
 
+    public static readonly StringBuilder GeneratedHeaderAddon = new();
+
+    
     public static string ParameterInfo
     {
         get
@@ -31,62 +34,168 @@ static class ExtendedEtsSupport
         }
     }
 
-    private static void GenerateModuleList(ProcessInclude iInclude)
+    static string mScriptModuleIdPrefix = "\nvar baseModuleIdPrefix = [";
+    static bool mModulesListGenerated = false;
+
+    public static bool ModulesListGenerated { get { return mModulesListGenerated; } }
+
+    // generate all parameters in common before heder file generation starts
+    public static void GenerateModuleListPreprocess(ProcessInclude iInclude, XmlDocument iDocument)
+    {
+        int moduleCount = -1;
+        // each module needs a parameter, we search for the insertion point
+        XmlNode lParameterInsert = iInclude.SelectSingleNode("//ApplicationProgram/Static/Parameters//Parameter[contains(@Id,'%ProducerModuleId%')]");
+        if (lParameterInsert != null)
+        {
+            // at this point we are in the parameter include of Common, we can generate addisional 
+            Console.Write("Preprocess module list... ");
+            moduleCount = 0;
+            foreach (DefineContent lDefine in DefineContent.Defines().Values)
+            {
+                if (lDefine.NoConfigTransfer && lDefine.prefix != "UCT")
+                    continue; // skip old modules
+
+                moduleCount++;
+                GeneratedHeaderAddon.AppendLine($"#define ETS_ModuleId_{lDefine.prefix} {moduleCount}");
+                // add script extension
+                mScriptModuleIdPrefix += $"\"{lDefine.prefix}\",";
+                if (lDefine.prefix == "BASE")
+                    continue; // skip Common
+
+                // parameter id
+                string lId = lParameterInsert.NodeAttr("Id").Replace("%ProducerModuleId%", moduleCount.ToString("D2"));
+                // we create a new parameter for each channel  
+                XmlNode lParameter = lParameterInsert.CloneNode(true);
+                lParameter.Attributes["Id"].Value = lId;
+                XmlNode lAttr = lParameter.Attributes["Offset"];
+                if (lAttr != null) lAttr.Value = ((byte)((moduleCount - 1) / 8)).ToString();
+                lAttr = lParameter.Attributes["BitOffset"];
+                if (lAttr != null) lAttr.Value = ((byte)((moduleCount - 1) % 8)).ToString();
+                lParameter.Attributes["Name"].Value = lParameter.Attributes["Name"].Value.Replace("%ProducerModuleName%", "ModuleEnabled_" + lDefine.prefix);
+                lParameter.Attributes["Text"].Value = lParameter.Attributes["Text"].Value.Replace("%ProducerModuleText%", lDefine.prefix);
+                lParameterInsert.ParentNode.AppendChild(lParameter);
+            }
+            lParameterInsert.ParentNode.RemoveChild(lParameterInsert);
+            // lParameterInsert.Attributes["Id"].Value = lParameterInsert.Attributes["Id"].Value.Replace("%ProducerModuleId%", "%OpenKNXProducerModuleId%");
+            if (moduleCount <= 0)
+                Console.WriteLine("OK (skipped, Common too old)");
+            else
+            {
+                Console.WriteLine("OK");
+                GeneratedHeaderAddon.Insert(0, $"#define ETS_ModuleId_NONE 0\n");
+                mScriptModuleIdPrefix = mScriptModuleIdPrefix[..^1] + "];\n";
+                mModulesListGenerated = true;
+            }
+        }
+    }
+
+    // finish generation of module list after all modules are processed
+    private static void GenerateModuleListPostprocess(ProcessInclude iInclude)
     {
         // we generate a list of modules, which is used in ETS to enable/disable module visibility
         Console.Write("Generating module list... ");
         int moduleCount = -1;
 
         // each module needs a parameter, we search for the insertion point
-        XmlNode lParameterInsert = iInclude.SelectSingleNode("//ApplicationProgram/Static/Parameters/Parameter[@Id='OpenKNXproducer']");
-        // each parameter needs a parameterRef, we search for the insertion point
-        XmlNode lParameterRefInsert = iInclude.SelectSingleNode("//ApplicationProgram/Static/ParameterRefs/ParameterRef[@RefId='OpenKNXproducer']");
-        // all Parameters will be checkboxes within a ParameterBlock, we search for the insertion point
-        XmlNode lParameterRefRefInsert = iInclude.SelectSingleNode("//ParameterRefRef[@RefId='OpenKNXproducer']");
-        if (lParameterInsert != null && lParameterRefInsert != null && lParameterRefRefInsert != null)
+        XmlNode lParameterInsert = iInclude.SelectSingleNode("//ApplicationProgram/Static/Parameters//Parameter[contains(@Name, 'BASE_ModuleEnabled_')]");
+        if (lParameterInsert != null)
         {
-            // finally, we search all Channels, which are used to generate the module list
-            XmlNodeList lChannels = iInclude.SelectNodes("//ApplicationProgram/Dynamic/Channel");
-            moduleCount = 0;
-            foreach (XmlNode lChannel in lChannels)
+            // extract Id-Prefix
+            string lIdPrefix = lParameterInsert.NodeAttr("Id")[..^2];
+            XmlNode lParameterParent = lParameterInsert.ParentNode;
+            // each parameter needs a parameterRef, we search for the insertion point
+            XmlNode lParameterRefInsert = iInclude.SelectSingleNode($"//ApplicationProgram/Static/ParameterRefs/ParameterRef[@RefId='{lIdPrefix}%ProducerModuleId%']");
+            // find parameter block for module selection
+            XmlNode lParameterBlockReplace = iInclude.SelectSingleNode("//ParameterBlock[@Name='BASE_OpenKNXproducerModules']");
+            if (lParameterRefInsert != null && lParameterBlockReplace != null)
             {
-                if (lChannel.NodeAttr("Text").Contains("OpenKNX")) continue; // skip Common
-                moduleCount++;
-                string lId = "%AID%_P-00999" + moduleCount.ToString("D2");
-                // we create a new parameter for each channel  
-                XmlNode lParameter = lParameterInsert.CloneNode(true);
-                lParameter.Attributes["Id"].Value = lId;
-                lParameter.Attributes["Name"].Value = lParameter.Attributes["Name"].Value.Replace("%MM%", moduleCount.ToString("D2"));
-                lParameter.Attributes["Text"].Value = lParameter.Attributes["Text"].Value.Replace("%Modulname%", lChannel.NodeAttr("Text"));
-                lParameterInsert.ParentNode.InsertBefore(lParameter, lParameterInsert);
-                // we create a new parameterRef for each channel
-                XmlNode lParameterRef = lParameterRefInsert.CloneNode(true);
-                string lRefId = lId + "_R-00999" + moduleCount.ToString("D2") + "01";
-                lParameterRef.Attributes["Id"].Value = lRefId;
-                lParameterRef.Attributes["RefId"].Value = lId;
-                lParameterRefInsert.ParentNode.InsertBefore(lParameterRef, lParameterRefInsert);
-                // and the correct entry as a ParameterRefRef
-                XmlNode lParameterRefRef = lParameterRefRefInsert.CloneNode(true);
-                lParameterRefRef.Attributes["RefId"].Value = lRefId;
-                lParameterRefRefInsert.ParentNode.InsertBefore(lParameterRefRef, lParameterRefRefInsert);
-                // around each channel, we have to genarate a choose
-                XmlNode lChoose = iInclude.CreateElement("choose", "ParamRefId", lRefId);
-                XmlNode lWhen = iInclude.CreateElement("when", "test", "1");
-                lChoose.AppendChild(lWhen);
-                lChannel.ParentNode.ReplaceChild(lChoose, lChannel);
-                lWhen.AppendChild(lChannel);
-            }
-            // we delete all template nodes
-            lParameterInsert.ParentNode.RemoveChild(lParameterInsert);
-            lParameterRefInsert.ParentNode.RemoveChild(lParameterRefInsert);
-            lParameterRefRefInsert.ParentNode.RemoveChild(lParameterRefRefInsert);
-        }       
-        if (moduleCount == 0)
-            Console.WriteLine("Not possible, Common too old");
-        else
-            Console.WriteLine("OK");
-    }
+                // find the row which has to be repeated
+                XmlNode lRowInsert = lParameterBlockReplace.SelectSingleNode(@"//Row[starts-with(@Name,'BASE_Row%ModuleCount')]");
+                // all Parameters will be checkboxes within a ParameterBlock, we search for the insertion point
+                XmlNode lParameterRefRefInsert = lParameterBlockReplace.SelectSingleNode($"//ParameterRefRef[@RefId='{lIdPrefix}%ProducerModuleRefId%']");
+                // Replacement line for module names
+                XmlNode lParameterSeparatorNameInsert = lParameterBlockReplace.SelectSingleNode("//ParameterSeparator[@Text='%ProducerModuleName%']");
+                // Replacement line for module versions
+                XmlNode lParameterSeparatorVersionInsert = lParameterBlockReplace.SelectSingleNode("//ParameterSeparator[@Text='%ProducerModuleVersion%']");
 
+                // finally, we search all Channels, which are used to generate the module list
+                XmlNodeList lChannels = iInclude.SelectNodes("//ApplicationProgram/Dynamic/Channel");
+                moduleCount = 0;
+                // here we also reuse part parameter parsing code
+                ParamEntry lModuleParam = new("%ModuleCount%");
+                foreach (XmlNode lChannel in lChannels)
+                {
+                    
+                    string lModulePrefix = lChannel.NodeAttr("Number");
+                    if (lModulePrefix == "BASE") continue; // skip Common
+                    moduleCount++;
+                    lModuleParam.Next();
+                    // Verify that module prefix exists
+                    DefineContent lDefine = DefineContent.GetDefineContent(lModulePrefix);
+                    if (lDefine.header == null) continue; // skip unknown modules
+                    // get the right parameter for this module  
+                    XmlNode lParameter = lParameterParent.SelectSingleNode($"Parameter[contains(@Name, '{lModulePrefix}')]");
+                    string lId = lParameter.NodeAttr("Id");
+                    lParameter.Attributes["Text"].Value = lParameter.Attributes["Text"].Value.Replace(lModulePrefix, lChannel.NodeAttr("Text"));
+                    // we create a new parameterRef for each channel
+                    XmlNode lParameterRef = lParameterRefInsert.CloneNode(true);
+                    string lRefId = lId + "_R-" + lId.Split('-')[1] + "01";
+                    lParameterRef.Attributes["Id"].Value = lRefId;
+                    lParameterRef.Attributes["RefId"].Value = lId;
+                    lParameterRefInsert.ParentNode.InsertBefore(lParameterRef, lParameterRefInsert);
+
+                    // we add a new row in the table
+                    XmlNode lRow = lRowInsert.CloneNode(true);
+                    ProcessPart.ReplaceAttribute(lRow.Attributes["Id"], lModuleParam);
+                    ProcessPart.ReplaceAttribute(lRow.Attributes["Name"], lModuleParam);
+                    lRowInsert.ParentNode.InsertBefore(lRow, lRowInsert);
+
+                    // and the correct entry as a ParameterRefRef
+                    XmlNode lParameterRefRef = lParameterRefRefInsert.CloneNode(true);
+                    lParameterRefRef.Attributes["RefId"].Value = lRefId;
+                    ProcessPart.ReplaceAttribute(lParameterRefRef.Attributes["Cell"], lModuleParam);
+                    lParameterRefRefInsert.ParentNode.InsertBefore(lParameterRefRef, lParameterRefRefInsert);
+
+                    // followed by the according module text
+                    XmlNode lParameterSeparatorName = lParameterSeparatorNameInsert.CloneNode(true);
+                    lParameterSeparatorName.Attributes["Text"].Value = lParameterSeparatorName.Attributes["Text"].Value.Replace("%ProducerModuleName%", lChannel.NodeAttr("Text"));
+                    ProcessPart.ReplaceAttribute(lParameterSeparatorName.Attributes["Cell"], lModuleParam);
+                    lParameterSeparatorNameInsert.ParentNode.InsertBefore(lParameterSeparatorName, lParameterSeparatorNameInsert);
+
+                    // and the module version
+                    string lModuleVersion = "nicht gefunden";
+                    if (lDefine.header != null)
+                        lModuleVersion = string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16);
+                    XmlNode lParameterSeparatorVersion = lParameterSeparatorVersionInsert.CloneNode(true);
+                    lParameterSeparatorVersion.Attributes["Text"].Value = lParameterSeparatorVersion.Attributes["Text"].Value.Replace("%ProducerModuleVersion%", lModuleVersion);
+                    ProcessPart.ReplaceAttribute(lParameterSeparatorVersion.Attributes["Cell"], lModuleParam);
+                    lParameterSeparatorVersionInsert.ParentNode.InsertBefore(lParameterSeparatorVersion, lParameterSeparatorVersionInsert);
+
+                    // around each channel, we have to genarate a choose
+                    XmlNode lChoose = iInclude.CreateElement("choose", "ParamRefId", lRefId);
+                    XmlNode lWhen = iInclude.CreateElement("when", "test", "1");
+                    lChoose.AppendChild(lWhen);
+                    lChannel.ParentNode.ReplaceChild(lChoose, lChannel);
+                    lWhen.AppendChild(lChannel);
+                }
+                // we delete all template nodes
+                lParameterRefInsert.ParentNode.RemoveChild(lParameterRefInsert);
+                lParameterRefRefInsert.ParentNode.RemoveChild(lParameterRefRefInsert);
+                lParameterSeparatorNameInsert.ParentNode.RemoveChild(lParameterSeparatorNameInsert);
+                lParameterSeparatorVersionInsert.ParentNode.RemoveChild(lParameterSeparatorVersionInsert);
+                lRowInsert.ParentNode.RemoveChild(lRowInsert);
+            }
+        }
+        if (moduleCount <= 0)
+            Console.WriteLine("OK (skipped, Common too old)");
+        else
+        {
+            Console.WriteLine("OK");
+            XmlNode lNode = iInclude.SelectSingleNode("//ApplicationProgram/Static/Script");
+            if (lNode != null)
+                lNode.InnerText = mScriptModuleIdPrefix + lNode.InnerText;
+        }
+    }
 
     private static bool GenerateModuleSelector(ProcessInclude iInclude, int iApplicationVersion, int iApplicationNumber)
     {
@@ -180,7 +289,7 @@ static class ExtendedEtsSupport
         lScript.InnerText = ParameterInfo + "\n\n" + lScript.InnerText;
         // return true;
         GenerateModuleSelector(iInclude, iApplicationVersion, iApplicationNumber);
-        GenerateModuleList(iInclude);
+        GenerateModuleListPostprocess(iInclude);
         return true;
     }
 
