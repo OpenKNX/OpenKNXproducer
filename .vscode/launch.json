@@ -405,23 +405,6 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug IP-Router",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
-            "args": [
-                "create",
-                "--Debug",
-                "--HeaderFileName",
-                "../OpenKNX-IP-Router/include/knxprod.h",
-                "../OpenKNX-IP-Router/src/IP-Router"
-            ],
-            "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
             "name": "Debug LanguageTest",
             "type": "coreclr",
             "request": "launch",

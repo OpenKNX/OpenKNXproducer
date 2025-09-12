@@ -126,7 +126,7 @@ static class ExtendedEtsSupport
     {
         if (iDefine.NoConfigTransfer)
             return;
-        if (iDefine.template == "" && iDefine.share == "")
+        if (string.IsNullOrEmpty(iDefine.template) && string.IsNullOrEmpty(iDefine.share))
             return; // pre-v1 
         Dictionary<string, string> lDict;
         XmlNodeList lParameters = iInclude.SelectNodes("//ApplicationProgram/Static/Parameters//Parameter");
@@ -155,7 +155,16 @@ static class ExtendedEtsSupport
         foreach (XmlNode lNode in lParameters)
         {
             string lAccess = lNode.NodeAttr("Access");
-            if (lAccess != "None" && lAccess != "Read")
+            // we evaluate config transfer specific attributes
+            string lConfigTransfer = lNode.NodeAttr("op:configTransfer");
+            if (lConfigTransfer != "")
+                lNode.Attributes.RemoveNamedItem("op:configTransfer");
+            // following cases transfer/suppress parameters
+            // 1. implicit suppress for parameters with access None or Read
+            // 2. explicit suppress for parameters with configTransfer="never"
+            // 3. explicit transfer for parameters with configTransfer="transfer" (overrides access None or Read)
+            // 4. explicit transfer for parameters with configTransfer="always" (even if the parameter has default value)
+            if (lConfigTransfer == "transfer" || lConfigTransfer == "always" || (lAccess != "None" && lAccess != "Read" && lConfigTransfer != "never"))
             {
                 XmlNode lType = ProcessInclude.ParameterType(lNode.NodeAttr("ParameterType"), false);
                 string lTypeName = "";
@@ -182,7 +191,7 @@ static class ExtendedEtsSupport
                     if (lParameterRefs.Count > 1 || (lParameterRefs.Count == 1 && lRefSuffix != 1))
                         lName = $"{lName}:{lRefSuffix}";
                     // determine default
-                    if (lDefault.StartsWith('%') && lDefault.EndsWith('%'))
+                    if ((lDefault.StartsWith('%') && lDefault.EndsWith('%')) || lConfigTransfer == "always")
                         lDefault = null;
                     else if ("TypeNumber,TypeRestriction".Contains(lTypeName))
                     {
