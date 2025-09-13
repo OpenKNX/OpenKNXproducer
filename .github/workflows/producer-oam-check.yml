@@ -125,6 +125,11 @@ jobs:
             exit $exit_code
           fi
 
+          warn_lines=$(grep -E '^\s*-->\s*WARN' producer.log | tr '\n' ' // ')
+          if [ -n "$warn_lines" ]; then
+            echo "::warning:: $warn_lines"
+          fi
+
       # - name: Install Python
       #   uses: actions/setup-python@v5
       #   with:
