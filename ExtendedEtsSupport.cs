@@ -163,9 +163,9 @@ static class ExtendedEtsSupport
                     lParameterSeparatorNameInsert.ParentNode.InsertBefore(lParameterSeparatorName, lParameterSeparatorNameInsert);
 
                     // and the module version
-                    string lModuleVersion = "nicht gefunden";
+                    string lModuleVersion = "(nicht gefunden)";
                     if (lDefine.header != null)
-                        lModuleVersion = string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16);
+                        lModuleVersion = lDefine.VerifyVersionString;
                     XmlNode lParameterSeparatorVersion = lParameterSeparatorVersionInsert.CloneNode(true);
                     lParameterSeparatorVersion.Attributes["Text"].Value = lParameterSeparatorVersion.Attributes["Text"].Value.Replace("%ProducerModuleVersion%", lModuleVersion);
                     ProcessPart.ReplaceAttribute(lParameterSeparatorVersion.Attributes["Cell"], lModuleParam);

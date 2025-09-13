@@ -242,7 +242,7 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug SensorModule",
+            "name": "Debug RaumController",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -251,8 +251,25 @@
                 "create",
                 "--Debug",
                 "--HeaderFileName",
-                "../OAM-SensorModule/include/knxprod.h",
-                "../OAM-SensorModule/src/Sensormodul"
+                "../OAM-RaumController/include/knxprod.h",
+                "../OAM-RaumController/src/RaumController"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug TestApp",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-TestApp/include/knxprod.h",
+                "../OAM-TestApp/src/TestApp"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

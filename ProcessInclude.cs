@@ -1957,7 +1957,7 @@ namespace OpenKNXproducer
                 DateTime lStart = DateTime.Now;
                 if (!lInclude.IsInnerInclude && !lInclude.IsScript)
                 {
-                    ReplaceDocumentStrings(lInclude.mDocument, "%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
+                    ReplaceDocumentStrings(lInclude.mDocument, "%ModuleVersion%", lDefine.VerifyVersionString);
                     if (lInclude.OriginalChannelCount > 0)
                     {
                         // TODO: Improve this in a more generic way
