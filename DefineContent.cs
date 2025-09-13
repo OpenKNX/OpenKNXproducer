@@ -47,6 +47,16 @@ namespace OpenKNXproducer
             private set { mConfigTransferName = value; }
         }
 
+        public string VerifyVersionString
+        {
+            get {
+                if (VerifyVersion < 0)
+                    return "-.-";
+                else
+                    return string.Format("{0}.{1}", VerifyVersion / 16, VerifyVersion % 16);
+            }
+        }
+
         public static DefineContent Factory(XmlNode iDefineNode)
         {
             DefineContent lResult = new();

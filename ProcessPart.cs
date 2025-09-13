@@ -52,6 +52,19 @@ namespace OpenKNXproducer
             }
         }
 
+        public ParamEntry(string iName)
+        {
+            Name = iName;
+            Digits = 0;
+            Increment = 1;
+            AsLetter = false;
+            IsList = false;
+            mValues = null;
+            mValuesPosition = 0;
+            mIsNumeric = true;
+            Value = "0";
+        }
+
         public string FormattedValue(int iOffset)
         {
             string lResult = mValue;
@@ -202,7 +215,7 @@ namespace OpenKNXproducer
             return lDocument;
         }
 
-        private static void ReplaceAttribute(XmlAttribute iAttr, ParamEntry iParam)
+        public static void ReplaceAttribute(XmlAttribute iAttr, ParamEntry iParam)
         {
             string lAttr = iAttr.Value.Replace(iParam.Name, iParam.FormattedValue(0));
             if (iParam.IsNumeric)

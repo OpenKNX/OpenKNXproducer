@@ -158,6 +158,7 @@ namespace OpenKNXproducer
             {
                 if (!mSingletonDefinesAdded)
                 {
+                    mHeaderGenerated.Insert(0, ExtendedEtsSupport.GeneratedHeaderAddon);
                     mHeaderGenerated.Insert(0, @"
 #define paramDelay(time) (uint32_t)( \
             (time & 0xC000) == 0xC000 ? (time & 0x3FFF) * 100 : \
@@ -386,7 +387,6 @@ namespace OpenKNXproducer
                 }
 
             }
-            // sKoTemplateFinalList.Clear();
         }
 
         static string ReplaceKoTemplate(DefineContent iDefine, string iValue, int iChannel, ProcessInclude iInclude, bool iIsName, XmlAttribute iAttr = null)
@@ -690,6 +690,9 @@ namespace OpenKNXproducer
             XmlNodeList lAttributes = iNode.SelectNodes($"//*/@*[contains(., '{iSourceText}')]");
             foreach (XmlAttribute lAttribute in lAttributes)
             {
+                XmlNode lNode = lAttribute.OwnerElement;
+                XmlNode lComment = lNode.OwnerDocument.CreateComment("Replaced " + iSourceText + " by " + iTargetText);
+                lNode.ParentNode.InsertBefore(lComment, lNode);
                 lAttribute.Value = lAttribute.Value.Replace(iSourceText, iTargetText);
             }
         }
@@ -699,6 +702,11 @@ namespace OpenKNXproducer
             Console.WriteLine("Processing merged file...");
             ProcessConfig(iTargetNode);
             ReplaceKoTemplateFinal(iTargetNode);
+            // ensure, that we found maxKoNumber
+            XmlNodeList lKoNumbers = iTargetNode.SelectNodes("//ComObject/@Number");
+            foreach (XmlAttribute lKoNumber in lKoNumbers)
+                if (int.TryParse(lKoNumber.Value, out int lKoValue))
+                    sMaxKoNumber = (lKoValue > sMaxKoNumber) ? lKoValue : sMaxKoNumber;
             bool lWithVersions = false;
             XmlNode lApplicationProgramNode = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
             // evaluate oknxp:version, if available
@@ -1904,6 +1912,8 @@ namespace OpenKNXproducer
                         continue;
                     }
                 }
+                if (lDefine.prefix=="BASE")
+                    ExtendedEtsSupport.GenerateModuleListPreprocess(lInclude, lDocument);
                 XmlNodeList lChildren = lDocument.SelectNodes(lXPath);
                 // we replace config params before we multiply all channels (faster)
                 foreach (XmlNode lNode in lChildren)
@@ -1947,7 +1957,7 @@ namespace OpenKNXproducer
                 DateTime lStart = DateTime.Now;
                 if (!lInclude.IsInnerInclude && !lInclude.IsScript)
                 {
-                    ReplaceDocumentStrings(lInclude.mDocument, "%ModuleVersion%", string.Format("{0}.{1}", lDefine.VerifyVersion / 16, lDefine.VerifyVersion % 16));
+                    ReplaceDocumentStrings(lInclude.mDocument, "%ModuleVersion%", lDefine.VerifyVersionString);
                     if (lInclude.OriginalChannelCount > 0)
                     {
                         // TODO: Improve this in a more generic way

@@ -5,6 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug Aircondition",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-Aircondition/include/knxprod.h",
+                "../OAM-Aircondition/src/Aircondition"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug LED-Dimmer",
             "type": "coreclr",
             "request": "launch",
@@ -55,16 +72,17 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug SensorModule (delivery)",
+            "name": "Debug SensorModule (temp)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
             "args": [
-                "knxprod",
-                "--NoXsd",
-                "--Output=C:/Users/Schule/Downloads/SensorModule-Big-4.2.2/SensorModule.knxprod",
-                "C:/Users/Schule/Downloads/SensorModule-Big-4.2.2/data/SensorModule.xml"
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../../OpenKNXtmp/OAM-SensorModule/include/knxprod.h",
+                "../../OpenKNXtmp/OAM-SensorModule/src/Sensormodul.xml"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -224,7 +242,7 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug SensorModule",
+            "name": "Debug RaumController",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -233,8 +251,42 @@
                 "create",
                 "--Debug",
                 "--HeaderFileName",
-                "../OAM-SensorModule/include/knxprod.h",
-                "../OAM-SensorModule/src/Sensormodul"
+                "../OAM-RaumController/include/knxprod.h",
+                "../OAM-RaumController/src/RaumController"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug TestApp",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-TestApp/include/knxprod.h",
+                "../OAM-TestApp/src/TestApp"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug SensorModuleExt",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-SensorModuleExtension/include/knxprod.h",
+                "../OAM-SensorModuleExtension/src/SensormodulExt"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

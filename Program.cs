@@ -751,6 +751,23 @@ namespace OpenKNXproducer
             }
             lCheck.Finish();
 
+            lCheck.Start("- Channel-Number-Prefix consistency...");
+            lNodes = lXml.SelectNodes("//Channel");
+            foreach (XmlNode lNode in lNodes)
+            {
+                string lNumber = lNode.NodeAttr("Number");
+                DefineContent lDefineContent = DefineContent.GetDefineContent(lNumber);
+                if (lDefineContent.header == null)
+                {
+                    string lText = string.Format("Channel number for Channel {1} should be same as module prefix, but is {0}. Use Number=\"%PREFIX%\"", lNumber, lNode.NodeAttr("Name"));
+                    if (ExtendedEtsSupport.ModulesListGenerated)
+                        lCheck.WriteFail(lText);
+                    else
+                        lCheck.WriteWarn(8, lText);
+                }
+            }
+            lCheck.Finish();
+
             lCheck.Start("- Unused config entries...");
             foreach (var lConfig in ProcessInclude.Config)
             {
