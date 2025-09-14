@@ -66,11 +66,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [v1]
-        target: [Release]
         include:
 
           - oam: OAM-StateEngine
+            ref: v1
             prefix: StateEngine
             target: DFA16-Release
             # knxprod_xml: StateEngine-DFA16-Release
@@ -79,10 +78,12 @@ jobs:
           #   prefix: Logikmodul
           #   # knxprod_xml: Logikmodul-Release
           - oam: OAM-SensorModule
+            ref: v1
             prefix: Sensormodul
             target: Big
             # knxprod_xml: Sensormodul-Big
           - oam: OAM-PresenceModule
+            ref: v1
             prefix: PMmodul
             target: Big
             # knxprod_xml: PMmodul-Big
@@ -95,10 +96,13 @@ jobs:
           #   # knxprod_xml: MeterModule
 
           - oam: SEN-UP1-8xTH
+            ref: v1
             prefix: SEN-UP1-8xTH
+            target: Release
 
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the IR Module to ModuleVersion 0.1
           #- oam: OAM-InfraredGateway
+          #  ref: v1
           #  prefix: InfraredGateway
           #  target: ""
           #  # knxprod_xml: InfraredGateway
@@ -107,10 +111,13 @@ jobs:
           #   # failed using `ref: main`
           #   ref: d0c9aa559d8eb39b6ca0561253297ce8f2defe78
           #   prefix: IP-Router
+          #   target: Release
           #   # knxprod_xml: IP-Router-Release
 
           - oam: OAM-InternetServices
+            ref: v1
             prefix: InternetServices
+            target: Release
 
     uses: ./.github/workflows/producer-oam-check.yml
     with:
@@ -126,22 +133,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: [v1dev]
-        target: [""]
         include:
           - oam: OAM-StateEngine
+            ref: v1dev
             prefix: StateEngine
+            target: ""
           - oam: OAM-LogicModule
+            ref: v1dev
             prefix: Logikmodul
+            target: ""
           - oam: OAM-SensorModule
+            ref: v1dev
             prefix: Sensormodul
+            target: ""
           - oam: OAM-PresenceModule
+            ref: v1dev
             prefix: PMmodul
+            target: ""
           - oam: SEN-UP1-8xTH
             ref: v1
             prefix: SEN-UP1-8xTH
+            target: ""
           - oam: OAM-InternetServices
+            ref: v1dev
             prefix: InternetServices
+            target: ""
 
     uses: ./.github/workflows/producer-oam-check.yml
     with:
