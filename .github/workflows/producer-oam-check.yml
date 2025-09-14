@@ -18,9 +18,10 @@ on:
       target:
         required: true
         type: string
-      # restore_branch:
-      #   required: true
-      #   type: boolean
+      restore_branch:
+        required: true
+        type: boolean
+        default: false
       KNXPROD_PREFIX:
         required: true
         type: string
@@ -67,7 +68,11 @@ jobs:
         shell: pwsh
         run: |
           cd ${{ inputs.oam }}/restore 
-          ./Restore-Dependencies.ps1
+          if ("${{ inputs.restore_branch }}" -eq "true") {
+            ./Restore-Dependencies-Branch.ps1
+          } else {
+            ./Restore-Dependencies.ps1
+          }
 
       # - name: Restore Current OFM Commit
       #   uses: actions/checkout@v4
