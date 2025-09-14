@@ -74,11 +74,10 @@ jobs:
             prefix: StateEngine
             target: DFA16-Release
             # knxprod_xml: StateEngine-DFA16-Release
-          - oam: OAM-LogicModule
-            ref: v1
-            prefix: Logikmodul
-            target: Release
-            # knxprod_xml: Logikmodul-Release
+          # TODO include again for next release
+          # - oam: OAM-LogicModule
+          #   prefix: Logikmodul
+          #   # knxprod_xml: Logikmodul-Release
           - oam: OAM-SensorModule
             prefix: Sensormodul
             target: Big
