@@ -60,9 +60,9 @@ jobs:
           path: OpenKNXproducer/bin/Release/net8.0/linux-x64/publish/OpenKNXproducer
           retention-days: 1
 
-  check-with-oams:
+  check-oam-releases:
     needs: build
-    name: Check @${{ matrix.ref }} of '${{ matrix.oam }}'
+    name: Release '${{ matrix.oam }}'
     strategy:
       fail-fast: false
       matrix:
@@ -72,53 +72,22 @@ jobs:
             ref: v1
             prefix: StateEngine
             target: DFA16-Release
-            restore_branch: false
             # knxprod_xml: StateEngine-DFA16-Release
-          - oam: OAM-StateEngine
-            ref: v1dev
-            prefix: StateEngine
-            target: ""
-            restore_branch: true
-            # knxprod_xml: StateEngine
-
           - oam: OAM-LogicModule
             ref: v1
             prefix: Logikmodul
             target: Release
-            restore_branch: false
             # knxprod_xml: Logikmodul-Release
-          - oam: OAM-LogicModule
-            ref: v1dev
-            prefix: Logikmodul
-            target: ""
-            restore_branch: true
-            # knxprod_xml: Logikmodul
-
           - oam: OAM-SensorModule
             ref: v1
             prefix: Sensormodul
             target: Big
-            restore_branch: false
             # knxprod_xml: Sensormodul-Big
-          - oam: OAM-SensorModule
-            ref: v1dev
-            prefix: Sensormodul
-            target: ""
-            restore_branch: true
-            # knxprod_xml: Sensormodul
-
           - oam: OAM-PresenceModule
             ref: v1
             prefix: PMmodul
             target: Big
-            restore_branch: false
             # knxprod_xml: PMmodul-Big
-          - oam: OAM-PresenceModule
-            ref: v1dev
-            prefix: PMmodul
-            target: ""
-            restore_branch: true
-            # knxprod_xml: PMmodul
 
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the MTR Module to ModuleVersion 0.2
           # - oam: OAM-Meter
@@ -131,15 +100,6 @@ jobs:
             ref: v1
             prefix: SEN-UP1-8xTH
             target: Release
-            restore_branch: false
-            # knxprod_xml: SEN-UP1-8xTH-Release
-          - oam: SEN-UP1-8xTH
-            # TODO check later inclusion of v1dev-branch
-            ref: v1
-            prefix: SEN-UP1-8xTH
-            target: ""
-            restore_branch: true
-            # knxprod_xml: SEN-UP1-8xTH
 
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the IR Module to ModuleVersion 0.1
           #- oam: OAM-InfraredGateway
@@ -159,27 +119,6 @@ jobs:
             ref: v1
             prefix: InternetServices
             target: Release
-            restore_branch: false
-            # knxprod_xml: InternetServices-Release
-          - oam: OAM-InternetServices
-            ref: v1dev
-            prefix: InternetServices
-            target: ""
-            restore_branch: true
-            # knxprod_xml: InternetServices
-
-          # --> HelpContext BRI-Eingang-invertieren not found in HelpContext baggage
-          # - oam: OAM-SmartHomeBridge
-          #   ref: v1
-          #   prefix: SmartHomeBridge
-          #   target: Beta
-          #   # knxprod_xml: InternetServices-Beta
-          # exclude: old base withput restore script
-          #- oam: OAM-VirtualButton
-          #  ref: main
-          #  prefix: VirtualButtonModule
-          #  target: ""
-          #  # knxprod_xml: VirtualButtonModule
 
     uses: ./.github/workflows/producer-oam-check.yml
     with:
@@ -187,4 +126,44 @@ jobs:
       ref: ${{ matrix.ref }}
       KNXPROD_PREFIX: ${{ matrix.prefix }}
       target: ${{ matrix.target }}
-      restore_branch: ${{ matrix.restore_branch }}
+      restore_branch: false
+
+  check-oam-develop:
+    needs: build
+    name: Develop '${{ matrix.oam }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - oam: OAM-StateEngine
+            ref: v1dev
+            prefix: StateEngine
+            target: ""
+          - oam: OAM-LogicModule
+            ref: v1dev
+            prefix: Logikmodul
+            target: ""
+          - oam: OAM-SensorModule
+            ref: v1dev
+            prefix: Sensormodul
+            target: ""
+          - oam: OAM-PresenceModule
+            ref: v1dev
+            prefix: PMmodul
+            target: ""
+          - oam: SEN-UP1-8xTH
+            ref: v1
+            prefix: SEN-UP1-8xTH
+            target: ""
+          - oam: OAM-InternetServices
+            ref: v1dev
+            prefix: InternetServices
+            target: ""
+
+    uses: ./.github/workflows/producer-oam-check.yml
+    with:
+      oam: ${{ matrix.oam }}
+      ref: ${{ matrix.ref }}
+      KNXPROD_PREFIX: ${{ matrix.prefix }}
+      target: ${{ matrix.target }}
+      restore_branch: true
