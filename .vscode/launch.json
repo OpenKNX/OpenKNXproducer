@@ -123,7 +123,7 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug Fingerprint",
+            "name": "Debug AccessControl",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -132,8 +132,8 @@
                 "create",
                 "--Debug",
                 "--HeaderFileName",
-                "../OAM-Fingerprint/include/knxprod.h",
-                "../OAM-Fingerprint/src/FingerprintModule"
+                "../OAM-AccessControl/include/knxprod.h",
+                "../OAM-AccessControl/src/AccessControl"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -150,7 +150,7 @@
                 "--Debug",
                 "--HeaderFileName",
                 "../SOM-UP/include/knxprod.h",
-                "../SOM-UP/src/SoundModule"
+                "../SOM-UP/src/SoundModule-Dev"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -184,26 +184,9 @@
                 "--Debug",
                 "--HeaderFileName",
                 "../OAM-InternetServices/include/knxprod.h",
-                "../OAM-InternetServices/src/InternetServicesESP32-Test"
+                "../OAM-InternetServices/src/InternetServices-Dev"
             ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
-            "stopAtEntry": false
-        },
-        {
-            "name": "Debug SOM-UP (temp)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
-            "args": [
-                "create",
-                "--Debug",
-                "--HeaderFileName",
-                "../SOM-UP/include/knxprod.h",
-                "../SOM-UP/src/SoundModule"
-            ],
-            "cwd": "${workspaceFolder}/../../OpenKNX-tmp/SOM-UP",
             "console": "internalConsole",
             "stopAtEntry": false
         },

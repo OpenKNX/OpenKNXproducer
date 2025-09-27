@@ -67,12 +67,15 @@ namespace OpenKNXproducer
             }
         }
 
-        private bool MergeParameterTypes(XmlNode iMergeTarget, XmlNode iMergeSource)
+        private static bool MergeParameterTypes(XmlNode iMergeTarget, XmlNode iMergeSource)
         {
             // check merge preconditions
             if (iMergeTarget == null || iMergeSource == null) return false;
             XmlNode lSourceChild = iMergeSource.FirstChild;
             XmlNode lTargetChild = iMergeTarget;
+            // we only merge restrictions
+            if (lSourceChild.Name != "TypeRestriction") return false;
+            // Size has to be identical
             if (lSourceChild.Name != lTargetChild.Name || lSourceChild.NodeAttr("Base") != lTargetChild.NodeAttr("Base") || lSourceChild.NodeAttr("SizeInBit") != lTargetChild.NodeAttr("SizeInBit"))
             {
                 // we have to check the parameter types, if they are compatible
@@ -80,21 +83,66 @@ namespace OpenKNXproducer
                 Program.Message(true, "Merging ParameterType {0}: Source and Target are not compatible!", iMergeTarget.Name);
                 return false;
             }
-  
+
+            bool lResult = false;
+            // simple check (speed): If the first child exists in target, merge was done before
+            string lValue = lSourceChild.ChildNodes[0].NodeAttr("Value");
+            if (lValue == "") return false;
+            foreach (XmlNode lTargetNode in lTargetChild.ChildNodes)
+                if (lTargetNode.NodeAttr("Value") == lValue) return false;
+
             // we merge the parameter types of the source into the target
             foreach (XmlNode lChild in lSourceChild.ChildNodes)
             {
                 XmlNode lImportNode = lTargetChild.OwnerDocument.ImportNode(lChild.Clone(), true);
                 lTargetChild.AppendChild(lImportNode);
+                lResult = true;
             }
-            return true;
+            return lResult;
         }
+
+        private void MergeParameterTypes()
+        {
+            List<XmlNode> lMergedList = new();
+            Dictionary<string, XmlNode> lFoundParameterTypes = new();
+            // before we start with template processing, we calculate all Parameter relevant info
+            XmlNode lParameterTypes = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
+            if (lParameterTypes != null)
+            {
+                foreach (XmlNode lChild in lParameterTypes.ChildNodes)
+                    if (lChild.NodeType == XmlNodeType.Element)
+                    {
+                        string lParameterTypeId = lChild.SubId("Id", "_PT-");
+                        if (lParameterTypeId == "") continue;
+                        if (lFoundParameterTypes.ContainsKey(lParameterTypeId))
+                        {
+                            // we try to merge parameter types 
+                            bool lMerged = MergeParameterTypes(lFoundParameterTypes[lParameterTypeId], lChild);
+                            if (lMerged) lMergedList.Add(lChild);
+                        }
+                        else
+                        {
+                            // Speed: we don't add the full type node, just the type definition itself
+                            XmlNode lTypeChild = lChild.FirstChild;
+                            while (lTypeChild != null && lTypeChild.NodeType == XmlNodeType.Comment) lTypeChild = lTypeChild.NextSibling;
+                            lFoundParameterTypes.Add(lParameterTypeId, lTypeChild);
+                        }
+                    }
+                // we remove all merged parameter types from the document
+                // this is necessary, because the parameter types are not allowed to be duplicated
+                // has to be done after the loop, otherwise we get an exception
+                if (lMergedList.Count > 0)
+                    foreach (XmlNode lChild in lMergedList)
+                        lChild.ParentNode.RemoveChild(lChild);
+            }
+            mParameterTypesFetched = true;
+        }
+
 
         private void FetchParameterTypes()
         {
             if (!mParameterTypesFetched)
             {
-                List<XmlNode> lMergedList = new();
                 // before we start with template processing, we calculate all Parameter relevant info
                 XmlNode lParameterTypes = mDocument.SelectSingleNode("//ApplicationProgram/Static/ParameterTypes");
                 if (lParameterTypes != null)
@@ -104,13 +152,7 @@ namespace OpenKNXproducer
                         {
                             string lParameterTypeId = lChild.SubId("Id", "_PT-");
                             if (lParameterTypeId == "") continue;
-                            if (sParameterTypes.ContainsKey(lParameterTypeId))
-                            {
-                                // we try to merge parameter types 
-                                bool lMerged = MergeParameterTypes(sParameterTypes[lParameterTypeId], lChild);
-                                if (lMerged) lMergedList.Add(lChild);
-                            }
-                            else
+                            if (!sParameterTypes.ContainsKey(lParameterTypeId))
                             {
                                 // Speed: we don't add the full type node, just the type definition itself
                                 XmlNode lTypeChild = lChild.FirstChild;
@@ -118,18 +160,13 @@ namespace OpenKNXproducer
                                 sParameterTypes.Add(lParameterTypeId, lTypeChild);
                             }
                         }
-                    // we remove all merged parameter types from the document
-                    // this is necessary, because the parameter types are not allowed to be duplicated
-                    // has to be done after the loop, otherwise we get an exception
-                    if (lMergedList.Count > 0)
-                        foreach (XmlNode lChild in lMergedList)
-                            lChild.ParentNode.RemoveChild(lChild);
                 }
                 mParameterTypesFetched = true;
             }
 
         }
 
+       
         public static XmlNode ParameterType(string iId, bool iError = true)
         {
             string lId = "_PT-";
@@ -677,7 +714,7 @@ namespace OpenKNXproducer
                     ProcessUnion(iDefine, iChannel, iTargetNode, iInclude);
                 }
                 else
-                if ("Channel,ChannelIndependentBlock,ParameterBlock,choose,ParameterCalculations,ParameterValidations,ModuleDef".Contains(iTargetNode.Name))
+                if ("ParameterType,Channel,ChannelIndependentBlock,ParameterBlock,choose,ParameterCalculations,ParameterValidations,ModuleDef".Contains(iTargetNode.Name))
                 {
                     ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
                 }
@@ -691,7 +728,7 @@ namespace OpenKNXproducer
             foreach (XmlAttribute lAttribute in lAttributes)
             {
                 XmlNode lNode = lAttribute.OwnerElement;
-                XmlNode lComment = lNode.OwnerDocument.CreateComment("Replaced " + iSourceText + " by " + iTargetText);
+                XmlNode lComment = lNode.OwnerDocument.CreateComment("Replaced " + iSourceText + " by '" + iTargetText + "'");
                 lNode.ParentNode.InsertBefore(lComment, lNode);
                 lAttribute.Value = lAttribute.Value.Replace(iSourceText, iTargetText);
             }
@@ -701,6 +738,7 @@ namespace OpenKNXproducer
         {
             Console.WriteLine("Processing merged file...");
             ProcessConfig(iTargetNode);
+            MergeParameterTypes();
             ReplaceKoTemplateFinal(iTargetNode);
             // ensure, that we found maxKoNumber
             XmlNodeList lKoNumbers = iTargetNode.SelectNodes("//ComObject/@Number");
@@ -2053,7 +2091,6 @@ namespace OpenKNXproducer
             // if (iInclude.IsInnerInclude)
             //     return;
             XmlNodeList lParameterNodes;
-            // FetchParameterTypes();
             if (sParameterTypes.Count > 0)
             {
                 // the main document contains necessary ParameterTypes definitions

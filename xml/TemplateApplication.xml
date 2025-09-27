@@ -17,6 +17,7 @@
             </Code>
             <ParameterTypes>
                 <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/ParameterTypes/ParameterType" prefix="%prefix%" />
+                <op:includetemplate href="%templ%" xpath="//ApplicationProgram/Static/ParameterTypes/ParameterType" type="template" prefix="%prefix%" />
             </ParameterTypes>
             <Parameters>
                 <op:includetemplate href="%share%" xpath="//ApplicationProgram/Static/Parameters/Parameter|//ApplicationProgram/Static/Parameters/Union" type="parameter" prefix="%prefix%" />

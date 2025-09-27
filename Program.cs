@@ -611,9 +611,9 @@ namespace OpenKNXproducer
                 // remove module prefixes
                 if (lId.StartsWith("_MD-"))
                 {
-                    var lUnderscoreIndex = lId.IndexOf("_", 3);
+                    var lUnderscoreIndex = lId.IndexOf('_', 3);
                     if (lUnderscoreIndex > 0)
-                        lId = lId.Substring(lUnderscoreIndex);
+                        lId = lId[lUnderscoreIndex..];
                 }
                 XmlNode lElement = lKeyValuePair.Value;
                 switch (lElement.Name)
@@ -640,8 +640,11 @@ namespace OpenKNXproducer
                         break;
                     case "Enumeration":
                         lIdPart = "_PT-";
-                        string pt_id = lElement.ParentNode.ParentNode.Attributes["Id"].Value;
-                        lIdPart = pt_id.Substring(pt_id.IndexOf("_PT-")) + "_EN-"; // + lElement.Attributes["Value"].Value; don't check the value, ETS accepts anyway.
+                        string pt_id = "";
+                        XmlNode lSubElement = lElement.ParentNode;
+                        if (lSubElement != null) lSubElement = lSubElement.ParentNode;
+                        if (lSubElement != null) pt_id = lSubElement.NodeAttr("Id");
+                        if (pt_id != "") lIdPart = pt_id[pt_id.IndexOf("_PT-")..] + "_EN-"; // + lElement.Attributes["Value"].Value; don't check the value, ETS accepts anyway.
                         break;
                     case "ParameterRef":
                     case "ComObjectRef":
