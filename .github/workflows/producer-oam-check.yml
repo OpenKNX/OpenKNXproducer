@@ -137,11 +137,11 @@ jobs:
             else
               echo "::warning:: Creating Failed!
             fi
-          fi
-
-          warn_lines=$(grep -E '^\s*-->\s*WARN' producer.log | tr '\n' ' // ')
-          if [ -n "$warn_lines" ]; then
-            echo "::warning:: $warn_lines"
+          else
+            warn_lines=$(grep -E '^\s*-->\s*WARN' producer.log | tr '\n' ' // ')
+            if [ -n "$warn_lines" ]; then
+              echo "::warning:: $warn_lines"
+            fi
           fi
 
       # - name: Install Python
