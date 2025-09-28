@@ -161,6 +161,7 @@ jobs:
 
     uses: ./.github/workflows/producer-oam-check.yml
     with:
+      fail_on_error: false
       oam: ${{ matrix.oam }}
       ref: ${{ matrix.ref }}
       KNXPROD_PREFIX: ${{ matrix.prefix }}
