@@ -167,9 +167,3 @@ jobs:
       KNXPROD_PREFIX: ${{ matrix.prefix }}
       target: ${{ matrix.target }}
       restore_branch: true
-  warn-on-check-oam-develop-failure:
-    needs: check-oam-develop
-    if: ${{ failure() }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "::warning::Checking Develop Versions Failed!"      
