@@ -135,7 +135,7 @@ jobs:
             if [ "${{ inputs.fail_on_error }}" = "true" ]; then
               exit $exit_code
             else
-              echo "::warning:: Creating Failed!
+              echo "::warning:: Creating Failed!"
             fi
           else
             warn_lines=$(grep -E '^\s*-->\s*WARN' producer.log | tr '\n' ' // ')
