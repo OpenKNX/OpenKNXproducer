@@ -25,6 +25,11 @@ on:
       KNXPROD_PREFIX:
         required: true
         type: string
+      fail_on_error:
+        required: false
+        type: boolean
+        default: true
+        description: "Whether to fail the workflow on errors or just warn"
 
 jobs:
   # TODO use producer build from last step
@@ -127,7 +132,11 @@ jobs:
             if [ -n "$error_lines" ]; then
               echo "::error:: $error_lines"
             fi
-            exit $exit_code
+            if [ "${{ inputs.fail_on_error }}" = "true" ]; then
+              exit $exit_code
+            else
+              echo "::warning:: Creating Failed!
+            fi
           fi
 
           warn_lines=$(grep -E '^\s*-->\s*WARN' producer.log | tr '\n' ' // ')
