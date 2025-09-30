@@ -1,0 +1,49 @@
+name: Check OAM Develop
+
+on:
+  workflow_run:
+    workflows: ["Check Build"]
+    types:
+      - completed
+
+jobs:
+  check-oam-develop:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Develop '${{ matrix.oam }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - oam: OAM-StateEngine
+            ref: v1dev
+            prefix: StateEngine
+            target: ""
+          - oam: OAM-LogicModule
+            ref: v1dev
+            prefix: Logikmodul
+            target: ""
+          - oam: OAM-SensorModule
+            ref: v1dev
+            prefix: Sensormodul
+            target: ""
+          - oam: OAM-PresenceModule
+            ref: v1dev
+            prefix: PMmodul
+            target: ""
+          - oam: SEN-UP1-8xTH
+            ref: v1
+            prefix: SEN-UP1-8xTH
+            target: ""
+          - oam: OAM-InternetServices
+            ref: v1dev
+            prefix: InternetServices
+            target: ""
+
+    uses: ./.github/workflows/producer-oam-check.yml
+    with:
+      fail_on_error: false
+      oam: ${{ matrix.oam }}
+      ref: ${{ matrix.ref }}
+      KNXPROD_PREFIX: ${{ matrix.prefix }}
+      target: ${{ matrix.target }}
+      restore_branch: true
