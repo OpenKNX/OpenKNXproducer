@@ -2,7 +2,7 @@ name: Check OAM Releases
 
 on:
   workflow_run:
-    workflows: ["Check Build"]
+    workflows: ["build.yml"]
     types:
       - completed
 
