@@ -11,7 +11,7 @@ using OpenKNXproducer;
 using static OpenKNXproducer.ProcessInclude;
 using StringDict = System.Collections.Generic.Dictionary<string, string>;
 
-class TemplateApplication
+partial class TemplateApplication
 {
     readonly XmlDocument mDocument = new();
     private XmlNamespaceManager nsmgr;
@@ -83,7 +83,7 @@ class TemplateApplication
 
     private static StringDict GetEtsParams(XmlNode iEtsNode)
     {
-        StringDict lResult = new();
+        StringDict lResult = [];
         foreach (XmlAttribute lAttribute in iEtsNode.Attributes)
         {
             string lValue;
@@ -100,7 +100,18 @@ class TemplateApplication
             // some Attributes might be hex numbers, we parse them
             if ("OpenKnxId,ApplicationNumber,ApplicationVersion,ApplicationRevision".Contains(lAttribute.Name))
             {
+                if (lAttribute.Name == "ApplicationVersion")
+                {
+                    // extended FirmwareRevision handling
+                    var lVersionParts = lValue.Split('.');
+                    if (lVersionParts.Length == 3)
+                    {
+                        lValue = lVersionParts[0] + "." + lVersionParts[1];
+                        lResult["%FirmwareRevision%"] = lVersionParts[2];
+                    }
+                }
                 int lNumberValue = ParseNumberValue(lAttribute.Name, lValue);
+                if (lAttribute.Name == "ApplicationVersion") DefineContent.ApplicationVersion = lNumberValue;
                 if (lAttribute.Name == "OpenKnxId")
                     lValue = $"0x{lNumberValue:X02}";
                 else
@@ -117,6 +128,17 @@ class TemplateApplication
             lResult[lConfigName] = lValue;
         }
         return lResult;
+    }
+
+    private static void UpdateLibraryJson(string iVersion, ProcessInclude iInclude)
+    {
+        string lFileName = Path.Combine(iInclude.CurrentDir, "..", "library.json");
+        if (File.Exists(lFileName))
+        {
+            string lJson = File.ReadAllText(lFileName, Encoding.UTF8);
+            lJson = FastRegex.LibraryJsonVersion().Replace(lJson, $"\"version\": \"{iVersion}\"");
+            File.WriteAllText(lFileName, lJson, Encoding.UTF8);
+        }
     }
 
     private static void InitParam(StringDict iParams, string iName, bool iIsRequired, string iDefaultName = "", string iDefaultValue = "[missing]")
@@ -147,6 +169,7 @@ class TemplateApplication
             InitParam(lParams, "ApplicationVersion", true);
             InitParam(lParams, "ReplacesVersions", true);
             InitParam(lParams, "ApplicationRevision", true);
+            InitParam(lParams, "FirmwareRevision", false, "", "-1");
             InitParam(lParams, "ProductName", true);
             InitParam(lParams, "CatalogName", false, "ProductName");
             InitParam(lParams, "HardwareName", false, "ProductName");
@@ -157,14 +180,19 @@ class TemplateApplication
             InitParam(lParams, "IsRailMounted", false, "", "false");
             InitParam(lParams, "MaskVersion", false, "", "MV-07B0");
             InitParam(lParams, "MediumTypes", false, "", "MT-0");
-            int.TryParse(lParams["%ApplicationNumber%"], out int lApplicationNumberInt);
-            int.TryParse(lParams["%ApplicationVersion%"], out int lApplicationVersionInt);
+            _ = int.TryParse(lParams["%ApplicationNumber%"], out int lApplicationNumberInt);
+            _ = int.TryParse(lParams["%ApplicationVersion%"], out int lApplicationVersionInt);
+            _ = int.TryParse(lParams["%FirmwareRevision%"], out int lFirmwareRevisionInt);
             string lOpenKnxId = lParams["%OpenKnxId%"].Replace("0x", "");
             InitParam(lParams, "SerialNumber", false, "", string.Format("0x{0}{1:X02}", lOpenKnxId, lApplicationNumberInt));
             InitParam(lParams, "OrderNumber", false, "SerialNumber");
             InitParam(lParams, "BaggagesRootDir", false, "", string.Format("{0}/{1:X02}/{2:X02}", lOpenKnxId, lApplicationNumberInt, lApplicationVersionInt));
             iInclude.BaggagesBaseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? lParams["%BaggagesRootDir%"].Replace('/', '\\') : lParams["%BaggagesRootDir%"];
 
+            // we also update the library.json file, if it exists
+            if (lParams.TryGetValue("%UpdateLibraryJson%", out string value))
+                if (value.ToLower() == "true")
+                    UpdateLibraryJson($"{lApplicationVersionInt / 16}.{lApplicationVersionInt % 16}.{(lFirmwareRevisionInt < 0 ? 0 : lFirmwareRevisionInt)}", iInclude);
             // finally its a simple string replace
             foreach (var lParam in lParams)
                 iXml = iXml.Replace(lParam.Key, lParam.Value);
