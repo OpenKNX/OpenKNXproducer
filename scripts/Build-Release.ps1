@@ -164,6 +164,33 @@ function Get-ApplicationVersion {
   return $null
 }
 
+function CheckArchiver() {
+  $moduleName = 'Microsoft.PowerShell.Archive'
+  $minVersion = [version]'1.2.3.0'
+
+  $module = Get-Module -ListAvailable -Name $moduleName |
+            Sort-Object Version -Descending |
+            Select-Object -First 1
+
+  if ($null -eq $module -or $module.Version -lt $minVersion) {
+      Write-Host ""
+      Write-Host "The module '$moduleName' is missing or outdated." -ForegroundColor Red
+      if ($module) {
+          Write-Host "   Found version: $($module.Version)"
+      } else {
+          Write-Host "   Module not found."
+      }
+      Write-Host "   Required minimum version: $minVersion"
+      Write-Host ""
+      Write-Host "You can install or update the module (as admin) using:"
+      Write-Host "Install-Module $moduleName -MinimumVersion $minVersion -Repository PSGallery -Force -AllowClobber" -ForegroundColor Cyan
+      Write-Host ""
+      # Read-Host -Prompt "Press [Enter] to continue"
+      return $false
+  }
+  return $true
+}
+
 function Invoke-DotnetExecute {
   param (
     [string]$arguments,
@@ -212,6 +239,13 @@ if (-not $Verbose) {
   Write-Host "$infoChar Verbose mode is disabled. Use -Verbose to enable it! $infoChar" -ForegroundColor Cyan
 }
 
+$checkArchiver = CheckArchiver
+if (-not $checkArchiver) 
+{
+  exit 1
+}
+
+
 # check for working dir and create if not exists
 Write-Host "- Create release folder structure ..." -ForegroundColor Green -NoNewline
 if (Test-Path -Path release) {
@@ -237,10 +271,10 @@ Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Linux       ..." -a
 
 # Copy publish version to release folder structure
 Write-Host "- Copy publish openKNXproducer binaries to release folder structure ..." -ForegroundColor Green -NoNewline
-Copy-Item bin/Debug/net8.0/win-x64/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x64.exe
-Copy-Item bin/Debug/net8.0/win-x86/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x86.exe
-Copy-Item bin/Debug/net8.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer
-Copy-Item bin/Debug/net8.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer
+Copy-Item bin/Debug/net9.0/win-x64/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x64.exe
+Copy-Item bin/Debug/net9.0/win-x86/publish/OpenKNXproducer.exe   release/tools/Windows/OpenKNXproducer-x86.exe
+Copy-Item bin/Debug/net9.0/osx-x64/publish/OpenKNXproducer       release/tools/MacOS/OpenKNXproducer
+Copy-Item bin/Debug/net9.0/linux-x64/publish/OpenKNXproducer     release/tools/Linux/OpenKNXproducer
 Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
 
 
@@ -295,6 +329,7 @@ else {
 $ReleaseName = "OpenKNXproducer-$($OpenKNXproducerVersion).zip"
 Write-Host "- Create release package: $ReleaseName ..." -ForegroundColor Green -NoNewline
 Compress-Archive -Force -Path release/* -DestinationPath "$ReleaseName"
+# tar -a -c -f "$ReleaseName" -C "release" .
 Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
 
 # Move package to release folder

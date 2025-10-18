@@ -36,7 +36,7 @@
             "group": "build",
             "type": "shell",
             "args": [
-                "${workspaceFolder}/bin/Debug/net8.0/win-x64/publish/OpenKNXproducer.exe",
+                "${workspaceFolder}/bin/Debug/net9.0/win-x64/publish/OpenKNXproducer.exe",
                 "${env:USERPROFILE}/bin"
             ],
             "problemMatcher": "$tsc"
