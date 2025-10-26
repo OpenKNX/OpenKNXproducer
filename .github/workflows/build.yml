@@ -68,6 +68,11 @@ jobs:
       matrix:
         include:
 
+          - oam: OAM-RaumController
+            ref: v1
+            prefix: RaumController
+            target: Release
+
           - oam: OAM-StateEngine
             ref: v1
             prefix: StateEngine
@@ -77,16 +82,16 @@ jobs:
           # - oam: OAM-LogicModule
           #   prefix: Logikmodul
           #   # knxprod_xml: Logikmodul-Release
-          - oam: OAM-SensorModule
-            ref: v1
-            prefix: Sensormodul
-            target: Big
-            # knxprod_xml: Sensormodul-Big
-          - oam: OAM-PresenceModule
-            ref: v1
-            prefix: PMmodul
-            target: Big
-            # knxprod_xml: PMmodul-Big
+          # - oam: OAM-SensorModule
+          #   ref: v1
+          #   prefix: Sensormodul
+          #   target: Big
+          #   # knxprod_xml: Sensormodul-Big
+          # - oam: OAM-PresenceModule
+          #   ref: v1
+          #   prefix: PMmodul
+          #   target: Big
+          #   # knxprod_xml: PMmodul-Big
 
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the MTR Module to ModuleVersion 0.2
           # - oam: OAM-Meter
@@ -95,10 +100,10 @@ jobs:
           #   target: ""
           #   # knxprod_xml: MeterModule
 
-          - oam: SEN-UP1-8xTH
-            ref: v1
-            prefix: SEN-UP1-8xTH
-            target: Release
+          # - oam: SEN-UP1-8xTH
+          #   ref: v1
+          #   prefix: SEN-UP1-8xTH
+          #   target: Release
 
           # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the IR Module to ModuleVersion 0.1
           #- oam: OAM-InfraredGateway
