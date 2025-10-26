@@ -10,6 +10,7 @@ using System.Security.Principal;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Collections;
+using System.Drawing;
 
 namespace OpenKNXproducer
 {
@@ -73,8 +74,12 @@ namespace OpenKNXproducer
             if (iMergeTarget == null || iMergeSource == null) return false;
             XmlNode lSourceChild = iMergeSource.FirstChild;
             XmlNode lTargetChild = iMergeTarget;
-            // we only merge restrictions
-            if (lSourceChild.Name != "TypeRestriction") return false;
+            // we only merge restrictions, other PT are merged if they are identical
+            if (lSourceChild.Name != "TypeRestriction")
+                return lSourceChild.OuterXml == lTargetChild.OuterXml;
+            // Precheck (speedup): if source && target are identical, there is no need to merge
+            if (lSourceChild.OuterXml == lTargetChild.OuterXml) return true;
+            // the remainig case are different TypeRestriction
             // Size has to be identical
             if (lSourceChild.Name != lTargetChild.Name || lSourceChild.NodeAttr("Base") != lTargetChild.NodeAttr("Base") || lSourceChild.NodeAttr("SizeInBit") != lTargetChild.NodeAttr("SizeInBit"))
             {
@@ -84,21 +89,33 @@ namespace OpenKNXproducer
                 return false;
             }
 
-            bool lResult = false;
-            // simple check (speed): If the first child exists in target, merge was done before
-            string lValue = lSourceChild.ChildNodes[0].NodeAttr("Value");
-            if (lValue == "") return false;
-            foreach (XmlNode lTargetNode in lTargetChild.ChildNodes)
-                if (lTargetNode.NodeAttr("Value") == lValue) return false;
+            // first step: take all enumerations from source, which are not contained in target
+            List<XmlNode> lEnums = [];
+            // Loop in loop, might be performance critical with huge enumerations
+            foreach (XmlNode lSourceNode in lSourceChild.ChildNodes)
+            {
+                bool lFound = false;
+                // speed: we check only if values are equal
+                _ = int.TryParse(lSourceNode.NodeAttr("Value"), out int lSourceValue);
+                foreach (XmlNode lTargetNode in lTargetChild.ChildNodes)
+                {
+                    _ = int.TryParse(lTargetNode.NodeAttr("Value"), out int lTargetValue);
+                    if (lSourceValue == lTargetValue)
+                    {
+                        lFound = true;
+                        break;
+                    }
+                }
+                if (!lFound) lEnums.Add(lSourceNode);
+            }
 
-            // we merge the parameter types of the source into the target
-            foreach (XmlNode lChild in lSourceChild.ChildNodes)
+            // now we know, which source enums are not part of the target,  we merge them into the target
+            foreach (XmlNode lChild in lEnums)
             {
                 XmlNode lImportNode = lTargetChild.OwnerDocument.ImportNode(lChild.Clone(), true);
                 lTargetChild.AppendChild(lImportNode);
-                lResult = true;
             }
-            return lResult;
+            return true;
         }
 
         private void MergeParameterTypes()
@@ -208,6 +225,17 @@ namespace OpenKNXproducer
                     mHeaderGenerated.Insert(0, "#pragma once\n\n");
                     mSingletonDefinesAdded = true;
                 }
+                // add konstant suffix
+                mHeaderGenerated.AppendLine("#ifdef MAIN_FirmwareRevision");              
+                mHeaderGenerated.AppendLine("#ifndef FIRMWARE_REVISION");              
+                mHeaderGenerated.AppendLine("#define FIRMWARE_REVISION MAIN_FirmwareRevision");              
+                mHeaderGenerated.AppendLine("#endif");              
+                mHeaderGenerated.AppendLine("#endif");              
+                mHeaderGenerated.AppendLine("#ifdef MAIN_FirmwareName");              
+                mHeaderGenerated.AppendLine("#ifndef FIRMWARE_NAME");              
+                mHeaderGenerated.AppendLine("#define FIRMWARE_NAME MAIN_FirmwareName");              
+                mHeaderGenerated.AppendLine("#endif");              
+                mHeaderGenerated.AppendLine("#endif");              
                 return mHeaderGenerated.ToString();
             }
         }
@@ -775,6 +803,9 @@ namespace OpenKNXproducer
                 int lAppRevision = 0;
                 if (!int.TryParse(lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value, out lAppRevision))
                     Program.Message(true, "ApplicationRevision could not be parsed, given value was {0}", lMcVersionNode.Attributes.GetNamedItem("ApplicationRevision").Value);
+                int lFirmwareRevision = -1;
+                if (!int.TryParse(lMcVersionNode.NodeAttr("FirmwareRevision", "-1"), out lFirmwareRevision))
+                    Program.Message(true, "FirmwareRevision could not be parsed, given value was {0}", lMcVersionNode.Attributes.GetNamedItem("FirmwareRevision").Value);
                 // now we calculate according versioning verification string
                 int lDerivedVersion = lAppVersion - lAppRevision;
                 lInlineData = string.Format("0000{0:X4}{1:X2}00", lCalcAppNumber, lDerivedVersion);
@@ -795,6 +826,11 @@ namespace OpenKNXproducer
                 lVersionInformation.AppendLine();
                 lVersionInformation.AppendFormat("#define MAIN_ApplicationVersion {0}", lAppVersion - lAppRevision);
                 lVersionInformation.AppendLine();
+                if (lFirmwareRevision >= 0)
+                {
+                    lVersionInformation.AppendFormat("#define MAIN_FirmwareRevision {0}", lFirmwareRevision);
+                    lVersionInformation.AppendLine();
+                }
                 lVersionInformation.AppendFormat("#define MAIN_ApplicationEncoding {0}", """iso-8859-15""");
                 lVersionInformation.AppendLine();
             }
@@ -922,10 +958,8 @@ namespace OpenKNXproducer
                     lCatalogItemName = lCatalogItemName.Replace("OpenKNX: ", "");
                     lCatalogItemName = NormalizeString(lCatalogItemName);
                     StringBuilder lFirmwareName = new();
-                    lFirmwareName.AppendLine("#ifndef FIRMWARE_NAME");
-                    lFirmwareName.AppendFormat("    #define FIRMWARE_NAME \"{0}\"", lCatalogItemName);
+                    lFirmwareName.AppendFormat("#define MAIN_FirmwareName \"{0}\"", lCatalogItemName);
                     lFirmwareName.AppendLine();
-                    lFirmwareName.AppendLine("#endif");
                     mHeaderGenerated.Insert(0, lFirmwareName);
                 }
 
@@ -1276,12 +1310,31 @@ namespace OpenKNXproducer
             }
         }
 
+        private static int MaxKoNumber(XmlNodeList iComObjects)
+        {
+            int lResult = 0;
+            foreach (XmlNode lKo in iComObjects)
+            {
+                string lNumberString = lKo.NodeAttr("Number");
+                lNumberString = lNumberString.Replace("%", "");
+                lNumberString = lNumberString.Replace("K", "");
+                if (int.TryParse(lNumberString, out int lValue))
+                    lResult = Math.Max(lResult, lValue);
+            }
+            if (lResult < iComObjects.Count)
+                return iComObjects.Count;
+            else if (iComObjects.Count == 0)
+                return 0;
+            else
+                return ++lResult;
+        }
+
         private void ExportHeaderKoBlock(DefineContent iDefine, StringBuilder cOut, string iHeaderPrefixName)
         {
             if (!mHeaderKoBlockGenerated)
             {
                 XmlNodeList lComObjects = mDocument.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
-                mKoBlockSize = lComObjects.Count;
+                mKoBlockSize = MaxKoNumber(lComObjects);
                 if (iDefine.IsTemplate && iDefine.KoBlockSize > 0 && iDefine.KoBlockSize != mKoBlockSize) throw new Exception("Different KoBlockSize!");
                 if (iDefine.IsTemplate) iDefine.KoBlockSize = mKoBlockSize;
                 StringBuilder lOut = new();

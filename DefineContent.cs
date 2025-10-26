@@ -8,6 +8,8 @@ namespace OpenKNXproducer
         public static DefineContent Empty = new();
         private static bool sWithConfigTransfer = false;
 
+        public static int ApplicationVersion = -1;
+
         private bool mNoConfigTransfer = false;
         private string mConfigTransferName = "";
 
@@ -25,9 +27,10 @@ namespace OpenKNXproducer
         public bool IsParameter = true;
         public string VerifyFile = "";
         public string VerifyRegex = "";
-        public int VerifyVersion = -1;
+        public int mVerifyVersion = -1;
         public string share;
         public string template;
+        public bool useApplicationVersion = false;
 
         public static bool WithConfigTransfer
         {
@@ -45,6 +48,18 @@ namespace OpenKNXproducer
         {
             get { return mConfigTransferName; }
             private set { mConfigTransferName = value; }
+        }
+
+        public int VerifyVersion
+        {
+            get
+            {
+                if (mVerifyVersion < 0 && useApplicationVersion && ApplicationVersion >= 0)
+                    return ApplicationVersion;
+                else
+                    return mVerifyVersion;
+            }
+            set { mVerifyVersion = value; }
         }
 
         public string VerifyVersionString
@@ -100,6 +115,7 @@ namespace OpenKNXproducer
                     lResult.NoConfigTransfer = true;
                     DefineContent.WithConfigTransfer = true;
                 }
+                lResult.useApplicationVersion = iDefineNode.NodeAttr("useApplicationVersion") == "true";
                 lResult.template = iDefineNode.NodeAttr("template");
                 lResult.IsParameter = false;
                 lResult.IsTemplate = false;
