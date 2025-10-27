@@ -58,6 +58,7 @@ jobs:
         with:
           name: bin-linux-x64
           path: OpenKNXproducer/bin/Release/net8.0/linux-x64/publish/OpenKNXproducer
+          if-no-files-found: error
           retention-days: 1
 
   check-oam-releases:
