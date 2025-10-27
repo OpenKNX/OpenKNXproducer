@@ -57,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bin-linux-x64
-          path: OpenKNXproducer/bin/Release/net8.0/linux-x64/publish/OpenKNXproducer
+          path: OpenKNXproducer/bin/Release/net9.0/linux-x64/publish/OpenKNXproducer
           if-no-files-found: error
           retention-days: 1
 
