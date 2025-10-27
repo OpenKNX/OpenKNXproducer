@@ -144,22 +144,22 @@ jobs:
             ref: v1dev
             prefix: StateEngine
             target: ""
-          - oam: OAM-LogicModule
-            ref: v1dev
-            prefix: Logikmodul
-            target: ""
-          - oam: OAM-SensorModule
-            ref: v1dev
-            prefix: Sensormodul
-            target: ""
-          - oam: OAM-PresenceModule
-            ref: v1dev
-            prefix: PMmodul
-            target: ""
-          - oam: SEN-UP1-8xTH
-            ref: v1
-            prefix: SEN-UP1-8xTH
-            target: ""
+          # - oam: OAM-LogicModule
+          #   ref: v1dev
+          #   prefix: Logikmodul
+          #   target: ""
+          # - oam: OAM-SensorModule
+          #   ref: v1dev
+          #   prefix: Sensormodul
+          #   target: ""
+          # - oam: OAM-PresenceModule
+          #   ref: v1dev
+          #   prefix: PMmodul
+          #   target: ""
+          # - oam: SEN-UP1-8xTH
+          #   ref: v1
+          #   prefix: SEN-UP1-8xTH
+          #   target: ""
           - oam: OAM-InternetServices
             ref: v1dev
             prefix: InternetServices
