@@ -140,6 +140,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - oam: OAM-RaumController
+            ref: v1dev
+            prefix: RaumController
+            target: ""
+
           - oam: OAM-StateEngine
             ref: v1dev
             prefix: StateEngine
