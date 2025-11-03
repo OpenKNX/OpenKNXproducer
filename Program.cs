@@ -771,6 +771,18 @@ namespace OpenKNXproducer
             }
             lCheck.Finish();
 
+            lCheck.Start("- Channel-in-Channel prevention...");
+            lNodes = lXml.SelectNodes("//Channel[ancestor::Channel]");
+            foreach (XmlNode lNode in lNodes)
+            {
+                    string lText = string.Format("Channel {0} is a child of an other Channel, ETS has problems with this construct. Use as child a ParameterBlock with ShowInComObjectTree Attribute.", lNode.NodeAttr("Name"));
+                    // if (ExtendedEtsSupport.ModulesListGenerated)
+                    //     lCheck.WriteFail(lText);
+                    // else
+                        lCheck.WriteWarn(8, lText);
+            }
+            lCheck.Finish();
+
             lCheck.Start("- Unused config entries...");
             foreach (var lConfig in ProcessInclude.Config)
             {

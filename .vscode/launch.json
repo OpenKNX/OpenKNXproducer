@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -26,7 +26,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -43,7 +43,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -60,7 +60,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "knxprod",
                 "--NoXsd",
@@ -76,7 +76,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -93,7 +93,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -110,7 +110,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -127,7 +127,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -144,7 +144,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -161,7 +161,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -178,7 +178,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -195,7 +195,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -212,7 +212,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "baggages",
                 "-d",
@@ -229,7 +229,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -246,7 +246,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -263,7 +263,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -280,7 +280,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -297,7 +297,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -314,7 +314,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "baggages",
                 "-d",
@@ -333,7 +333,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -348,7 +348,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -363,7 +363,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -380,7 +380,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "baggages",
                 "-d",
@@ -399,7 +399,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -414,7 +414,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -429,7 +429,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -444,7 +444,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
@@ -459,7 +459,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "new",
                 "--AppName=AppName",
@@ -481,7 +481,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "check",
                 "--Xsd=../../knx_20.xsd",
@@ -496,7 +496,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "knxprod",
                 "--NoXsd",
@@ -513,7 +513,7 @@
             "preLaunchTask": "build",
             "enableStepFiltering": false,
             // "justMyCode": false,
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "version"
             ],
@@ -526,11 +526,11 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net8.0/OpenKNXproducer.dll",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
             "args": [
                 "create",
                 "--Debug",
-                "bin/Debug/net8.0/temp.xml"
+                "bin/Debug/net9.0/temp.xml"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
