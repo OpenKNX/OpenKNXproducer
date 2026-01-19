@@ -95,10 +95,12 @@ namespace OpenKNXproducer
             foreach (XmlNode lSourceNode in lSourceChild.ChildNodes)
             {
                 bool lFound = false;
+                if (lSourceNode.NodeType == XmlNodeType.Comment) continue;
                 // speed: we check only if values are equal
                 _ = int.TryParse(lSourceNode.NodeAttr("Value"), out int lSourceValue);
                 foreach (XmlNode lTargetNode in lTargetChild.ChildNodes)
                 {
+                    if (lTargetNode.NodeType == XmlNodeType.Comment) continue;
                     _ = int.TryParse(lTargetNode.NodeAttr("Value"), out int lTargetValue);
                     if (lSourceValue == lTargetValue)
                     {
@@ -1586,6 +1588,11 @@ namespace OpenKNXproducer
                     {
                         cOut.AppendFormat("#define {3}{0,-35} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
                         lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName + iChannelArgs);
+                        if (lType.StartsWith("char*"))
+                        {
+                            cOut.AppendLine();
+                            cOut.AppendFormat("#define     {0}{1}Length {2}", iHeaderPrefixName, lName, lBits / 8);
+                        }
                         lIsOut = true;
                     }
                     else
