@@ -1507,7 +1507,7 @@ namespace OpenKNXproducer
                         else if (lParameterType.Name == "TypeText")
                         {
                             lType = string.Format("char*, {0} Byte", lBits / 8);
-                            lKnxAccessMethod = "knx.paramString({0})";
+                            lKnxAccessMethod = "knx.paramData({0})";
                             lDirectType = true;
                         }
                         else if (lParameterType.Name == "TypeFloat")
@@ -1587,14 +1587,14 @@ namespace OpenKNXproducer
                     else if (lDirectType)
                     {
                         cOut.AppendFormat("#define {3}{0,-35} {1,2}      // {2}", lName, lOffset, lType, iHeaderPrefixName);
+                        lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName + iChannelArgs);
                         if (lType.StartsWith("char*"))
                         {
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Length {2}", iHeaderPrefixName, lName, lBits / 8);
                             lKnxArgument = lKnxArgument[..^1] + ", {3}{0}Length)";
-                            lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName + iChannelArgs);
-                        } else {
-                            lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName + iChannelArgs);
+                            lKnxArgument = lKnxArgument.Replace("paramData", "paramString");
+                            lOutput += string.Format("\n#define Param{3}{5,-35} (" + lKnxArgument + ")", lName, lOffset, lType, iHeaderPrefixName, lName + iChannelArgs, lName + iChannelArgs + "Str");
                         }
                         lIsOut = true;
                     }
