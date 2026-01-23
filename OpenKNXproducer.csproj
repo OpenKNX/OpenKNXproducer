@@ -28,7 +28,7 @@
     <!-- <Nullable>enable</Nullable> -->
     <!-- No git hash in the version info -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Version>3.12.2</Version>
+    <Version>3.12.8</Version>
     <!-- <PublishTrimmed>false</PublishTrimmed> -->
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishSingleFile>true</PublishSingleFile>

@@ -759,6 +759,11 @@ namespace OpenKNXproducer
             foreach (XmlNode lNode in lNodes)
             {
                 string lNumber = lNode.NodeAttr("Number");
+                if (lNumber == "%UPDATE%")
+                {
+                    lNode.Attributes.GetNamedItem("Number").Value = "UPDATE";
+                    continue;
+                }
                 DefineContent lDefineContent = DefineContent.GetDefineContent(lNumber);
                 if (lDefineContent.header == null)
                 {
@@ -768,6 +773,18 @@ namespace OpenKNXproducer
                     else
                         lCheck.WriteWarn(8, lText);
                 }
+            }
+            lCheck.Finish();
+
+            lCheck.Start("- Channel-in-Channel prevention...");
+            lNodes = lXml.SelectNodes("//Channel[ancestor::Channel]");
+            foreach (XmlNode lNode in lNodes)
+            {
+                    string lText = string.Format("Channel {0} is a child of an other Channel, ETS has problems with this construct. Use as child a ParameterBlock with ShowInComObjectTree Attribute.", lNode.NodeAttr("Name"));
+                    // if (ExtendedEtsSupport.ModulesListGenerated)
+                    //     lCheck.WriteFail(lText);
+                    // else
+                        lCheck.WriteWarn(8, lText);
             }
             lCheck.Finish();
 
@@ -1473,6 +1490,8 @@ namespace OpenKNXproducer
         {
             [Option('o', "Output", Required = false, HelpText = "Output file name", MetaValue = "FILE")]
             public string OutputFile { get; set; } = "";
+            [Option('x', "ExchangeKoTexts", Required = false, HelpText = "Exchange KO Text and FunctionText")]
+            public bool ExchangeKoTexts { get; set; } = false;
         }
 
         [Verb("baggages", HelpText = "Create baggages files from given documentation file")]
@@ -1621,6 +1640,8 @@ namespace OpenKNXproducer
             XmlDocument lXml = lInclude.GetDocument();
             bool lSuccess = ProcessSanityChecks(lInclude, lWithVersions);
             if (lSuccess) lSuccess = EnsureEtsNamingConventionForKO(lInclude);
+            if (lSuccess) lSuccess = PushUpdateChannelToFirstPosition(lXml);
+            if (lSuccess && opts.ExchangeKoTexts) ExchangeKoTextAndFunctionText(lXml);
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
             if (opts.Debug) lTempXmlFileName = opts.XmlFileName;
@@ -1663,6 +1684,45 @@ namespace OpenKNXproducer
             return lResult;
         }
 
+        private static bool PushUpdateChannelToFirstPosition(XmlDocument iXml)
+        {
+            // is there an update node
+            XmlNode lUpdateNode = iXml.SelectSingleNode("//Channel[@Number='UPDATE']");
+            if (lUpdateNode == null) return true;
+            lUpdateNode = lUpdateNode.ParentNode.ParentNode; // Channel -> test -> choose
+            XmlNode lFirstChannel = iXml.SelectSingleNode("//Channel[1]");
+            if (lFirstChannel == null) return true;
+            lFirstChannel.ParentNode.InsertBefore(lUpdateNode, lFirstChannel);
+            return true;
+        }
+
+        private static void ExchangeKoTextAndFunctionText(XmlDocument iXml)
+        {
+            // XPath: alle Elemente mit Attribut Text oder FunctionText
+            XmlNodeList lNodes = iXml.SelectNodes("//ComObject[@Text or @FunctionText] | //ComObjectRef[@Text or @FunctionText]");
+            foreach (XmlNode lNode in lNodes)
+            {
+                bool lWithText = lNode.Attributes["Text"] != null;
+                bool lWithFunctionText = lNode.Attributes["FunctionText"] != null;
+                if (lWithText && lWithFunctionText)
+                {
+                    (lNode.Attributes["FunctionText"].Value, lNode.Attributes["Text"].Value) = (lNode.Attributes["Text"].Value, lNode.Attributes["FunctionText"].Value);
+                }
+                else if (lWithText)
+                {
+                    lNode.Attributes.Append(iXml.CreateAttribute("FunctionText"));
+                    lNode.Attributes["FunctionText"].Value = lNode.Attributes["Text"].Value;
+                    lNode.Attributes.RemoveNamedItem("Text");
+                }
+                else if (lWithFunctionText)
+                {
+                    lNode.Attributes.Append(iXml.CreateAttribute("Text"));
+                    lNode.Attributes["Text"].Value = lNode.Attributes["FunctionText"].Value;
+                    lNode.Attributes.RemoveNamedItem("FunctionText");
+                }
+            }
+        }
+
         static private int VerbCheck(CheckOptions opts)
         {
             WriteVersion();
@@ -1694,10 +1754,12 @@ namespace OpenKNXproducer
             Console.WriteLine("Reading xml file {0} writing to {1}", opts.XmlFileName, lOutputFileName);
 
             string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
-            string xml = File.ReadAllText(opts.XmlFileName);
-            Regex rs = FastRegex.EtsProject();
-            Match match = rs.Match(xml);
-            // string lEtsPath = FindEtsPath(match.Groups[1].Value);
+            if (opts.ExchangeKoTexts) {
+                XmlDocument lXml = new XmlDocument();
+                lXml.Load(opts.XmlFileName);
+                ExchangeKoTextAndFunctionText(lXml);
+                lXml.Save(opts.XmlFileName);
+            }
             return ExportKnxprod(lWorkingDir, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
         }
 
