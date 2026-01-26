@@ -884,6 +884,25 @@ namespace OpenKNXproducer
                     // lAttr.Value = lAttr.Value.Replace("_PBT-", "_PB-");
                 }
             }
+            // move OAM-specific definitions to visible channel (common)
+            XmlNodeList lMoveToCommon = mDocument.SelectNodes("//ParameterBlock[@oknxp:moveToCommon='true']", nsmgr);
+            if (lMoveToCommon != null && lMoveToCommon.Count > 0)
+            {
+                XmlNode lCommonChannel = mDocument.SelectSingleNode("//Dynamic/Channel[@Number='BASE']");
+                foreach (XmlNode lBlock in lMoveToCommon)
+                {
+                    if (lBlock.ParentNode.ChildNodes.Count == 1)
+                    {
+                        // just remove the whole channel, if this was the only block
+                        lBlock.ParentNode.ParentNode.RemoveChild(lBlock.ParentNode);
+                    }
+                    lBlock.ParentNode.RemoveChild(lBlock);
+                    var lAttribute = lBlock.SelectSingleNode("@oknxp:moveToCommon", nsmgr);
+                    lBlock.Attributes.RemoveNamedItem(lAttribute.Name);
+                    lCommonChannel.InsertAfter(lBlock, null);
+                }
+            }
+
             // remove empty elements (without attributes and without children)
             XmlNodeList lEmptyElements = iTargetNode.SelectNodes("//*[not(node()) and not(@*)]");
             foreach (XmlNode lEmptyElement in lEmptyElements)
