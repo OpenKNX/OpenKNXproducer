@@ -432,33 +432,29 @@ namespace OpenKNXproducer
             for (int i = 0; i < lNodes.Count; i++)
             {
                 XmlNode lNode = lNodes[i];
-                XmlNamespaceManager ns = new XmlNamespaceManager(new NameTable());
-                var lAttribute = lNode.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
-                bool lNoWarn = lAttribute != null && lAttribute.Value == "true";
-                if (lNoWarn) {
-                    // we remove noWarn attribute because is is not part of ets xsd
-                    lNode.Attributes.RemoveNamedItem(lAttribute.Name);
-                }
+                bool lNoWarn = GetNoWarnAttribute(lNode);
 
                 // bool lSuccess;
                 int lSize = GetUnionSize(lCheck, lNode);
                 GetUnionRange(lCheck, lNode, out int lCurrentOffset, out int lCurrentEnd);
-                if (lSize < lCurrentEnd-lCurrentOffset && !lNoWarn)
-                    lCheck.WriteWarn(9, "The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd-lCurrentOffset) * 8);
+                if (lSize < lCurrentEnd - lCurrentOffset)
+                    lCheck.WriteFail("The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
                 // compare with subsequent Unions to detect overlaps
                 if (lNoWarn)
                     continue;
                 for (int j = i + 1; j < lNodes.Count; j++)
                 {
                     XmlNode lOther = lNodes[j];
+                    bool lOtherNoWarn = GetNoWarnAttribute(lOther);
                     GetUnionRange(lCheck, lOther, out int lOtherOffset, out int lOtherEnd);
                     // ranges: [lCurrentOffset, lCurrentEnd) and [lOtherOffset, lOtherEnd)
-                    if (lCurrentOffset < lOtherEnd && lCurrentEnd > lOtherOffset)
-                        lCheck.WriteWarn(9, "Union (SizeInBit '{0}' / Offset '{1}') is overlapping with Union (SizeInBit '{2}' / Offset '{3}')", lNode.NodeAttr("SizeInBit"), lCurrentOffset, lOther.NodeAttr("SizeInBit"), lOtherOffset);
+                    if (!lOtherNoWarn && lCurrentOffset < lOtherEnd && lCurrentEnd > lOtherOffset)
+                        lCheck.WriteWarn(9, "Union (SizeInBit '{0}' / Offset '{1}') is overlapping ({2} Bytes) with Union (SizeInBit '{3}' / Offset '{4}')", lNode.NodeAttr("SizeInBit"), lCurrentOffset, (lCurrentEnd - lOtherOffset), lOther.NodeAttr("SizeInBit"), lOtherOffset);
                     if (lOtherOffset > lCurrentEnd + 100)
                         break; // no further overlaps possible
                 }
             }
+            RemoveAllUnionNoWarnAttributes(lXml);
             lCheck.Finish();
 
             lCheck.Start("- Parameter-Name-Uniqueness...");
@@ -879,6 +875,26 @@ namespace OpenKNXproducer
 
             Console.WriteLine();
             return !lCheck.IsFail;
+        }
+
+        private static void RemoveAllUnionNoWarnAttributes(XmlNode iNode)
+        {
+            XmlNodeList lUnions = iNode.SelectNodes("//Union[@oknxp:nowarn]", ProcessInclude.nsmgr);
+            if (lUnions != null && lUnions.Count > 0)
+            {
+                var lAttribute = lUnions[0]?.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
+                if (lAttribute != null)
+                    foreach (XmlNode lUnion in lUnions)
+                        // we remove noWarn attribute because is is not part of ets xsd
+                        lUnion.Attributes.RemoveNamedItem(lAttribute.Name);
+            }        
+        }
+
+        private static bool GetNoWarnAttribute(XmlNode cNode)
+        {
+            var lAttribute = cNode.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
+            bool lNoWarn = lAttribute != null && lAttribute.Value == "true";
+            return lNoWarn;
         }
 
         private static int GetUnionSize(CheckHelper iCheck, XmlNode iNode)
