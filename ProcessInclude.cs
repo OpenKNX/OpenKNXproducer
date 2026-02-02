@@ -25,7 +25,7 @@ namespace OpenKNXproducer
         }
         public static readonly Dictionary<string, ConfigEntry> Config = new();
 
-        private XmlNamespaceManager nsmgr;
+        public static XmlNamespaceManager nsmgr;
         private readonly XmlDocument mDocument = new();
         private bool mLoaded = false;
         readonly StringBuilder mHeaderGenerated = new();
@@ -884,6 +884,25 @@ namespace OpenKNXproducer
                     // lAttr.Value = lAttr.Value.Replace("_PBT-", "_PB-");
                 }
             }
+            // move OAM-specific definitions to visible channel (common)
+            XmlNodeList lMoveToCommon = mDocument.SelectNodes("//ParameterBlock[@oknxp:moveToCommon='true']", nsmgr);
+            if (lMoveToCommon != null && lMoveToCommon.Count > 0)
+            {
+                XmlNode lCommonChannel = mDocument.SelectSingleNode("//Dynamic/Channel[@Number='BASE']");
+                foreach (XmlNode lBlock in lMoveToCommon)
+                {
+                    if (lBlock.ParentNode.ChildNodes.Count == 1)
+                    {
+                        // just remove the whole channel, if this was the only block
+                        lBlock.ParentNode.ParentNode.RemoveChild(lBlock.ParentNode);
+                    }
+                    lBlock.ParentNode.RemoveChild(lBlock);
+                    var lAttribute = lBlock.SelectSingleNode("@oknxp:moveToCommon", nsmgr);
+                    lBlock.Attributes.RemoveNamedItem(lAttribute.Name);
+                    lCommonChannel.InsertAfter(lBlock, null);
+                }
+            }
+
             // remove empty elements (without attributes and without children)
             XmlNodeList lEmptyElements = iTargetNode.SelectNodes("//*[not(node()) and not(@*)]");
             foreach (XmlNode lEmptyElement in lEmptyElements)
@@ -1221,14 +1240,14 @@ namespace OpenKNXproducer
             return lParameterBlockCount;
         }
 
-        public int CalcParamSize(XmlNode iParameter)
+        public static int CalcParamSize(XmlNode iParameter, bool iIsInUnion = false)
         {
             int lResult = 0;
             if (sParameterTypes.Count > 0)
             {
                 // we calculate the size only, if the parameter uses some memory in the device storage
                 XmlNode lMemory = iParameter.SelectSingleNode("Memory");
-                if (lMemory != null)
+                if (iIsInUnion || lMemory != null)
                 {
                     XmlNode lSizeNode = null;
                     XmlNode lSizeInBitAttribute = null;
@@ -1253,7 +1272,7 @@ namespace OpenKNXproducer
                             lResult = (lResult - 1) / 8 + 1;
                             if (!lIsInt)
                             {
-                                Console.WriteLine("Parse error in include {0} in line {1}", mXmlFileName, lSizeNode.InnerXml);
+                                Program.Message(true, "Wrong SizeInBit value in ", lSizeNode.NodeAttr("Name"));
                             }
                         }
                         else
@@ -1265,6 +1284,8 @@ namespace OpenKNXproducer
                             else if (lSizeNode.Name == "TypeIPAddress")
                                 lResult = 4;
                             else if (lSizeNode.Name == "TypeColor")
+                                lResult = 3;
+                            else if (lSizeNode.Name == "TypeDate")
                                 lResult = 3;
                         }
                     }
@@ -1521,6 +1542,14 @@ namespace OpenKNXproducer
                         else if (lParameterType.Name == "TypeColor")
                         {
                             lType = "color, uint, 3 Byte";
+                            lBits = 24;
+                            lBitBaseSize = 32;
+                            lKnxAccessMethod = "knx.paramInt({0})";
+                            lDirectType = true;
+                        }
+                        else if (lParameterType.Name == "TypeDate")
+                        {
+                            lType = "date, uint, 3 Byte";
                             lBits = 24;
                             lBitBaseSize = 32;
                             lKnxAccessMethod = "knx.paramInt({0})";

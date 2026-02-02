@@ -57,19 +57,22 @@ namespace OpenKNXproducer
             Match lMatch;
             StringBuilder lBaggage = new();
 
-            using var lFile = File.OpenText(iDocFileName);
+            // read all lines into memory and add an extra empty line for internal processing
+            var lLines = new Queue<string>(File.ReadAllLines(iDocFileName));
+            lLines.Enqueue(""); // extra newline-equivalent line
+            
             int lActiveDoc = 0;
             int lActiveSkip = 0;
             bool lActiveContent = false;
             bool lActiveComment = false;
 
             string lLine = "";
-            while (!lFile.EndOfStream)
+            while (lLines.Count > 0)
             {
                 if (lActiveSkip < 0)
                     lActiveSkip = 0;
                 else
-                    lLine = lFile.ReadLine();
+                    lLine = lLines.Dequeue();
                 // skip n lines, we use this from external command or internally
                 if (lActiveSkip > 0)
                 {
@@ -135,7 +138,7 @@ namespace OpenKNXproducer
                         lBaggage.Clear();
                     }
                     // we expect a chapter header line starting with a number of '#'
-                    lLine = lFile.ReadLine();
+                    lLine = lLines.Count > 0 ? lLines.Dequeue() : "";
                     lActiveDoc = CountCharAtStart(lLine, '#');
 
                     // calculate baggages filename
@@ -175,7 +178,7 @@ namespace OpenKNXproducer
                 else if (lActiveDoc > 0)
                 {
                     lMatch = FastRegex.DocEnd().Match(lLine);
-                    if (lFile.EndOfStream || lMatch.Success || (lLine.StartsWith("#") && lActiveDoc >= CountCharAtStart(lLine, '#')))
+                    if (lLines.Count == 0 || lMatch.Success || (lLine.StartsWith('#') && lActiveDoc >= CountCharAtStart(lLine, '#')))
                     {
                         // chapter is ended
                         lActiveDoc = 0;

@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using System.Xml.Schema;
 // using OpenKNXproducer.Signing;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace OpenKNXproducer
 {
@@ -428,12 +429,32 @@ namespace OpenKNXproducer
 
             lCheck.Start("- Union-Integrity...");
             lNodes = lXml.SelectNodes("//Union");
-            foreach (XmlNode lNode in lNodes)
+            for (int i = 0; i < lNodes.Count; i++)
             {
-                string lSize = lNode.NodeAttr("SizeInBit");
-                if (lSize == "")
-                    lCheck.WriteFail("Union without SizeInBit-Attribute found");
+                XmlNode lNode = lNodes[i];
+                bool lNoWarn = GetNoWarnAttribute(lNode);
+
+                // bool lSuccess;
+                int lSize = GetUnionSize(lCheck, lNode);
+                GetUnionRange(lCheck, lNode, out int lCurrentOffset, out int lCurrentEnd);
+                if (lSize < lCurrentEnd - lCurrentOffset)
+                    lCheck.WriteFail("The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
+                // compare with subsequent Unions to detect overlaps
+                if (lNoWarn)
+                    continue;
+                for (int j = i + 1; j < lNodes.Count; j++)
+                {
+                    XmlNode lOther = lNodes[j];
+                    bool lOtherNoWarn = GetNoWarnAttribute(lOther);
+                    GetUnionRange(lCheck, lOther, out int lOtherOffset, out int lOtherEnd);
+                    // ranges: [lCurrentOffset, lCurrentEnd) and [lOtherOffset, lOtherEnd)
+                    if (!lOtherNoWarn && lCurrentOffset < lOtherEnd && lCurrentEnd > lOtherOffset)
+                        lCheck.WriteWarn(9, "Union (SizeInBit '{0}' / Offset '{1}') is overlapping ({2} Bytes) with Union (SizeInBit '{3}' / Offset '{4}')", lNode.NodeAttr("SizeInBit"), lCurrentOffset, (lCurrentEnd - lOtherOffset), lOther.NodeAttr("SizeInBit"), lOtherOffset);
+                    if (lOtherOffset > lCurrentEnd + 100)
+                        break; // no further overlaps possible
+                }
             }
+            RemoveAllUnionNoWarnAttributes(lXml);
             lCheck.Finish();
 
             lCheck.Start("- Parameter-Name-Uniqueness...");
@@ -856,6 +877,69 @@ namespace OpenKNXproducer
             return !lCheck.IsFail;
         }
 
+        private static void RemoveAllUnionNoWarnAttributes(XmlNode iNode)
+        {
+            XmlNodeList lUnions = iNode.SelectNodes("//Union[@oknxp:nowarn]", ProcessInclude.nsmgr);
+            if (lUnions != null && lUnions.Count > 0)
+            {
+                var lAttribute = lUnions[0]?.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
+                if (lAttribute != null)
+                    foreach (XmlNode lUnion in lUnions)
+                        // we remove noWarn attribute because is is not part of ets xsd
+                        lUnion.Attributes.RemoveNamedItem(lAttribute.Name);
+            }        
+        }
+
+        private static bool GetNoWarnAttribute(XmlNode cNode)
+        {
+            var lAttribute = cNode.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
+            bool lNoWarn = lAttribute != null && lAttribute.Value == "true";
+            return lNoWarn;
+        }
+
+        private static int GetUnionSize(CheckHelper iCheck, XmlNode iNode)
+        {
+            bool lSuccess = int.TryParse(iNode.NodeAttr("SizeInBit"), out int lSize);
+            if (!lSuccess || lSize == 0)
+                iCheck.WriteFail("Union has invalid SizeInBit value '{0}'", iNode.NodeAttr("SizeInBit"));
+            if (lSize % 8 != 0)
+                iCheck.WriteWarn(9, "Union SizeInBit '{0}' is not byte aligned", iNode.NodeAttr("SizeInBit"));
+            return lSize / 8;
+        }
+
+        private static int GetUnionOffset(CheckHelper iCheck, XmlNode iNode)
+        {
+            XmlNode lMemory = iNode.SelectSingleNode("Memory");
+            if (lMemory == null)
+            {
+                iCheck.WriteFail("Found Union without Memory definition");
+                return 0;
+            }
+            bool lSuccess = int.TryParse(lMemory.NodeAttr("Offset"), out int lOffset);
+            if (!lSuccess)
+                iCheck.WriteFail("Found Union with invalid Memory.Offset value '{0}'", lMemory.NodeAttr("Offset"));
+            if (lMemory.NodeAttr("BitOffset") != "0")
+                iCheck.WriteWarn(9, "Found Union with BitOffset != '0'! Be careful, there is no producer support (checks, calculations) for Unions with unaligned BitOffset");
+            return lOffset;
+        }
+
+        private static void GetUnionRange(CheckHelper iCheck, XmlNode iNode, out int oOffsetStart, out int oOffsetEnd)
+        {
+            oOffsetStart = GetUnionOffset(iCheck, iNode);
+            int lMaxSize = 0;
+            XmlNodeList lParameters = iNode.SelectNodes("Parameter");
+            foreach (XmlNode lParameter in lParameters)
+            {
+                bool lSuccess = int.TryParse(lParameter.NodeAttr("Offset"), out int lParamOffset);
+                if (!lSuccess)
+                    iCheck.WriteFail("Found Union Parameter '{0}' with invalid Offset value '{1}'", lParameter.NodeAttr("Name"), lParameter.NodeAttr("Offset"));
+                int lParamSize = ProcessInclude.CalcParamSize(lParameter, true);
+                if (lParamOffset + lParamSize > lMaxSize)
+                    lMaxSize = lParamOffset + lParamSize;
+            }
+            oOffsetEnd = oOffsetStart + lMaxSize;
+        }
+
         static Dictionary<string, XmlNode> sParameterTypes = null;
 
         private static string CheckParameterValueIntegrity(XmlNode iTargetNode, CheckHelper iCheck, XmlNode iParameterNode, string iValue, string iMessage)
@@ -905,6 +989,10 @@ namespace OpenKNXproducer
                             break;
 
                         case "TypeColor":
+                            //There is no SizeInBit attribute
+                            break;
+
+                        case "TypeDate":
                             //There is no SizeInBit attribute
                             break;
 
