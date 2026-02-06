@@ -232,8 +232,6 @@ namespace OpenKNXproducer
 
         static bool ProcessSanityChecks(ProcessInclude iInclude, bool iWithVersions)
         {
-
-            Console.WriteLine();
             Console.WriteLine("Sanity checks... ");
             CheckHelper lCheck = new();
             XmlDocument lXml = iInclude.GetDocument();
@@ -438,7 +436,11 @@ namespace OpenKNXproducer
                 int lSize = GetUnionSize(lCheck, lNode);
                 GetUnionRange(lCheck, lNode, out int lCurrentOffset, out int lCurrentEnd);
                 if (lSize < lCurrentEnd - lCurrentOffset)
-                    lCheck.WriteFail("The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
+                    if (ProcessInclude.MinVersion >= new Version(3, 13, 0))
+                        lCheck.WriteFail("The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
+                    else
+                        lCheck.WriteWarn(9, "The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
+                    
                 // compare with subsequent Unions to detect overlaps
                 if (lNoWarn)
                     continue;

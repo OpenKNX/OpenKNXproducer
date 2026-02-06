@@ -29,7 +29,7 @@ namespace OpenKNXproducer
         private readonly XmlDocument mDocument = new();
         private bool mLoaded = false;
         readonly StringBuilder mHeaderGenerated = new();
-
+        public static Version MinVersion = new(0, 0, 0);
         private static readonly Dictionary<string, XmlNode> sParameterTypes = new();
         private bool mParameterTypesFetched;
         private static readonly Dictionary<string, ProcessInclude> gIncludes = new();
@@ -239,6 +239,19 @@ namespace OpenKNXproducer
                 mHeaderGenerated.AppendLine("#endif");              
                 mHeaderGenerated.AppendLine("#endif");              
                 return mHeaderGenerated.ToString();
+            }
+        }
+
+        private static void GetMinVersion(XmlNode iTargetNode) {
+            XmlNodeList lMinVersionNodes = iTargetNode.SelectNodes("//oknxp:minOpenKNXproducerVersion", nsmgr);
+            if (lMinVersionNodes.Count > 0)
+            {
+                foreach (XmlNode lNode in lMinVersionNodes)
+                {
+                    Version lVersion = new(lNode.NodeAttr("value", "0.0.0") + ".0");
+                    if (lVersion > MinVersion)
+                        MinVersion = lVersion;
+                }
             }
         }
 
@@ -767,6 +780,10 @@ namespace OpenKNXproducer
         bool ProcessFinish(XmlNode iTargetNode)
         {
             Console.WriteLine("Processing merged file...");
+            // we check minimal OpenKNXversion required for this document
+            Version lCurrentVersion = typeof(Program).Assembly.GetName().Version;
+            if (lCurrentVersion < MinVersion) 
+                Program.Message(true, "This document requires at least OpenKNXproducer version {0}.{1}.{2}, but you are using version {3}.{4}.{5}. Please update OpenKNXproducer to process this document!", MinVersion.Major, MinVersion.Minor, MinVersion.Build, lCurrentVersion.Major, lCurrentVersion.Minor, lCurrentVersion.Build);
             ProcessConfig(iTargetNode);
             MergeParameterTypes();
             ReplaceKoTemplateFinal(iTargetNode);
@@ -1940,6 +1957,8 @@ namespace OpenKNXproducer
         {
             bool lIsApplicationInclude = false;
             InitNamespaceManager();
+            // retrieve min version
+            GetMinVersion(mDocument);
             // process config
             XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
             if (lConfigNodes != null && lConfigNodes.Count > 0)
