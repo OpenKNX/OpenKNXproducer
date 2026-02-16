@@ -176,14 +176,21 @@ namespace OpenKNXproducer
             }
         }
 
-        public static readonly Dictionary<string, bool> additionalMessages = new();
+        public static readonly Dictionary<string, Version> additionalMessages = [];
 
 #nullable enable
         public static void Message(bool iIsError, string iFormat, params object?[] args)
         {
             string lMessage = string.Format(iFormat, args);
             if (!additionalMessages.ContainsKey(lMessage))
-                additionalMessages.Add(lMessage, iIsError);
+                additionalMessages.Add(lMessage, iIsError ? new Version(0,0) : new Version(999,999));
+        }
+        public static void Message(string iMinVersion, string iFormat, params object?[] args)
+        {
+            string lMessage = string.Format(iFormat, args);
+            Version lVersion = new(iMinVersion);
+            if (!additionalMessages.ContainsKey(lMessage))
+                additionalMessages.Add(lMessage, lVersion);
         }
 #nullable disable
 
@@ -195,7 +202,7 @@ namespace OpenKNXproducer
             // ETS naming convention for KO: %AID%_O-n, where n is the KO-Number (the Number-Attribute of ComObject-Tag)
             // This coding converts OpenKNX naming convention to ETS naming convention
             XmlNodeList lComObjects = iInclude.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
-            Dictionary<string, string> lComObjectsMap = new();
+            Dictionary<string, string> lComObjectsMap = [];
             // first we replace all ComObject-Ids and create a mapping table
             foreach (XmlNode lComObject in lComObjects)
             {
@@ -235,6 +242,23 @@ namespace OpenKNXproducer
             Console.WriteLine("Sanity checks... ");
             CheckHelper lCheck = new();
             XmlDocument lXml = iInclude.GetDocument();
+
+            // we check minimal OpenKNXversion required for this document
+            lCheck.Start("- Minimal required OpenKNXproducer version...");
+            Version lMinProducerVersion = new(0, 0, 0);
+            foreach (XmlNode lNode in ProcessInclude.MinVersionNodes)
+            {
+                if (lNode.LocalName == "minOpenKNXproducerVersion")
+                {
+                    Version lVersion = new(lNode.NodeAttr("value", "0.0.0") + ".0");
+                    if (lVersion > lMinProducerVersion)
+                        lMinProducerVersion = lVersion;
+                }
+            }
+            Version lCurrentVersion = typeof(Program).Assembly.GetName().Version;
+            if (lCurrentVersion < lMinProducerVersion) 
+                lCheck.WriteFail("This document requires at least OpenKNXproducer version {0}.{1}.{2}, but you are using version {3}.{4}.{5}. Please update OpenKNXproducer to process this document!", lMinProducerVersion.Major, lMinProducerVersion.Minor, lMinProducerVersion.Build, lCurrentVersion.Major, lCurrentVersion.Minor, lCurrentVersion.Build);
+            lCheck.Finish();
 
             lCheck.Start("- Id-Homogeneity...");
             XmlNodeList lNodes = lXml.SelectNodes("//*[@Id]");
@@ -436,7 +460,7 @@ namespace OpenKNXproducer
                 int lSize = GetUnionSize(lCheck, lNode);
                 GetUnionRange(lCheck, lNode, out int lCurrentOffset, out int lCurrentEnd);
                 if (lSize < lCurrentEnd - lCurrentOffset)
-                    if (ProcessInclude.MinVersion >= new Version(3, 13, 0))
+                    if (lMinProducerVersion >= new Version(3, 13, 0))
                         lCheck.WriteFail("The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
                     else
                         lCheck.WriteWarn(9, "The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
@@ -865,10 +889,52 @@ namespace OpenKNXproducer
             }
             lCheck.Finish();
 
+            // we check minimal Module versions required for this document
+            lCheck.Start("- Minimal required module versions...");
+            Dictionary<string, Version> lMinVersions = [];
+            // we calculate the miniml required version per module prefix
+            foreach (XmlNode lNode in ProcessInclude.MinVersionNodes)
+            {
+                if (lNode.LocalName == "minModuleVersion")
+                {
+                    Version lVersion = new(lNode.NodeAttr("value", "0.0.0") + ".0");
+                    string lPrefix = lNode.NodeAttr("prefix", "");
+                    if (lPrefix == "") continue;
+                    // additional existential dependency check
+                    if (lNode.NodeAttr("dependency", "onlyIfUsed") == "forceUsage" && DefineContent.GetDefineContent(lPrefix).share == null)
+                    {
+                        lCheck.WriteFail("Module with prefix '{0}' is required but missing", lPrefix);
+                    } 
+                    else
+                    {
+                        if (lMinVersions.ContainsKey(lPrefix))
+                        {
+                            if (lVersion > lMinVersions[lPrefix])
+                                lMinVersions[lPrefix] = lVersion;
+                        }
+                        else
+                            lMinVersions[lPrefix] = lVersion;
+                    }
+                }
+            }
+            // now we check module list against current version
+            foreach (var lVersion in lMinVersions)
+            {
+                DefineContent lDefineContent = DefineContent.GetDefineContent(lVersion.Key);
+                if (lDefineContent.share != null)
+                {
+                    if (lDefineContent.VerifyVersion < lVersion.Value.Major * 16 + lVersion.Value.Minor)
+                        lCheck.WriteFail("This document requires at least version {0}.{1} of module with prefix '{2}', but you are using version {3}.", lVersion.Value.Major, lVersion.Value.Minor, lVersion.Key, lDefineContent.VerifyVersionString);
+                }
+            }
+            lCheck.Finish();
+
+
             lCheck.Start("- Further messages during document processing...");
             foreach (var lMessage in additionalMessages)
             {
-                if (lMessage.Value)
+
+                if (lMessage.Value <= lMinProducerVersion)
                     lCheck.WriteFail(lMessage.Key, "");
                 else
                     lCheck.WriteWarn(0, lMessage.Key, "");
@@ -1738,6 +1804,7 @@ namespace OpenKNXproducer
             lTempXmlFileName = Path.ChangeExtension(lTempXmlFileName, "debug.xml");
             if (opts.Debug) Console.WriteLine("Writing debug file to {0}", lTempXmlFileName);
             lXml.Save(lTempXmlFileName);
+            HardwareSupportCustom.Save(opts.XmlFileName);
             // File.WriteAllText(Path.ChangeExtension(lTempXmlFileName, ".params.js"), ProcessInclude.ParameterInfo);
             // we check against old file content
             bool lIsEqual = false;

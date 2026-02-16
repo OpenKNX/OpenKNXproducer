@@ -278,6 +278,11 @@ namespace OpenKNXproducer
                     {
                         // We have a usepart include without a specific instance
                         ProcessPart lPart = ProcessPart.GetPart(lName);
+                        if (lPart == null)
+                        {
+                            Program.Message(true, "Part '{0}' not found! ", lName);
+                            continue;
+                        }
                         int lInstances = lPart.Instances;
                         _ = int.TryParse(lNode.NodeAttr("instanceFrom", "1"), out int lFrom);
                         _ = int.TryParse(lNode.NodeAttr("instanceTo", lInstances.ToString()), out int lTo);

@@ -23,13 +23,13 @@ namespace OpenKNXproducer
             public string ConfigValue;
             public bool WasReplaced;
         }
-        public static readonly Dictionary<string, ConfigEntry> Config = new();
-
+        public static readonly Dictionary<string, ConfigEntry> Config = [];
+        public static readonly List<XmlNode> MinVersionNodes = [];    
         public static XmlNamespaceManager nsmgr;
         private readonly XmlDocument mDocument = new();
         private bool mLoaded = false;
         readonly StringBuilder mHeaderGenerated = new();
-        public static Version MinVersion = new(0, 0, 0);
+        // public static Version MinVersion = new(0, 0, 0);
         private static readonly Dictionary<string, XmlNode> sParameterTypes = new();
         private bool mParameterTypesFetched;
         private static readonly Dictionary<string, ProcessInclude> gIncludes = new();
@@ -242,17 +242,9 @@ namespace OpenKNXproducer
             }
         }
 
-        private static void GetMinVersion(XmlNode iTargetNode) {
-            XmlNodeList lMinVersionNodes = iTargetNode.SelectNodes("//oknxp:minOpenKNXproducerVersion", nsmgr);
-            if (lMinVersionNodes.Count > 0)
-            {
-                foreach (XmlNode lNode in lMinVersionNodes)
-                {
-                    Version lVersion = new(lNode.NodeAttr("value", "0.0.0") + ".0");
-                    if (lVersion > MinVersion)
-                        MinVersion = lVersion;
-                }
-            }
+        private static void GetMinVersions(XmlNode iTargetNode) {
+            XmlNodeList lMinVersionNodes = iTargetNode.SelectNodes("//oknxp:minOpenKNXproducerVersion | //oknxp:minModuleVersion", nsmgr);
+            MinVersionNodes.AddRange(lMinVersionNodes.Cast<XmlNode>());
         }
 
         public static ProcessInclude Factory(string iXmlFileName, string iHeaderPrefixName)
@@ -780,10 +772,12 @@ namespace OpenKNXproducer
         bool ProcessFinish(XmlNode iTargetNode)
         {
             Console.WriteLine("Processing merged file...");
-            // we check minimal OpenKNXversion required for this document
-            Version lCurrentVersion = typeof(Program).Assembly.GetName().Version;
-            if (lCurrentVersion < MinVersion) 
-                Program.Message(true, "This document requires at least OpenKNXproducer version {0}.{1}.{2}, but you are using version {3}.{4}.{5}. Please update OpenKNXproducer to process this document!", MinVersion.Major, MinVersion.Minor, MinVersion.Build, lCurrentVersion.Major, lCurrentVersion.Minor, lCurrentVersion.Build);
+            // Console.WriteLine();
+            // Console.WriteLine(HardwareSupportCustom.OutputLong());
+            // Console.WriteLine();
+            // Console.WriteLine(HardwareSupportCustom.OutputShortCustom());
+            // Console.WriteLine();
+            // Console.WriteLine(HardwareSupportCustom.OutputShortC());
             ProcessConfig(iTargetNode);
             MergeParameterTypes();
             ReplaceKoTemplateFinal(iTargetNode);
@@ -1866,7 +1860,7 @@ namespace OpenKNXproducer
             // process config
             XmlNodeList lNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
             if (lNodes != null && lNodes.Count > 0)
-                ParseConfig(lNodes, iCurrentDir);
+                ParseConfig(lNodes, iCurrentDir, null);
             // we also allow nowarn in config files
             lNodes = lConfig.SelectNodes("//oknxp:nowarn", nsmgr);
             if (lNodes != null && lNodes.Count > 0)
@@ -1876,9 +1870,9 @@ namespace OpenKNXproducer
         public static bool AddConfig(string iName, string iValue)
         {
             bool lResult = false;
-            iName = iName.Trim('%');
-            iName = $"%{iName}%";
-            if (iName != "" && !Config.ContainsKey(iName))
+            if (!iName.StartsWith('%')) iName = '%' + iName;
+            if (!iName.EndsWith('%')) iName += '%';
+            if (iName != "%%" && !Config.ContainsKey(iName))
             {
                 Config[iName] = new() { ConfigValue = iValue };
                 lResult = true;
@@ -1886,7 +1880,7 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        public static void ParseConfig(XmlNodeList iConfigNodes, string iCurrentDir)
+        public static void ParseConfig(XmlNodeList iConfigNodes, string iCurrentDir, ProcessInclude iInclude)
         {
             // config consists of a list of name-value pairs to be replaced in document
             foreach (XmlNode lNode in iConfigNodes)
@@ -1895,10 +1889,25 @@ namespace OpenKNXproducer
                 string lHref = lNode.NodeAttr("href");
                 if (lHref == "")
                 {
+                    bool lAdded = false;
                     string lName = lNode.NodeAttr("name");
                     string lValue = lNode.NodeAttr("value");
                     lNode.ParentNode.RemoveChild(lNode);
-                    AddConfig(lName, lValue);
+                    if (iInclude != null && lName.Contains("%C%") && iInclude.ChannelCount > 0) 
+                    {
+                        DefineContent lDefine = DefineContent.GetDefineContent(iInclude.mHeaderPrefixName.Trim('_'));
+                        if (lDefine != null)
+                        {
+                            int lNumChannels = lDefine.NumChannels;
+                            for (int i = 0; i < lNumChannels; i++)
+                            {
+                                string lChannelName = lName.Replace("%C%", (i+1).ToString());
+                                AddConfig(lChannelName, lValue);
+                                lAdded = true;
+                            }
+                        }
+                    }
+                    if (!lAdded) AddConfig(lName, lValue);
                 }
                 else
                 {
@@ -1958,11 +1967,11 @@ namespace OpenKNXproducer
             bool lIsApplicationInclude = false;
             InitNamespaceManager();
             // retrieve min version
-            GetMinVersion(mDocument);
+            GetMinVersions(mDocument);
             // process config
             XmlNodeList lConfigNodes = mDocument.SelectNodes("//oknxp:config", nsmgr);
             if (lConfigNodes != null && lConfigNodes.Count > 0)
-                ParseConfig(lConfigNodes, iCurrentDir);
+                ParseConfig(lConfigNodes, iCurrentDir, this);
 
             XmlNodeList lNoWarnNodes = mDocument.SelectNodes("//oknxp:nowarn", nsmgr);
             if (lNoWarnNodes != null && lNoWarnNodes.Count > 0)
@@ -1987,6 +1996,11 @@ namespace OpenKNXproducer
                 }
                 DefineContent.ValidateDefines();
             }
+
+            // parse hardware support
+            XmlNodeList lHardwareParams = mDocument.SelectNodes("//Parameter[@oknxp:hardwareDefault]", nsmgr);
+            if (lHardwareParams != null && lHardwareParams.Count > 0)
+                HardwareSupportCustom.ParseHardwareParams(lHardwareParams, mHeaderPrefixName, ChannelCount);
 
             FetchParameterTypes();
 
@@ -2034,7 +2048,15 @@ namespace OpenKNXproducer
                 lDefine.IsTemplate = (lIncludeNode.NodeAttr("type") == "template");
                 lDefine.IsParameter = (lIncludeNode.NodeAttr("type") == "parameter");
                 if (lIsPart)
-                    lIncludeName = ProcessPart.GetPart(lIncludeNode).IncludeName;
+                {
+                    ProcessPart lPart = ProcessPart.GetPart(lIncludeNode);
+                    if (lPart == null)
+                    {
+                        Program.Message(true, "Part '{0}' not found!", lIncludeNode.NodeAttr("name"));
+                        continue;
+                    }
+                    lIncludeName = lPart.IncludeName;                    
+                }
                 ProcessInclude lInclude = ProcessInclude.Factory(lIncludeName, lHeaderPrefixName);
                 lInclude.IsInnerInclude = lIsInner;
                 DateTime lStartTime = DateTime.Now;

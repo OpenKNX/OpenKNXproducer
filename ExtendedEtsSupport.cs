@@ -63,7 +63,7 @@ static class ExtendedEtsSupport
                     continue; // skip Common
 
                 // parameter id
-                string lId = lParameterInsert.NodeAttr("Id").Replace("%ProducerModuleId%", moduleCount.ToString("D2"));
+                string lId = lParameterInsert.NodeAttr("Id").Replace("%ProducerModuleId%", lDefine.ModuleType.ToString("D2"));
                 // we create a new parameter for each channel  
                 XmlNode lParameter = lParameterInsert.CloneNode(true);
                 lParameter.Attributes["Id"].Value = lId;
@@ -356,6 +356,11 @@ static class ExtendedEtsSupport
                     if (lName.Contains('~'))
                     {
                         Program.Message(true, "Name {0} contains not allowed character '~'", lName);
+                        lName = "";
+                    }
+                    if (lName.Contains("%C%") && !iDefine.IsTemplate)
+                    {
+                        Program.Message("3.13.6", "Name {0} with %C% not allowed in share", lName);
                         lName = "";
                     }
                     lName = lName.Replace("%C%", "~");

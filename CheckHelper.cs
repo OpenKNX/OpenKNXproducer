@@ -60,7 +60,7 @@ class CheckHelper
         string lMessage = String.Format($"  --> WARN {iWarnId:d03}: " + iFormat, iParams);
         if (sDuplicateMessages.Contains(lMessage))
             lSuppress = true;
-        else if (NoWarn.ContainsKey(iWarnId))
+        else if (NoWarn.ContainsKey(iWarnId) && iWarnId != 9) // Warn 9 is about union size and should not be suppressed by default, as it is often an indication of a real problem in the document
         {
             foreach (var lPattern in NoWarn[iWarnId])
             {

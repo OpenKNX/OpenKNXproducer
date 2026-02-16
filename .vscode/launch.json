@@ -5,6 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug Dali-GW",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../Dali-GW/OAM-DaliGateway/include/knxprod.h",
+                "../Dali-GW/OAM-DaliGateway/src/DaliGateway"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": "Debug Aircondition",
             "type": "coreclr",
             "request": "launch",
