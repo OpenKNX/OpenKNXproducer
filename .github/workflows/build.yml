@@ -1,29 +1,188 @@
 name: Check Build
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      include_dev_build:
+        description: 'Include the develop builds (v1dev branch restore)?'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        publish_target:
+          - win-x64
+          - linux-x64
+          - osx-x64
 
     steps:
-    - name: Checkout code OpenKNX.Toolbox.Sign
-      uses: actions/checkout@v4
-      with:
-        repository: OpenKNX/OpenKNX.Toolbox.Sign
-        ref: main
-        path: OpenKNX.Toolbox.Sign
+      - name: Checkout code OpenKNX.Toolbox.Sign
+        uses: actions/checkout@v4
+        with:
+          repository: OpenKNX/OpenKNX.Toolbox.Sign
+          ref: main
+          path: OpenKNX.Toolbox.Sign
 
-    - name: Checkout code OpenKNXproducer
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.head_ref || github.ref_name }}
-        path: OpenKNXproducer
+      - name: Checkout code OpenKNXproducer
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          path: OpenKNXproducer
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0'
 
-    - name: Run build script
-      run: dotnet build OpenKNXproducer/OpenKNXproducer.csproj
+      # - name: DEBUG Clone Result
+      #   run: |
+      #     pwd
+      #     find OpenKNXproducer
+
+
+      - name: Run PUBLISH ${{ matrix.publish_target }}
+        shell: pwsh
+        run: |
+          cd OpenKNXproducer
+          dotnet publish ./OpenKNXproducer.csproj -c Release -r ${{ matrix.publish_target }} --self-contained true /p:PublishSingleFile=true
+
+      # - name: DEBUG Build Result
+      #   if: matrix.publish_target == 'linux-x64'
+      #   run: |
+      #     ls -l OpenKNXproducer/bin/Release/net8.0/linux-x64/publish
+      #     ls -l OpenKNXproducer/bin/Release/net8.0/linux-x64/publish/OpenKNXproducer
+      #     pwd
+      #     find OpenKNXproducer
+
+      - name: Upload Build Artifact
+        if: matrix.publish_target == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-linux-x64
+          path: OpenKNXproducer/bin/Release/net9.0/linux-x64/publish/OpenKNXproducer
+          if-no-files-found: error
+          retention-days: 1
+
+  check-oam-releases:
+    needs: build
+    name: Release '${{ matrix.oam }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+
+          - oam: OAM-RaumController
+            ref: v1
+            prefix: RaumController
+            target: Release
+
+          - oam: OAM-StateEngine
+            ref: v1
+            prefix: StateEngine
+            target: DFA16-Release
+            # knxprod_xml: StateEngine-DFA16-Release
+          # TODO include again for next release
+          # - oam: OAM-LogicModule
+          #   prefix: Logikmodul
+          #   # knxprod_xml: Logikmodul-Release
+          # - oam: OAM-SensorModule
+          #   ref: v1
+          #   prefix: Sensormodul
+          #   target: Big
+          #   # knxprod_xml: Sensormodul-Big
+          # - oam: OAM-PresenceModule
+          #   ref: v1
+          #   prefix: PMmodul
+          #   target: Big
+          #   # knxprod_xml: PMmodul-Big
+
+          # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the MTR Module to ModuleVersion 0.2
+          # - oam: OAM-Meter
+          #   ref: v1
+          #   prefix: MeterModule
+          #   target: ""
+          #   # knxprod_xml: MeterModule
+
+          # - oam: SEN-UP1-8xTH
+          #   ref: v1
+          #   prefix: SEN-UP1-8xTH
+          #   target: Release
+
+          # --> You need to >>> INCREASE YOUR <<< ETS ApplicationVersion and manually synchronize op:verify of the IR Module to ModuleVersion 0.1
+          #- oam: OAM-InfraredGateway
+          #  ref: v1
+          #  prefix: InfraredGateway
+          #  target: ""
+          #  # knxprod_xml: InfraredGateway
+          # Failing Build on main and latest release
+          # - oam: OAM-IP-Router
+          #   # failed using `ref: main`
+          #   ref: d0c9aa559d8eb39b6ca0561253297ce8f2defe78
+          #   prefix: IP-Router
+          #   target: Release
+          #   # knxprod_xml: IP-Router-Release
+
+          - oam: OAM-InternetServices
+            ref: v1
+            prefix: InternetServices
+            target: Release
+
+    uses: ./.github/workflows/producer-oam-check.yml
+    with:
+      oam: ${{ matrix.oam }}
+      ref: ${{ matrix.ref }}
+      KNXPROD_PREFIX: ${{ matrix.prefix }}
+      target: ${{ matrix.target }}
+      restore_branch: false
+
+  check-oam-develop:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.include_dev_build == 'true' }}
+    needs: build
+    name: Develop '${{ matrix.oam }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - oam: OAM-RaumController
+            ref: v1dev
+            prefix: RaumController
+            target: ""
+
+          - oam: OAM-StateEngine
+            ref: v1dev
+            prefix: StateEngine
+            target: ""
+          # - oam: OAM-LogicModule
+          #   ref: v1dev
+          #   prefix: Logikmodul
+          #   target: ""
+          # - oam: OAM-SensorModule
+          #   ref: v1dev
+          #   prefix: Sensormodul
+          #   target: ""
+          # - oam: OAM-PresenceModule
+          #   ref: v1dev
+          #   prefix: PMmodul
+          #   target: ""
+          # - oam: SEN-UP1-8xTH
+          #   ref: v1
+          #   prefix: SEN-UP1-8xTH
+          #   target: ""
+          - oam: OAM-InternetServices
+            ref: v1dev
+            prefix: InternetServices
+            target: ""
+
+    uses: ./.github/workflows/producer-oam-check.yml
+    with:
+      oam: ${{ matrix.oam }}
+      ref: ${{ matrix.ref }}
+      KNXPROD_PREFIX: ${{ matrix.prefix }}
+      target: ${{ matrix.target }}
+      restore_branch: true

@@ -1,0 +1,159 @@
+# Check current producer with build of OpenKNX OAMs (merging/building of OpenKNX knxprod + build of full releases)
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2024-2025 Cornelius Koepp
+
+name: producer-oam-check
+run-name: Check OpenKNX Producer with OAM Build
+
+on:
+  workflow_call:
+    inputs:
+      oam:
+        required: true
+        type: string
+      ref:
+        required: false
+        type: string
+        default: "v1"
+      target:
+        required: true
+        type: string
+      restore_branch:
+        required: true
+        type: boolean
+        default: false
+      KNXPROD_PREFIX:
+        required: true
+        type: string
+
+jobs:
+  # TODO use producer build from last step
+
+  oam-build:
+    runs-on: ubuntu-latest
+    # env:
+    #   PRODUCER_VERSION: 3.7.14.0
+    #   PRODUCER_URL: https://github.com/OpenKNX/OpenKNXproducer/releases/download/v3.7.14/OpenKNXproducer-3.7.14.0.zip
+    #   PRODUCER_CHECKSUM: 40e30f59deb949704c3ec21e26b3fceb18b418a46443d904383bf4fd99d56461d1d8c39fac756de09079004469d1e868ce33c50768dbe1e3314b304a6fc20c2f
+    #   PRODUCER_FILENAME: OpenKNXproducer-${PRODUCER_VERSION}.zip
+
+    name: ${{ inputs.oam }} (${{ inputs.target }})
+    steps:
+
+      # - name: Check for Same Name Branch in Reference OAM
+      #   id: oam_branch
+      #   run: |
+      #     BRANCH="v1dev"
+      #     EXISTS=$(git ls-remote --heads https://github.com/openknx/${{ inputs.oam }}.git ${{ github.ref_name }} | wc -l)
+      #     if [ "$EXISTS" -gt 0 ]; then
+      #       BRANCH="${{ github.ref_name }}"
+      #     fi
+      #     echo "ref_name=$BRANCH" >> $GITHUB_OUTPUT
+      #     echo "Selected branch: $BRANCH"
+
+      - name: Checkout OAM
+        uses: actions/checkout@v4
+        with:
+          repository: openknx/${{ inputs.oam }}
+          # ref: ${{ steps.oam_branch.outputs.ref_name }}
+          ref: ${{ inputs.ref }}
+          path: ${{ inputs.oam }}
+
+      # - name: DEBUG paths
+      #   run: |
+      #     pwd
+      #     find
+
+      - name: Restore OAM
+        shell: pwsh
+        run: |
+          cd ${{ inputs.oam }}/restore 
+          if ("${{ inputs.restore_branch }}" -eq "true") {
+            ./Restore-Dependencies-Branch.ps1
+          } else {
+            ./Restore-Dependencies.ps1
+          }
+
+      # - name: Restore Current OFM Commit
+      #   uses: actions/checkout@v4
+      #   with:
+      #     # ref: ${{ github.ref_name }}
+      #     path: OFM-DFA
+
+      - name: Create Download Dir (Compatibility)
+        run: |
+          mkdir -p OpenKNXproducer/tools/Linux/
+      - name: Download Build for Linux
+        uses: actions/download-artifact@v4
+        with:
+          name: bin-linux-x64
+          # file to: OpenKNXproducer/tools/Linux/OpenKNXproducer
+          path: OpenKNXproducer/tools/Linux/
+
+      - name: Prepare Usage
+        run: |
+          cd OpenKNXproducer
+          find tools/Linux/
+          ls -l tools/Linux/
+          chmod u+x tools/Linux/OpenKNXproducer
+      # - name: Download OpenKNXproducer ${{ env.PRODUCER_VERSION }} and Verify
+      #   run: |
+      #     mkdir OpenKNXproducer
+      #     cd OpenKNXproducer
+      #     echo "${PRODUCER_CHECKSUM} *${PRODUCER_FILENAME}" > OpenKNXproducer.checksum
+      #     wget -q "${PRODUCER_URL}" -O "${PRODUCER_FILENAME}"
+      #     sha512sum "${PRODUCER_FILENAME}"
+      #     sha512sum -c OpenKNXproducer.checksum
+      # - name: Unzip OpenKNXproducer and Make Executable
+      #   run: |
+      #     cd OpenKNXproducer
+      #     unzip "${PRODUCER_FILENAME}" || test -f tools/Linux/OpenKNXproducer
+      #     chmod u+x tools/Linux/OpenKNXproducer
+      - name: Check OpenKNXproducer
+        run: OpenKNXproducer/tools/Linux/OpenKNXproducer version || echo Ignore OpenKNXproducer always returning 1...
+
+      # TODO check using installer
+      - name: Install OpenKNXproducer
+        run: cp -av OpenKNXproducer/tools/Linux/OpenKNXproducer /usr/local/bin/OpenKNXproducer
+
+      - name: Create knxprod
+        run: |
+          cd ${{ inputs.oam }}
+          OpenKNXproducer create --Debug -h include/knxprod.h src/${{inputs.KNXPROD_PREFIX}}${{ inputs.target != '' && format('-{0}', inputs.target) || '' }} 2>&1 | tee producer.log
+          exit_code=${PIPESTATUS[0]}
+          if [ $exit_code -ne 0 ]; then
+            # Collect all outputs starting with "-->"
+            error_lines=$(grep -Ev '^\s*-->\s*WARN' producer.log | grep -E '^\s*(-->|Unhandled exception\.)' | grep -Ev -- '--> Skipping creation of src/[^ \.]+\.knxprod due to check errors! <--' | tr '\n' ' // ')
+            if [ -n "$error_lines" ]; then
+              echo "::error:: $error_lines"
+            fi
+            exit $exit_code
+          fi
+
+          warn_lines=$(grep -E '^\s*-->\s*WARN' producer.log | tr '\n' ' // ')
+          if [ -n "$warn_lines" ]; then
+            echo "::warning:: $warn_lines"
+          fi
+
+      # - name: Install Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '3.8'
+      #
+      # - name: Install PlatformIO
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     pip install virtualenv
+      #     virtualenv ~/.platformio/penv
+      #     source ~/.platformio/penv/bin/activate
+      #     pip install platformio
+      #
+      # - name: OpenKNX Release Build
+      #   run: |
+      #     cd ${{ inputs.oam }}
+      #     pwsh ./scripts/Build-Release.ps1 ${{ inputs.target }}
+      #
+      # - name: Show Changed Files
+      #   run: |
+      #     cd ${{ inputs.oam }}
+      #     git diff
