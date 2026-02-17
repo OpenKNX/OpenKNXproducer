@@ -50,11 +50,14 @@ static class ExtendedEtsSupport
             // at this point we are in the parameter include of Common, we can generate addisional 
             Console.Write("Preprocess module list... ");
             moduleCount = 0;
+            Dictionary<int, bool> lUsedModuleTypes = [];
             foreach (DefineContent lDefine in DefineContent.Defines().Values)
             {
                 if (lDefine.NoConfigTransfer && lDefine.prefix != "UCT")
                     continue; // skip old modules
-
+                if (lUsedModuleTypes.ContainsKey(lDefine.ModuleType))
+                    continue; // module types cannot be reused
+                    
                 moduleCount++;
                 GeneratedHeaderAddon.AppendLine($"#define ETS_ModuleId_{lDefine.prefix} {moduleCount}");
                 // add script extension
@@ -64,6 +67,7 @@ static class ExtendedEtsSupport
 
                 // parameter id
                 string lId = lParameterInsert.NodeAttr("Id").Replace("%ProducerModuleId%", lDefine.ModuleType.ToString("D2"));
+                lUsedModuleTypes.Add(lDefine.ModuleType, true);
                 // we create a new parameter for each channel  
                 XmlNode lParameter = lParameterInsert.CloneNode(true);
                 lParameter.Attributes["Id"].Value = lId;
