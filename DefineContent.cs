@@ -15,6 +15,7 @@ namespace OpenKNXproducer
 
         public string prefix = "LOG";
         public string prefixDoc = "LOG";
+        public string prefixSubmodule = "";
         public int KoOffset = 1;
         public int KoSingleOffset;
         public int KoBlockSize = 0;
@@ -84,6 +85,7 @@ namespace OpenKNXproducer
             {
                 lResult.prefix = lPrefix;
                 lResult.prefixDoc = iDefineNode.NodeAttr("prefixDoc", lPrefix);
+                lResult.prefixSubmodule = iDefineNode.NodeAttr("isSubmoduleOf", lResult.prefixDoc);
                 lResult.header = iDefineNode.NodeAttr("header");
 
                 if (!int.TryParse(iDefineNode.NodeAttr("NumChannels"), out lResult.NumChannels)) lResult.NumChannels = 0;

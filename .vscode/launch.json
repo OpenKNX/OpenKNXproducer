@@ -427,7 +427,7 @@
             "stopAtEntry": false
         },
         {
-            "name": "Debug SEN-UP1-8xTH",
+            "name": "Debug UP1-8xSensor",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -435,7 +435,7 @@
             "args": [
                 "create",
                 "--Debug",
-                "../OpenKNX/SEN-UP1-8xTH_knxprod/SEN-UP1-8xTH"
+                "../OAM-UP1-8xSensor/src/SEN-UP1-8xTH-Dev"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

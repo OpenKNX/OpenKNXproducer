@@ -50,13 +50,24 @@ static class ExtendedEtsSupport
             // at this point we are in the parameter include of Common, we can generate addisional 
             Console.Write("Preprocess module list... ");
             moduleCount = 0;
-            Dictionary<int, bool> lUsedModuleTypes = [];
+            Dictionary<int, string> lUsedModuleTypes = [];
             foreach (DefineContent lDefine in DefineContent.Defines().Values)
             {
+                if (lDefine.prefix != "LOG")
+                    {
+                        
+                    if (lUsedModuleTypes.TryGetValue(lDefine.ModuleType, out string lUsedPrefix))
+                    {
+                        // it is ok, if both belong to the same module, check in both directions
+                        if (lUsedPrefix == lDefine.prefixSubmodule) continue;
+                        if (DefineContent.GetDefineContent(lUsedPrefix).prefixSubmodule == lDefine.prefix) continue;
+                        Program.Message("3.13.0", "ModuleType has to be unique, you use the same Module type in {0} and {1}", lDefine.prefix, lUsedPrefix);
+                        continue; // module types cannot be reused
+                    }
+                    lUsedModuleTypes.Add(lDefine.ModuleType, lDefine.prefix);
+                }
                 if (lDefine.NoConfigTransfer && lDefine.prefix != "UCT")
                     continue; // skip old modules
-                if (lUsedModuleTypes.ContainsKey(lDefine.ModuleType))
-                    continue; // module types cannot be reused
                     
                 moduleCount++;
                 GeneratedHeaderAddon.AppendLine($"#define ETS_ModuleId_{lDefine.prefix} {moduleCount}");
@@ -67,11 +78,10 @@ static class ExtendedEtsSupport
 
                 // parameter id
                 string lId = lParameterInsert.NodeAttr("Id").Replace("%ProducerModuleId%", lDefine.ModuleType.ToString("D2"));
-                lUsedModuleTypes.Add(lDefine.ModuleType, true);
                 // we create a new parameter for each channel  
                 XmlNode lParameter = lParameterInsert.CloneNode(true);
                 lParameter.Attributes["Id"].Value = lId;
-                XmlNode lAttr = lParameter.Attributes["Offset"];
+                XmlAttribute lAttr = lParameter.Attributes["Offset"];
                 if (lAttr != null) lAttr.Value = ((byte)((moduleCount - 1) / 8)).ToString();
                 lAttr = lParameter.Attributes["BitOffset"];
                 if (lAttr != null) lAttr.Value = ((byte)((moduleCount - 1) % 8)).ToString();
@@ -139,6 +149,7 @@ static class ExtendedEtsSupport
                     if (lDefine.header == null) continue; // skip unknown modules
                     // get the right parameter for this module  
                     XmlNode lParameter = lParameterParent.SelectSingleNode($"Parameter[contains(@Name, '{lModulePrefix}')]");
+                    if (lParameter == null) continue;
                     string lId = lParameter.NodeAttr("Id");
                     lParameter.Attributes["Text"].Value = lParameter.Attributes["Text"].Value.Replace(lModulePrefix, lChannel.NodeAttr("Text"));
                     // we create a new parameterRef for each channel
