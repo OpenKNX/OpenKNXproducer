@@ -58,16 +58,24 @@ static class ExtendedEtsSupport
                         
                     if (lUsedModuleTypes.TryGetValue(lDefine.ModuleType, out string lUsedPrefix))
                     {
+                        if (lDefine.prefixSubmodule == lDefine.prefix)
+                        {
+                            lUsedModuleTypes.Remove(lDefine.ModuleType);                             
+                        }
                         // it is ok, if both belong to the same module, check in both directions
-                        if (lUsedPrefix == lDefine.prefixSubmodule) continue;
-                        if (DefineContent.GetDefineContent(lUsedPrefix).prefixSubmodule == lDefine.prefix) continue;
-                        Program.Message("3.13.0", "ModuleType has to be unique, you use the same Module type in {0} and {1}", lDefine.prefix, lUsedPrefix);
-                        continue; // module types cannot be reused
-                    }
+                        else if (lUsedPrefix != lDefine.prefixSubmodule)
+                        {
+                            Program.Message("3.13.0", "ModuleType has to be unique, you use the same Module type in {0} and {1}", lDefine.prefix, lUsedPrefix);
+                            continue; // module types cannot be reused
+                        } else 
+                            continue; // module types can be reused for submodules
+                    } 
                     lUsedModuleTypes.Add(lDefine.ModuleType, lDefine.prefix);
                 }
                 if (lDefine.NoConfigTransfer && lDefine.prefix != "UCT")
                     continue; // skip old modules
+                if (lDefine.prefixSubmodule != lDefine.prefix)
+                    continue; // skip modules which are only submodules of another module, they will be handled together with their main module
                     
                 moduleCount++;
                 GeneratedHeaderAddon.AppendLine($"#define ETS_ModuleId_{lDefine.prefix} {moduleCount}");
@@ -143,13 +151,13 @@ static class ExtendedEtsSupport
                     string lModulePrefix = lChannel.NodeAttr("Number");
                     if (lModulePrefix == "BASE") continue; // skip Common
                     moduleCount++;
-                    lModuleParam.Next();
                     // Verify that module prefix exists
                     DefineContent lDefine = DefineContent.GetDefineContent(lModulePrefix);
                     if (lDefine.header == null) continue; // skip unknown modules
                     // get the right parameter for this module  
                     XmlNode lParameter = lParameterParent.SelectSingleNode($"Parameter[contains(@Name, '{lModulePrefix}')]");
                     if (lParameter == null) continue;
+                    lModuleParam.Next();
                     string lId = lParameter.NodeAttr("Id");
                     lParameter.Attributes["Text"].Value = lParameter.Attributes["Text"].Value.Replace(lModulePrefix, lChannel.NodeAttr("Text"));
                     // we create a new parameterRef for each channel
