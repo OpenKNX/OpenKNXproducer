@@ -1,5 +1,6 @@
 using System.Collections;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
@@ -54,8 +55,7 @@ static class ExtendedEtsSupport
             foreach (DefineContent lDefine in DefineContent.Defines().Values)
             {
                 if (lDefine.prefix != "LOG")
-                    {
-                        
+                {                       
                     if (lUsedModuleTypes.TryGetValue(lDefine.ModuleType, out string lUsedPrefix))
                     {
                         if (lDefine.prefixSubmodule == lDefine.prefix)
@@ -71,6 +71,14 @@ static class ExtendedEtsSupport
                             continue; // module types can be reused for submodules
                     } 
                     lUsedModuleTypes.Add(lDefine.ModuleType, lDefine.prefix);
+                }
+                else
+                {
+                    var lEntry = lUsedModuleTypes.FirstOrDefault(x => x.Value == "BASE");
+                    if (lEntry.Key != lDefine.ModuleType)
+                    {
+                        Program.Message("3.13.0", "ModuleType for LOG ({0}) ist not the same as BASE ({1})", lDefine.ModuleType, lEntry.Key);
+                    }
                 }
                 if (lDefine.NoConfigTransfer && lDefine.prefix != "UCT")
                     continue; // skip old modules
@@ -428,7 +436,10 @@ static class ExtendedEtsSupport
         lParameterNames.Append(']');
         lParameterDefaults.Append(']');
         string lOutput = $"\"{lSuffix}\": {{\n    \"names\": {lParameterNames.ToString()},\n    \"defaults\": {lParameterDefaults.ToString()}\n    }}";
-        lDict.Add(lSuffix, lOutput);
+        if (lDict.ContainsKey(lSuffix))
+            Program.Message(true, "Duplicate suffix {0} for module {1}, usually this means you included module {1} twice (copy/paste without changing prefix?)", lSuffix, iDefine.prefix);
+        else
+            lDict.Add(lSuffix, lOutput);
         // Console.WriteLine("{2}: {0}, {1} Bytes", lOutput, lOutput.Length, iDefine.prefix);
     }
 

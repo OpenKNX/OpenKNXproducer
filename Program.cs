@@ -1313,7 +1313,7 @@ namespace OpenKNXproducer
             return lError;
         }
 
-        private static int ExportKnxprod(string iWorkingDir, string iKnxprodFileName, string iTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd, string iXml = null)
+        private static int ExportKnxprod(string iWorkingDir, string iKnxprodFileName, string iTempXmlFileName, string iXsdFileName, bool iIsDebug, bool iAutoXsd, string iBaggagesDirName = "")
         {
             // if (iPathETS == "")
             // {
@@ -1331,7 +1331,7 @@ namespace OpenKNXproducer
             }
             try
             {
-                var lTask = OpenKNX.Toolbox.Sign.SignHelper.ExportKnxprodAsync(iWorkingDir, iKnxprodFileName, iTempXmlFileName, iXsdFileName, iIsDebug, iAutoXsd);
+                var lTask = OpenKNX.Toolbox.Sign.SignHelper.ExportKnxprodAsync(iWorkingDir, iKnxprodFileName, iTempXmlFileName, iXsdFileName, iIsDebug, iAutoXsd, iBaggagesDirName);
                 Console.WriteLine();
                 Console.Write("Generating knxprod file...");
                 Thread.Sleep(500);
@@ -1367,12 +1367,7 @@ namespace OpenKNXproducer
             if (lResult == 0) {
                 Console.ForegroundColor = ConsoleColor.Green;
                 // derive version from appId
-                string lXml;
-                if (iXml == null) {
-                    lXml = File.ReadAllText(iTempXmlFileName);
-                } else {
-                    lXml = iXml;
-                }
+                string lXml = File.ReadAllText(iTempXmlFileName);
                 Regex rs = FastRegex.ApplicationId();
                 Match match = rs.Match(lXml);
                 var appId = match.Groups[1].Value;
@@ -1828,7 +1823,7 @@ namespace OpenKNXproducer
             if (lSuccess)
             {
                 // string lEtsPath = FindEtsPath(lInclude.GetNamespace());
-                lResult = ExportKnxprod(WorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd);
+                lResult = ExportKnxprod(WorkingDir, lOutputFileName, lTempXmlFileName, opts.XsdFileName, opts.Debug, !opts.NoXsd, lBaggageDirName);
             }
             else
                 lResult = 1;

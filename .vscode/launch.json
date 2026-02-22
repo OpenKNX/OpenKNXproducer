@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Dali-GW",
+            "name": "Debug GW-REG1-Dali",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
@@ -14,8 +14,27 @@
                 "create",
                 "--Debug",
                 "--HeaderFileName",
-                "../Dali-GW/OAM-DaliGateway/include/knxprod.h",
-                "../Dali-GW/OAM-DaliGateway/src/DaliGateway"
+                "../GW-REG1-Dali/include/knxprod.h",
+                "../GW-REG1-Dali/src/DaliGateway"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Debug Shutter",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/net9.0/OpenKNXproducer.dll",
+            "args": [
+                "create",
+                "--Debug",
+                "--HeaderFileName",
+                "../OAM-ShutterController/include/knxprod.h",
+                "../OAM-ShutterController/src/ShutterController-Dev.xml",
+                "-o",
+                "../OAM-ShutterController/src/JalousienSteuerung-Dev.xml",
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

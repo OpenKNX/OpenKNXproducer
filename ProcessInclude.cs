@@ -1369,7 +1369,11 @@ namespace OpenKNXproducer
             {
                 XmlNodeList lComObjects = mDocument.SelectNodes("//ApplicationProgram/Static/ComObjectTable/ComObject");
                 mKoBlockSize = MaxKoNumber(lComObjects);
-                if (iDefine.IsTemplate && iDefine.KoBlockSize > 0 && iDefine.KoBlockSize != mKoBlockSize) throw new Exception("Different KoBlockSize!");
+                if (iDefine.IsTemplate && iDefine.KoBlockSize > 0 && iDefine.KoBlockSize != mKoBlockSize)
+                {
+                    Program.Message(true, "KoBlockSize from template is {0}, but calculated KoBlockSize is {1}, this might be caused by wrong include order", iDefine.KoBlockSize, mKoBlockSize);
+                    return;
+                }
                 if (iDefine.IsTemplate) iDefine.KoBlockSize = mKoBlockSize;
                 StringBuilder lOut = new();
                 mHeaderKoBlockGenerated = ExportHeaderKo(iDefine, lOut, iHeaderPrefixName);
