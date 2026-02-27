@@ -227,6 +227,7 @@ namespace OpenKNXproducer
                     mHeaderGenerated.Insert(0, "#pragma once\n\n");
                     mSingletonDefinesAdded = true;
                 }
+
                 // add konstant suffix
                 mHeaderGenerated.AppendLine("#ifdef MAIN_FirmwareRevision");              
                 mHeaderGenerated.AppendLine("#ifndef FIRMWARE_REVISION");              
@@ -356,6 +357,11 @@ namespace OpenKNXproducer
             // we use here an empty DefineContent, just for startup
             ExportHeader(DefineContent.Empty, mHeaderPrefixName, this);
             ProcessModule.ExportHeaderParameterAll(this, mHeaderGenerated);
+            // add all type definitions 
+            mHeaderGenerated.AppendLine("");
+            mHeaderGenerated.AppendLine("// enumeration types");
+            mHeaderGenerated.AppendLine(GenerateHeaderTypes.GetHeaderTypes(mDocument));
+            mHeaderGenerated.AppendLine("");
             // finally we do all processing necessary for the whole (resolved) document
             // mDocument.Save("TemplateApplication.expanded.xml");
             bool lWithVersions = ProcessFinish(mDocument);
@@ -1502,13 +1508,14 @@ namespace OpenKNXproducer
                     int lBitBaseSize = 0;
                     string lType = "";
                     string lKnxAccessMethod = "";
+                    string lCast = "";
                     bool lDirectType = false;
                     if (lParameterType != null)
                     {
                         XmlNode lBitsAttribute = lParameterType.Attributes.GetNamedItem("SizeInBit");
                         if (lBitsAttribute != null) lBits = int.Parse(lBitsAttribute.Value);
                         XmlNode lTypeAttribute = lParameterType.Attributes.GetNamedItem("Type");
-                        if (lParameterType.Name == "TypeNumber" || lParameterType.Name == "TypeRestriction")
+                        if (lParameterType.Name == "TypeNumber" || lParameterType.Name == "TypeRestriction" || lParameterType.Name == "TypeTime")
                         {
                             if (lTypeAttribute != null) lType = lTypeAttribute.Value;
                             if (lBits <= 8)
@@ -1538,6 +1545,10 @@ namespace OpenKNXproducer
                             else
                             {
                                 lType = "enum";
+                                if (GenerateHeaderTypes.CheckExport(lParameterType.ParentNode))
+                                {
+                                    lCast = "(PT_" + GenerateHeaderTypes.GetNormalizedName(lParameterType.ParentNode, "Name") + ")";
+                                }
                             }
                         }
                         else if (lParameterType.Name == "TypeText")
@@ -1614,17 +1625,20 @@ namespace OpenKNXproducer
                             cOut.AppendFormat("#define     {0}{1}Mask 0x{2:X2}", iHeaderPrefixName, lName, lMask);
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Shift {2}", iHeaderPrefixName, lName, lShift);
-                            if (lBits == 1)
-                                lOutput = string.Format("#define Param{3}{4,-35} ((bool)(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
+                            if (lBits == 1) 
+                            {
+                                if (lCast == "") lCast = "(bool)";
+                                lOutput = string.Format("#define Param{3}{4,-35} ({5}(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs, lCast);
+                            }
                             else if (lShift == 0)
-                                lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
+                                lOutput = string.Format("#define Param{3}{4,-35} {5}(" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs, lCast);
                             else
-                                lOutput = string.Format("#define Param{3}{4,-35} ((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
+                                lOutput = string.Format("#define Param{3}{4,-35} {5}((" + lKnxArgument + " & {3}{0}Mask) >> {3}{0}Shift)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs, lCast);
                             lIsOut = true;
                         }
                         else if (lType == "enum")
                         {
-                            lOutput = string.Format("#define Param{3}{4,-35} (" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
+                            lOutput = string.Format("#define Param{3}{4,-35} {5}(" + lKnxArgument + ")", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs, lCast);
                             lIsOut = true;
                         }
                     }
@@ -1985,6 +1999,7 @@ namespace OpenKNXproducer
             XmlNodeList lDefineNodes = mDocument.SelectNodes("//oknxp:define", nsmgr);
             if (lDefineNodes != null && lDefineNodes.Count > 0)
             {
+                GenerateHeaderTypes.DeriveProducerNamespacePrefix(lDefineNodes[0].Name);
                 lIsApplicationInclude = true;
                 // we first process config for op:ETS
                 XmlNodeList lEtsNodes = mDocument.SelectNodes("//oknxp:ETS", nsmgr);

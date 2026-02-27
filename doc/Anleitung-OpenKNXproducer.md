@@ -305,7 +305,7 @@ Dieses Attribut gibt den Namen des Tokens an, das ersetzt werden soll. Der Name 
 
 Dieses Attribut gibt den Wert an, mit dem das Token im XML-Dokument ersetzt werden soll.  
 
-### &lt;nowarn&gt;
+### &lt;op:nowarn&gt;
 
 Bei den vom OpenKNXproducer durchgeführten Prüfungen werden neben Fehlermeldungen, die eine Generierung einer Applikation für die ETS (*.knxprod-Datei) verhindern, auch Warnungen, die den Benutzer darauf hinweisen, dass er womöglich eine unbeabsichtigte Konstellation gewählt hat. 
 
@@ -322,6 +322,125 @@ Es ist nicht zu empfehlen, alle Warnungen mit einer bestimmten Nummer zu unterdr
 Jede Warnung hat auch einen Text. Mit dem angegebenen Regex-Ausdruck sollte man möglichst spezifisch den Meldungstext auf genau eine Meldung filtern, damit man nicht mehr Meldungen als nötig unterdrückt.
 
 In Modulen sollte niemals eine Warnung nur anhand ihrer Id, sonder immer anhand der Kombination einer Id mit einem möglichst spezifischen Regex unterdrückt werden.
+
+## Generierung von Enumerations
+
+Im XML werden häufig Aufzählungen für Dropdowns vorgenommen (ParameterType mit TypeRestriction). Die Werte dieser Aufzählungen kann man sich in das Header-File generiern lassen, entweder als #define oder als enum class. Bei enum werden auch die Zugriffsfunktionen passend mit einem cast auf diese enum class generiert. Ferner kann man auch Werte generieren lassen, die nicht in der ETS, sondern nur im Header-File erscheinen. Bei enum kann man auch für mehrere Dropdowns eine enun class generieren lassen.
+
+### Erweiterungen im XML
+
+Die entsprechenden XML-Erweiterungen erforlgen im OpenKNXproducer-Namespace, hier abgekürzt mit "op:"
+
+
+    <ParameterType Id="%AID%_PT-KORelInput" Name="KORelInput" op:headerExport="enum">
+        <TypeRestriction Base="Value" SizeInBit="2" UIHint="DropDown">
+            <Enumeration Text="Eigenes KO" Value="0" Id="%ENID%" op:headerName="None" />
+            <Enumeration Text="Absolutes KO" Value="1" Id="%ENID%" op:headerName="Absolute" />
+            <Enumeration Text="Relatives KO" Value="2" Id="%ENID%" op:headerName="Relative" />
+            <op:Enumeration Value="3" op:headerName="Bitmask" />
+        </TypeRestriction>
+    </ParameterType>
+
+Für einen ParameterType, der eine TypeRestriction enthält, kann man die beiden Attribute op:headerExport und headerName zufügen.
+Für jede Enumeration, die die Werte enthält, kann man ein op:headerName hinzufügen.
+Ferner kann man auch das Tag <op:Enumeration> hinzufügen.
+
+Die Funktion der erweiterungen wird im folgenden Beschrieben.
+
+### op:headerExport
+
+Das op:headerExport Attribut kann die Werte none, define, enum und base enthalten.
+
+#### op:headerExport="none"
+
+Entspricht dem gleichen Verhalten wie ohne dieses Attribut. Man kann die Angabe verwenden, um explizit darauf hinzuweisen, dass man für diesen Type keine Generierung will.
+
+#### op:headerExport="define"
+
+Für diesen Aufzählungstypen werden alle Werte als #define generiert. Das Format ist
+
+    #define PT_<headerName des ParameterType>_<headerName der Enumeration> <Value der Enumeration>
+
+Für das obige Beispiel-XML (angenommen op:headerExport="define" wurde angegeben) würde folgendes generiert werden:
+
+    #define PT_KORelInput_None 0
+    #define PT_KORelInput_Absolute 1
+    #define PT_KORelInput_Relative 2
+    #define PT_KORelInput_Bitmask 3
+
+Wie der headerName ermittelt wird, ist weiter unten beschrieben.
+
+#### op:headerExport="enum"
+
+Für diesen Aufzählungstypen werden alle Werte als enum class generiert. Das Format ist
+
+    enum class PT_<headerName des ParameterType>
+    {
+        <headerName der Enumeration> = <Value der Enumeration>,
+        ...
+    }
+
+Ferner wird für die Zugriffsfunktion für alle Parameter, die diesen Typ verwenden, ein cast auf diese Enum-Klasse generiert.
+
+Für das obige Beispiel-XML würde folgendes generiert werden:
+
+    enum class PT_KORelInput
+    {
+        None = 0,
+        Absolute = 1,
+        Relative = 2,
+        Bitmask = 3
+    };
+
+Die generierte Zugriffsfunktion ist dann z.B. 
+
+    #define ParamLOG_fOOnKOSend      (PT_KORelInput)((knx.paramByte(...)))
+
+Wie der headerName ermittelt wird, ist weiter unten beschrieben.
+
+#### op:headerExport="base"
+
+Diese Variante erfordert zwingend die Angabe von op:headerName, und dieser muss auf den headerName eines anderen enum verweisen. Es wird kein neues enum generiert, sondern der Cast für alle Zugriffsfunktionen für Parameter dieses Typs wird auf das bereits generierte enum gemacht. 
+
+Grundidee: Es gibt durchaus Fälle, in den verschiedene Dropdowns erzeugt werden, damit in der ETS unterschiedliche Werte angeboten werden. Der Wertebereich der Dropdowns ist aber gleich und die Verarbeitung im Coding ist immer gleich. So kann man all diese Dropdowns mit einem Enum auswerten. Der Wert base meint hier den Verweis auf die Basisklasse.
+
+Das folgende XML verweist auf das bereits generierte enum PT_KORelInput:
+
+    <ParameterType Id="%AID%_PT-KORelInput2" Name="KORelInput2" op:headerExport="base" op:headerName="KORelInput" >
+        <TypeRestriction Base="Value" SizeInBit="2" UIHint="DropDown">
+            <Enumeration Text="Absolutes KO" Value="1" Id="%ENID%" />
+            <Enumeration Text="Relatives KO" Value="2" Id="%ENID%" />
+        </TypeRestriction>
+    </ParameterType>
+
+## op:headerName
+
+Das Attribut op:headerName ist optional und kann einen alternativen Namen zu dem in der ETS vergebenen Namen enthalten.
+
+Wird das Attribug weggelassen, wird der Wert für headerName abgeleitet:
+
+* Im Tag ParameterType wird der Wert des Attributs Name genommen
+* im Tag Enumeration wird der Wert des Attributs Text genommen
+
+Da aus headerName ein Bezeichner für C++ generiert wird, wird der Wert von headerName immer normalisiert. Die Regeln sind die gleiche wie unter [Bildung von Dateinamen](#bildung-von-dateinamen), nur ist der Präfix immer PT_ und als Ersatzzeichen wird nicht Minus (-) genommen sondern der Unterstrich (_).
+
+## &lt;op:Enumeration&gt;
+
+Der Tag &lt;op:Enumeration&gt; darf an allen Stellen vorkommen, an den auch der Tag &lt;Enumeration&gt; stehen darf, sofern dieser Typ auch exportiert wird. Er erlaubt es, zusätzliche Werte für das enum (oder zusätzliche #define Zeilen) zu deklarieren, ohne dass diese im UI der ETS auftauchen.
+Dadurch ist es möglich, Werte zu erzeugen, die nur für die Programmauswertung nötig, für das UI aber uninteressant sind.
+
+Dieser Tag kann folgende Attribute enthalten:
+
+* op:headerName - Bezeichner für den Wert
+* Value - der eigentliche Wert, wie sonst auch in der Enumeration
+
+Das obige XML-Beispiel enthält folgenden Wert nicht in der ETS, nur im generierten enum:
+
+    <op:Enumeration Value="3" op:headerName="Bitmask" />
+
+
+
+
 
 ## Vordefinierte Ersetzungen
 
