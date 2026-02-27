@@ -417,7 +417,7 @@ Das folgende XML verweist auf das bereits generierte enum PT_KORelInput:
 
 Das Attribut op:headerName ist optional und kann einen alternativen Namen zu dem in der ETS vergebenen Namen enthalten.
 
-Wird das Attribug weggelassen, wird der Wert für headerName abgeleitet:
+Wird das Attribut weggelassen, wird der Wert für headerName abgeleitet:
 
 * Im Tag ParameterType wird der Wert des Attributs Name genommen
 * im Tag Enumeration wird der Wert des Attributs Text genommen
