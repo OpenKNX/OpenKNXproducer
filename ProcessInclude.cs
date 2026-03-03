@@ -931,6 +931,31 @@ namespace OpenKNXproducer
                     ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
                 }
             }
+            // Ensure placeholders (%C%, %T%, etc.) in op:Translation children are replaced
+            ProcessTranslationChildren(iDefine, iChannel, iTargetNode, iInclude);
+        }
+
+        /// <summary>
+        /// Recursively walks descendants of <paramref name="iTargetNode"/> and
+        /// replaces template placeholders in the attributes of any
+        /// <c>op:Translation</c> element found.  This is safe to call even when
+        /// <see cref="ProcessChannel"/> has already visited the subtree because
+        /// the replacement functions are idempotent on already-resolved values.
+        /// </summary>
+        static void ProcessTranslationChildren(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        {
+            foreach (XmlNode lChild in iTargetNode.ChildNodes)
+            {
+                if (lChild.NamespaceURI == cOwnNamespace && lChild.LocalName == "Translation")
+                {
+                    if (lChild.Attributes != null)
+                        ProcessAttributes(iDefine, iChannel, lChild, iInclude);
+                }
+                else if (lChild.HasChildNodes)
+                {
+                    ProcessTranslationChildren(iDefine, iChannel, lChild, iInclude);
+                }
+            }
         }
 
         static void ReplaceDocumentStrings(XmlNode iNode, string iSourceText, string iTargetText)

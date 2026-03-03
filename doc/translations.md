@@ -66,6 +66,22 @@ No manual editing of the generated XML is necessary. When imported into ETS, it 
 </Languages>
 ```
 
+## Template placeholders in translations
+
+`op:Translation` elements inside templates (channel definitions, etc.) can use
+the same `%C%`, `%T%`, and other placeholders as the parent element.
+OpenKNXproducer resolves these placeholders during template expansion, so
+translations that include channel-specific text work correctly:
+
+```xml
+<ComObject Id="%AID%_O-%TT%00008" Text="DFA %C%, Eingang 8" FunctionText="Eingang 8">
+  <op:Translation Language="en-US" Text="DFA %C%, input 8" FunctionText="Input 8" />
+</ComObject>
+```
+
+After expansion for channel 3 this produces a `TranslationElement` with
+`Text="DFA 3, input 8"`.
+
 ## Known limitation: renumbered IDs
 
 OpenKNXproducer renumbers `_PB-` (ParameterBlock) and `_PS-` (ParameterSeparator) IDs during processing. Because the `TranslationElement/@RefId` is written from the parent element's `Id` before renumbering takes place, these entries will not match the final IDs that ETS looks up. Use explicit `TranslationElement` entries with stable IDs (e.g. derived from a `Name` attribute via XPath) as a workaround until this is resolved.
