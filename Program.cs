@@ -8,6 +8,7 @@ using System.Xml.Schema;
 // using OpenKNXproducer.Signing;
 using System.Globalization;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace OpenKNXproducer
 {
@@ -245,19 +246,9 @@ namespace OpenKNXproducer
 
             // we check minimal OpenKNXversion required for this document
             lCheck.Start("- Minimal required OpenKNXproducer version...");
-            Version lMinProducerVersion = new(0, 0, 0);
-            foreach (XmlNode lNode in ProcessInclude.MinVersionNodes)
-            {
-                if (lNode.LocalName == "minOpenKNXproducerVersion")
-                {
-                    Version lVersion = new(lNode.NodeAttr("value", "0.0.0") + ".0");
-                    if (lVersion > lMinProducerVersion)
-                        lMinProducerVersion = lVersion;
-                }
-            }
             Version lCurrentVersion = typeof(Program).Assembly.GetName().Version;
-            if (lCurrentVersion < lMinProducerVersion) 
-                lCheck.WriteFail("This document requires at least OpenKNXproducer version {0}.{1}.{2}, but you are using version {3}.{4}.{5}. Please update OpenKNXproducer to process this document!", lMinProducerVersion.Major, lMinProducerVersion.Minor, lMinProducerVersion.Build, lCurrentVersion.Major, lCurrentVersion.Minor, lCurrentVersion.Build);
+            if (lCurrentVersion < lCheck.MinProducerVersion) 
+                lCheck.WriteFail("This document requires at least OpenKNXproducer version {0}.{1}.{2}, but you are using version {3}.{4}.{5}. Please update OpenKNXproducer to process this document!", lCheck.MinProducerVersion.Major, lCheck.MinProducerVersion.Minor, lCheck.MinProducerVersion.Build, lCurrentVersion.Major, lCurrentVersion.Minor, lCurrentVersion.Build);
             lCheck.Finish();
 
             lCheck.Start("- Id-Homogeneity...");
@@ -451,36 +442,42 @@ namespace OpenKNXproducer
 
             lCheck.Start("- Union-Integrity...");
             lNodes = lXml.SelectNodes("//Union");
-            for (int i = 0; i < lNodes.Count; i++)
+            for (int lUnionCount = 0; lUnionCount < lNodes.Count; lUnionCount++)
             {
-                XmlNode lNode = lNodes[i];
+                XmlNode lNode = lNodes[lUnionCount];
+                if (!lNode.HasChildNodes) continue;
+                // add a comment with union number for orientation within debug document
+                XmlNode lComment = lXml.CreateComment($" Union {lUnionCount} ");
+                lNode.InsertBefore(lComment, lNode.FirstChild);
                 bool lNoWarn = GetNoWarnAttribute(lNode);
-
-                // bool lSuccess;
                 int lSize = GetUnionSize(lCheck, lNode);
+
+                // first check parameter overlap in this union, starting with producer 4.2.5
+                if (lCheck.CheckVersion("4.2.5"))
+                    CheckParameterOverlap(lCheck, lNode, lSize * 8, lUnionCount);
+
                 GetUnionRange(lCheck, lNode, out int lCurrentOffset, out int lCurrentEnd);
                 if (lSize < lCurrentEnd - lCurrentOffset)
-                    if (lMinProducerVersion >= new Version(3, 13, 0))
-                        lCheck.WriteFail("The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
+                    if (lCheck.CheckVersion("3.13.0"))
+                        lCheck.WriteFail("The Parameters of Union {3} (SizeInBit=\"{0}\" / Offset=\"{1}\") takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8, lUnionCount);
                     else
-                        lCheck.WriteWarn(9, "The Parameters of Union (SizeInBit '{0}' / Offset '{1}') takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8);
+                        lCheck.WriteWarn(9, "The Parameters of Union {3} (SizeInBit=\"{0}\" / Offset=\"{1}\") takes '{2}' bits, which is larger than the defined size {0}", lSize * 8, lCurrentOffset, (lCurrentEnd - lCurrentOffset) * 8, lUnionCount);
                     
                 // compare with subsequent Unions to detect overlaps
                 if (lNoWarn)
                     continue;
-                for (int j = i + 1; j < lNodes.Count; j++)
+                for (int lUnionInnerCount = lUnionCount + 1; lUnionInnerCount < lNodes.Count; lUnionInnerCount++)
                 {
-                    XmlNode lOther = lNodes[j];
+                    XmlNode lOther = lNodes[lUnionInnerCount];
                     bool lOtherNoWarn = GetNoWarnAttribute(lOther);
                     GetUnionRange(lCheck, lOther, out int lOtherOffset, out int lOtherEnd);
                     // ranges: [lCurrentOffset, lCurrentEnd) and [lOtherOffset, lOtherEnd)
                     if (!lOtherNoWarn && lCurrentOffset < lOtherEnd && lCurrentEnd > lOtherOffset)
-                        lCheck.WriteWarn(9, "Union (SizeInBit '{0}' / Offset '{1}') is overlapping ({2} Bytes) with Union (SizeInBit '{3}' / Offset '{4}')", lNode.NodeAttr("SizeInBit"), lCurrentOffset, (lCurrentEnd - lOtherOffset), lOther.NodeAttr("SizeInBit"), lOtherOffset);
+                        lCheck.WriteWarn(9, "Union {5} (SizeInBit=\"{0}\" / Offset=\"{1}\") is overlapping ({2} Bytes) with Union {6} (SizeInBit=\"{3}\" / Offset=\"{4}\")", lNode.NodeAttr("SizeInBit"), lCurrentOffset, (lCurrentEnd - lOtherOffset), lOther.NodeAttr("SizeInBit"), lOtherOffset, lUnionCount, lUnionInnerCount);
                     if (lOtherOffset > lCurrentEnd + 100)
                         break; // no further overlaps possible
                 }
             }
-            RemoveAllUnionNoWarnAttributes(lXml);
             lCheck.Finish();
 
             lCheck.Start("- Parameter-Name-Uniqueness...");
@@ -536,7 +533,7 @@ namespace OpenKNXproducer
             lCheck.Finish();
 
             lCheck.Start("- ComObject-Name-Uniqueness...");
-            lNodes = lXml.SelectNodes("//ComObject[@Name]");
+            lNodes = lXml.SelectNodes("//ComObject");
             Dictionary<string, bool> lKoNames = new Dictionary<string, bool>();
             foreach (XmlNode lNode in lNodes)
             {
@@ -549,7 +546,7 @@ namespace OpenKNXproducer
             lCheck.Finish();
 
             lCheck.Start("- ComObject-Number-Uniqueness...");
-            lNodes = lXml.SelectNodes("//ComObject[@Number]");
+            // ComObject Nodes are the same as for Name-Uniqueness
             Dictionary<int, bool> lKoNumbers = new Dictionary<int, bool>();
             foreach (XmlNode lNode in lNodes)
             {
@@ -559,15 +556,55 @@ namespace OpenKNXproducer
                 {
                     if (lNumber == 0)
                         lCheck.WriteFail("ComObject Number 0 is not allowed in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
-                    else if (lKoNumbers.ContainsKey(lNumber))
+                    else if (!lKoNumbers.TryAdd(lNumber, true))
                         lCheck.WriteFail("{0} is a duplicate Number in ComObject with name {1}", lNumber, lNode.NodeAttr("Name"));
-                    else
-                        lKoNumbers.Add(lNumber, true);
                 }
                 else
                     lCheck.WriteFail("ComObject.Number is not an Integer in ComObject with name {0}", lNode.NodeAttr("Name"));
             }
             lCheck.Finish();
+
+            if (lCheck.CheckVersion("4.2.5")) {
+                lCheck.Start("- ComObject-ObjectSize-Integrity...");
+                // ComObject Nodes are the same as for Name-Uniqueness
+                Dictionary<string, XmlNode> lComObjects = [];
+                foreach (XmlNode lNode in lNodes)
+                {
+                    // store node for fast access later on
+                    string lId = lNode.NodeAttr("Id");
+                    lComObjects.TryAdd(lId, lNode);
+
+                    string lObjectSize = lNode.NodeAttr("ObjectSize");
+                    string lDatapointType = lNode.NodeAttr("DatapointType");
+                    if (!CheckComObjectSize(lObjectSize, lDatapointType))
+                        lCheck.WriteFail($"ComObject '{lNode.NodeAttr("Name")}': ObjectSize '{lObjectSize}' does not fit with DatePointType '{lDatapointType}'");
+                }
+                lCheck.Finish();
+
+                lCheck.Start("- ComObjectRef-ObjectSize-Integrity...");
+                // ComObject Nodes are the same as for Name-Uniqueness
+                lNodes = lXml.SelectNodes("//ComObjectRef[@DatapointType or @ObjectSize]");
+                foreach (XmlNode lNode in lNodes)
+                {
+                    string lObjectSize = lNode.NodeAttr("ObjectSize");
+                    string lDatapointType = lNode.NodeAttr("DatapointType");
+                    string lRefId = lNode.NodeAttr("RefId");
+                    XmlNode lComObject = lComObjects[lRefId];
+                    if (string.IsNullOrEmpty(lObjectSize))
+                    {
+                        // we get the Size from according ComObject
+                        lObjectSize = lComObject.NodeAttr("ObjectSize");
+                    }
+                    if (string.IsNullOrEmpty(lDatapointType))
+                    {
+                        // we get the Size from according ComObject
+                        lDatapointType = lComObject.NodeAttr("DatapointType");
+                    }
+                    if (!CheckComObjectSize(lObjectSize, lDatapointType))
+                        lCheck.WriteFail($"ComObjectRef '{lNode.NodeAttr("Id")}': ObjectSize '{lObjectSize}' does not fit with DatePointType '{lDatapointType}' (one might me derived from ComObject {lComObject.NodeAttr("Name")})");
+                }
+                lCheck.Finish();
+            }
 
             lCheck.Start("- RefId-Id-Comparison...");
             lNodes = lXml.SelectNodes("//ParameterRef|//ComObjectRef");
@@ -880,7 +917,7 @@ namespace OpenKNXproducer
                         if (lFunctionCalls.ContainsKey(lFunctionName))
                             lFunctionCalls[lFunctionName] = true;
                         else
-                            lCheck.WriteWarn(3, "Function with name {0} was never called form xml", lFunctionName);
+                            lCheck.WriteWarn(3, "Function with name {0} was never called from xml", lFunctionName);
                     }
                 }
                 foreach (var lFunctionCall in lFunctionCalls)
@@ -934,15 +971,49 @@ namespace OpenKNXproducer
             foreach (var lMessage in additionalMessages)
             {
 
-                if (lMessage.Value <= lMinProducerVersion)
+                if (lCheck.CheckVersion(lMessage.Value))
                     lCheck.WriteFail(lMessage.Key, "");
                 else
                     lCheck.WriteWarn(0, lMessage.Key, "");
             }
             lCheck.Finish("NONE");
 
+            // cleanup
+            RemoveAllUnionNoWarnAttributes(lXml);
+            RemoveAllParameterNoWarnAttributes(lXml);
+
             Console.WriteLine();
             return !lCheck.IsFail;
+        }
+
+        private static readonly Dictionary<string, string> sValidDptSizes = new()
+        {
+            { "1 Bit", "DPT-1," },
+            { "2 Bit", "DPT-2, DPT-23," },
+            { "4 Bit", "DPT-3," },
+            { "1 Byte", "DPT-4, DPT-5, DPT-6, DPT-17, DPT-18, DPT-20, DPT-21, DPT-25, DPT-26, DPT-236, DPT-238," },
+            { "2 Bytes", "DPT-7, DPT-8, DPT-9, DPT-22, DPT-207, DPT-217, DPT-234, DPT-237, DPT-244, DPT-246," },
+            { "3 Bytes", "DPT-10, DPT-11, DPT-30, DPT-206, DPT-225, DPT-232, DPT-240, DPT-250, DPT-254," },
+            { "4 Bytes", "DPT-12, DPT-13, DPT-14, DPT-15, DPT-27, DPT-241, DPT-251," },
+            { "5 Bytes", "DPT-252," },
+            { "6 Bytes", "DPT-219, DPT-222, DPT-229, DPT-235, DPT-242, DPT-245, DPT-249," },
+            { "8 Bytes", "DPT-19, DPT-29, DPT-230, DPT-255, DPT-275," },
+            { "14 Bytes", "DPT-16," },
+            { "16 Bytes", "DPT-285," }
+        };
+        private static bool CheckComObjectSize(string iObjectSize, string iDatapointType)
+        {
+            if (string.IsNullOrEmpty(iDatapointType)) return true; // nothing to check
+            if (!sValidDptSizes.ContainsKey(iObjectSize)) return false; // unknown size
+
+            string lDpt = iDatapointType;
+            if (lDpt.StartsWith("DPST"))
+            {
+                lDpt = lDpt[..lDpt.LastIndexOf('-')];
+                lDpt = lDpt.Replace("DPST", "DPT") + ',';
+            }
+            if ("DPT-24, DPT-28,".Contains(lDpt)) return true; // any object size allowed
+            return sValidDptSizes[iObjectSize].Contains(lDpt);
         }
 
         private static void RemoveAllUnionNoWarnAttributes(XmlNode iNode)
@@ -958,7 +1029,20 @@ namespace OpenKNXproducer
             }        
         }
 
-        private static bool GetNoWarnAttribute(XmlNode cNode)
+        private static void RemoveAllParameterNoWarnAttributes(XmlNode iNode)
+        {
+            XmlNodeList lParameters = iNode.SelectNodes("//Parameter[@oknxp:nowarn]", ProcessInclude.nsmgr);
+            if (lParameters != null && lParameters.Count > 0)
+            {
+                var lAttribute = lParameters[0]?.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
+                if (lAttribute != null)
+                    foreach (XmlNode lParameter in lParameters)
+                        // we remove noWarn attribute because is is not part of ets xsd
+                        lParameter.Attributes.RemoveNamedItem(lAttribute.Name);
+            }        
+        }
+
+        public static bool GetNoWarnAttribute(XmlNode cNode)
         {
             var lAttribute = cNode.SelectSingleNode("@oknxp:nowarn", ProcessInclude.nsmgr);
             bool lNoWarn = lAttribute != null && lAttribute.Value == "true";
@@ -1006,6 +1090,52 @@ namespace OpenKNXproducer
                     lMaxSize = lParamOffset + lParamSize;
             }
             oOffsetEnd = oOffsetStart + lMaxSize;
+        }
+
+        private static void CheckParameterOverlap(CheckHelper iCheck, XmlNode iNode, int iSizeInBit, int iUnionCount)
+        {
+            int lOffsetStart = GetUnionOffset(iCheck, iNode);
+            BigInteger lUnionBitfield = new(0);
+            List<ParameterBucket> lBucketsOk = [];
+            List<ParameterBucket> lBucketsOverlap = [];
+            List<ParameterBucket> lBucketsMerged = [];
+            XmlNodeList lParameters = iNode.SelectNodes("Parameter");
+
+            // speedup: we first find if the union has any overlapping Parameters
+            foreach (XmlNode lParameter in lParameters)
+            {
+                ParameterBucket lBucket = new(lParameter, iCheck);
+                if (lBucket.Valid) {
+                    if ((lBucket.BitField & lUnionBitfield) > 0) {
+                        lBucketsOverlap.Add(lBucket);
+                    } else {
+                        lBucketsOk.Add(lBucket);
+                    }
+                    lUnionBitfield |= lBucket.BitField;
+                }
+            }
+
+            // in case there are overlapping parameters, we group them to ParameterBuckets
+            // first we group overlapping parameters
+            ParameterBucket.Merge(lBucketsOverlap, out lBucketsMerged);
+            // second we check again if any of the OK parameters overlap now with the new groups
+            foreach (ParameterBucket lBucket in lBucketsMerged)
+            {
+                lBucket.Merge(lBucketsOk);
+            }
+            // third we merge also all newly added ok buckets with all other buckets
+            bool lMerged = false;
+            do
+            {
+                lMerged = ParameterBucket.Merge(lBucketsMerged, out lBucketsOverlap);
+                lBucketsMerged = lBucketsOverlap;
+            } 
+            while (lMerged);
+            // finally we log all buckets
+            for (int lCount = 0; lCount < lBucketsMerged.Count; lCount++)
+            {
+                lBucketsMerged[lCount].WriteCheck(iCheck, lOffsetStart, iSizeInBit, lCount + 1, iUnionCount);
+            }
         }
 
         static Dictionary<string, XmlNode> sParameterTypes = null;

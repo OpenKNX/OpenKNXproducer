@@ -140,7 +140,7 @@ namespace OpenKNXproducer
                             // we have to calculate module parameter size
                             XmlNodeList lParams = mRootNode.SelectNodes("./Static/Parameters/Parameter|./Static/Parameters/Union");
                             // mModuleParamSize = CalcSubmodulesSize();
-                            mModuleParamSize = mInclude.CalcParamSize(lParams);
+                            mModuleParamSize = ProcessInclude.CalcParamSize(lParams);
                             lAllocates.Value = (mModuleParamSize + SubmodulesParamSize).ToString();
                         }
                         else

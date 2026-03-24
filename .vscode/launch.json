@@ -152,7 +152,7 @@
                 "--Debug",
                 "--HeaderFileName",
                 "../OAM-IP-Router/include/knxprod.h",
-                "../OAM-IP-Router/src/IP-Router"
+                "../OAM-IP-Router/src/IP-Router-Dev"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

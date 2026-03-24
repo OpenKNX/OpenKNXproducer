@@ -1259,6 +1259,12 @@ namespace OpenKNXproducer
 
         public static int CalcParamSize(XmlNode iParameter, bool iIsInUnion = false)
         {
+            int lResult = CalcParamSizeInBit(iParameter, iIsInUnion);
+            return lResult == 0 ? 0 : (lResult - 1) / 8 + 1;
+        }
+
+        public static int CalcParamSizeInBit(XmlNode iParameter, bool iIsInUnion = false)
+        {
             int lResult = 0;
             if (sParameterTypes.Count > 0)
             {
@@ -1286,7 +1292,6 @@ namespace OpenKNXproducer
                         {
                             lResult = 8;
                             bool lIsInt = int.TryParse(lSizeInBitAttribute.Value, out lResult);
-                            lResult = (lResult - 1) / 8 + 1;
                             if (!lIsInt)
                             {
                                 Program.Message(true, "Wrong SizeInBit value in ", lSizeNode.NodeAttr("Name"));
@@ -1297,13 +1302,30 @@ namespace OpenKNXproducer
                             if (lSizeNode.Name == "ParameterType")
                                 lSizeNode = lSizeNode.SelectSingleNode("*[not(comment())]");
                             if (lSizeNode.Name == "TypeFloat")
-                                lResult = 4;
+                            {
+                                string lEncoding = lSizeNode.NodeAttr("Encoding", "DPT 9");
+                                switch (lEncoding)
+                                {
+                                    case "DPT 9":
+                                        lResult = 16;
+                                        break;
+                                    case "IEEE-754 Single":
+                                        lResult = 32;
+                                        break;
+                                    case "IEEE-754 Double":
+                                        lResult = 64;
+                                        break;
+                                    default:
+                                        lResult = 32;
+                                        break;
+                                }
+                            }
                             else if (lSizeNode.Name == "TypeIPAddress")
-                                lResult = 4;
+                                lResult = 32;
                             else if (lSizeNode.Name == "TypeColor")
-                                lResult = 3;
+                                lResult = 24;
                             else if (lSizeNode.Name == "TypeDate")
-                                lResult = 3;
+                                lResult = 24;
                         }
                     }
                 }
@@ -1311,7 +1333,7 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        public int CalcParamSize(XmlNodeList iParameterList)
+        public static int CalcParamSize(XmlNodeList iParameterList)
         {
             int lResult = 0;
             foreach (XmlNode lNode in iParameterList)
@@ -1559,10 +1581,30 @@ namespace OpenKNXproducer
                         }
                         else if (lParameterType.Name == "TypeFloat")
                         {
-                            lType = "float";
-                            lBits = 32;
-                            lBitBaseSize = 32;
-                            lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Single)";
+                            string lEncoding = lParameterType.NodeAttr("Encoding", "DPT 9");
+                            switch (lEncoding)
+                            {
+                                case "DPT 9":
+                                    lType = "float (2 Byte)";
+                                    lBits = 16;
+                                    lBitBaseSize = 16;
+                                    lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_DPT9)";
+                                    break;
+                                case "IEEE-754 Single":
+                                    lType = "float (4 Byte)";
+                                    lBits = 32;
+                                    lBitBaseSize = 32;
+                                    lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Single)";
+                                    break;
+                                case "IEEE-754 Double":
+                                    lType = "double (8 Byte)";
+                                    lBits = 64;
+                                    lBitBaseSize = 64;
+                                    lKnxAccessMethod = "knx.paramFloat({0}, Float_Enc_IEEE754Double)";
+                                    break;
+                                default:
+                                    break;
+                            }
                             lDirectType = true;
                         }
                         else if (lParameterType.Name == "TypeColor")
@@ -1625,11 +1667,8 @@ namespace OpenKNXproducer
                             cOut.AppendFormat("#define     {0}{1}Mask 0x{2:X2}", iHeaderPrefixName, lName, lMask);
                             cOut.AppendLine();
                             cOut.AppendFormat("#define     {0}{1}Shift {2}", iHeaderPrefixName, lName, lShift);
-                            if (lBits == 1) 
-                            {
-                                if (lCast == "") lCast = "(bool)";
-                                lOutput = string.Format("#define Param{3}{4,-35} ({5}(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs, lCast);
-                            }
+                            if (lBits == 1 && lCast == "") 
+                                lOutput = string.Format("#define Param{3}{4,-35} ((bool)(" + lKnxArgument + " & {3}{0}Mask))", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs);
                             else if (lShift == 0)
                                 lOutput = string.Format("#define Param{3}{4,-35} {5}(" + lKnxArgument + " & {3}{0}Mask)", lName, lOffset, lSubType, iHeaderPrefixName, lName + iChannelArgs, lCast);
                             else
@@ -1875,6 +1914,7 @@ namespace OpenKNXproducer
             lConfig.Load(lConfigFileName);
             XmlNamespaceManager nsmgr = new(lConfig.NameTable);
             nsmgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
+            GetMinVersions(lConfig);
             // process config
             XmlNodeList lNodes = lConfig.SelectNodes("//oknxp:config", nsmgr);
             if (lNodes != null && lNodes.Count > 0)
@@ -2256,7 +2296,7 @@ namespace OpenKNXproducer
                 if (iChildren != null)
                 {
                     // ... and we do parameter processing, so we calculate ParamBlockSize for this include
-                    int lBlockSize = iInclude.CalcParamSize(iChildren);
+                    int lBlockSize = CalcParamSize(iChildren);
                     if (lBlockSize > 0)
                     {
                         iInclude.ParameterBlockSize = lBlockSize;
