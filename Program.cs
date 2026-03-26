@@ -1923,6 +1923,7 @@ namespace OpenKNXproducer
             if (lSuccess) lSuccess = EnsureEtsNamingConventionForKO(lInclude);
             if (lSuccess) lSuccess = PushUpdateChannelToFirstPosition(lXml);
             if (lSuccess && opts.ExchangeKoTexts) ExchangeKoTextAndFunctionText(lXml);
+            if (lSuccess) ProcessInclude.ConvertInlineTranslations(lInclude.GetDocument());
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
             if (opts.Debug) lTempXmlFileName = opts.XmlFileName;

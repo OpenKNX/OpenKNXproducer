@@ -248,6 +248,183 @@ namespace OpenKNXproducer
             MinVersionNodes.AddRange(lMinVersionNodes.Cast<XmlNode>());
         }
 
+        private static XmlNode FindTranslationElement(XmlNode iTranslationUnit, string iRefId)
+        {
+            if (iTranslationUnit == null) return null;
+            foreach (XmlNode lChild in iTranslationUnit.ChildNodes)
+            {
+                if (lChild.NodeType != XmlNodeType.Element) continue;
+                if (lChild.Name != "TranslationElement") continue;
+                if (lChild.NodeAttr("RefId") == iRefId) return lChild;
+            }
+            return null;
+        }
+
+        private static XmlNode EnsureStaticLanguage(XmlDocument iDoc, XmlNode iTargetNode, string iLanguage)
+        {
+            XmlNode lStatic = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram/Static");
+            if (lStatic == null) return null;
+            XmlNode lLanguages = lStatic.SelectSingleNode("Languages");
+            if (lLanguages == null)
+            {
+                lLanguages = iDoc.CreateElement("Languages");
+                lStatic.AppendChild(lLanguages);
+            }
+            foreach (XmlNode lLang in lLanguages.ChildNodes)
+            {
+                if (lLang.NodeType != XmlNodeType.Element) continue;
+                if (lLang.Name == "Language" && lLang.NodeAttr("Identifier") == iLanguage) return lLang;
+            }
+            XmlNode lNewLang = iDoc.CreateElement("Language");
+            XmlAttribute lId = iDoc.CreateAttribute("Identifier");
+            lId.Value = iLanguage;
+            lNewLang.Attributes.Append(lId);
+            lLanguages.AppendChild(lNewLang);
+            return lNewLang;
+        }
+
+        private static XmlNode EnsureManufacturerLanguage(XmlDocument iDoc, XmlNode iTargetNode, string iLanguage)
+        {
+            XmlNode lManufacturer = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer");
+            if (lManufacturer == null) return null;
+            XmlNode lLanguages = lManufacturer.SelectSingleNode("Languages");
+            if (lLanguages == null)
+            {
+                lLanguages = iDoc.CreateElement("Languages");
+                lManufacturer.AppendChild(lLanguages);
+            }
+            foreach (XmlNode lLang in lLanguages.ChildNodes)
+            {
+                if (lLang.NodeType != XmlNodeType.Element) continue;
+                if (lLang.Name == "Language" && lLang.NodeAttr("Identifier") == iLanguage) return lLang;
+            }
+            XmlNode lNewLang = iDoc.CreateElement("Language");
+            XmlAttribute lId = iDoc.CreateAttribute("Identifier");
+            lId.Value = iLanguage;
+            lNewLang.Attributes.Append(lId);
+            lLanguages.AppendChild(lNewLang);
+            return lNewLang;
+        }
+
+        private static XmlNode EnsureTranslationUnit(XmlDocument iDoc, XmlNode iLanguageNode, string iApplicationId)
+        {
+            if (iLanguageNode == null) return null;
+            foreach (XmlNode lChild in iLanguageNode.ChildNodes)
+            {
+                if (lChild.NodeType != XmlNodeType.Element) continue;
+                if (lChild.Name == "TranslationUnit" && lChild.NodeAttr("RefId") == iApplicationId) return lChild;
+            }
+            XmlNode lUnit = iDoc.CreateElement("TranslationUnit");
+            XmlAttribute lRefId = iDoc.CreateAttribute("RefId");
+            lRefId.Value = iApplicationId;
+            lUnit.Attributes.Append(lRefId);
+            iLanguageNode.AppendChild(lUnit);
+            return lUnit;
+        }
+
+        public static void ConvertInlineTranslations(XmlNode iTargetNode)
+        {
+            XmlDocument lDoc = (iTargetNode as XmlDocument) ?? iTargetNode.OwnerDocument;
+            if (lDoc?.DocumentElement == null) return;
+
+            XmlNamespaceManager lNsMgr = new XmlNamespaceManager(lDoc.NameTable);
+            lNsMgr.AddNamespace("oknxp", ProcessInclude.cOwnNamespace);
+
+            XmlNode lApplication = iTargetNode.SelectSingleNode("/KNX/ManufacturerData/Manufacturer/ApplicationPrograms/ApplicationProgram");
+            string lApplicationId = lApplication?.NodeAttr("Id");
+            if (string.IsNullOrEmpty(lApplicationId)) return;
+
+            XmlNodeList lInlineTranslations = iTargetNode.SelectNodes("//oknxp:Translation", lNsMgr);
+            if (lInlineTranslations == null || lInlineTranslations.Count == 0) return;
+
+            List<XmlNode> lInlineNodes = new();
+            foreach (XmlNode lNode in lInlineTranslations) lInlineNodes.Add(lNode);
+
+            foreach (XmlNode lInline in lInlineNodes)
+            {
+                XmlNode lParent = lInline.ParentNode;
+                if (lParent == null)
+                {
+                    lInline.ParentNode?.RemoveChild(lInline);
+                    continue;
+                }
+
+                string lLanguage = lInline.NodeAttr("Language");
+                string lAttributeName = lInline.NodeAttr("AttributeName");
+                string lText = lInline.NodeAttr("Text");
+                if (string.IsNullOrEmpty(lLanguage))
+                {
+                    Program.Message(true, "Inline translation without Language found under {0}", lParent.Name);
+                    lParent.RemoveChild(lInline);
+                    continue;
+                }
+
+                string lParentId = lParent.NodeAttr("Id");
+                if (string.IsNullOrEmpty(lParentId))
+                {
+                    Program.Message(true, "Inline translation under {0} without Id is not supported", lParent.Name);
+                    lParent.RemoveChild(lInline);
+                    continue;
+                }
+
+                EnsureStaticLanguage(lDoc, iTargetNode, lLanguage);
+                XmlNode lLanguageNode = EnsureManufacturerLanguage(lDoc, iTargetNode, lLanguage);
+                XmlNode lTranslationUnit = EnsureTranslationUnit(lDoc, lLanguageNode, lApplicationId);
+
+                XmlNode lTranslationElement = FindTranslationElement(lTranslationUnit, lParentId);
+                if (lTranslationElement == null)
+                {
+                    lTranslationElement = lDoc.CreateElement("TranslationElement");
+                    XmlAttribute lRefId = lDoc.CreateAttribute("RefId");
+                    lRefId.Value = lParentId;
+                    lTranslationElement.Attributes.Append(lRefId);
+                    lTranslationUnit.AppendChild(lTranslationElement);
+                }
+
+                bool lAddedTranslation = false;
+                if (!string.IsNullOrEmpty(lAttributeName))
+                {
+                    if (lText == "")
+                    {
+                        Program.Message(true, "Inline translation with AttributeName but no Text under {0}", lParent.Name);
+                    }
+                    else
+                    {
+                        XmlNode lTranslation = lDoc.CreateElement("Translation");
+                        XmlAttribute lAttrName = lDoc.CreateAttribute("AttributeName");
+                        lAttrName.Value = lAttributeName;
+                        XmlAttribute lTextAttr = lDoc.CreateAttribute("Text");
+                        lTextAttr.Value = lText;
+                        lTranslation.Attributes.Append(lAttrName);
+                        lTranslation.Attributes.Append(lTextAttr);
+                        lTranslationElement.AppendChild(lTranslation);
+                        lAddedTranslation = true;
+                    }
+                }
+                else
+                {
+                    foreach (XmlAttribute lAttr in lInline.Attributes)
+                    {
+                        if (lAttr.Name == "Language") continue;
+                        XmlNode lTranslation = lDoc.CreateElement("Translation");
+                        XmlAttribute lAttrName = lDoc.CreateAttribute("AttributeName");
+                        lAttrName.Value = lAttr.Name;
+                        XmlAttribute lTextAttr = lDoc.CreateAttribute("Text");
+                        lTextAttr.Value = lAttr.Value;
+                        lTranslation.Attributes.Append(lAttrName);
+                        lTranslation.Attributes.Append(lTextAttr);
+                        lTranslationElement.AppendChild(lTranslation);
+                        lAddedTranslation = true;
+                    }
+                }
+
+                if (!lAddedTranslation)
+                    Program.Message(true, "Inline translation without translated attributes under {0}", lParent.Name);
+
+                lParent.RemoveChild(lInline);
+            }
+        }
+
         public static ProcessInclude Factory(string iXmlFileName, string iHeaderPrefixName)
         {
             ProcessInclude lInclude = null;
@@ -758,6 +935,31 @@ namespace OpenKNXproducer
                 if ("ParameterType,Channel,ChannelIndependentBlock,ParameterBlock,choose,ParameterCalculations,ParameterValidations,ModuleDef".Contains(iTargetNode.Name))
                 {
                     ProcessChannel(iDefine, iChannel, iTargetNode, iInclude);
+                }
+            }
+            // Ensure placeholders (%C%, %T%, etc.) in op:Translation children are replaced
+            ProcessTranslationChildren(iDefine, iChannel, iTargetNode, iInclude);
+        }
+
+        /// <summary>
+        /// Recursively walks descendants of <paramref name="iTargetNode"/> and
+        /// replaces template placeholders in the attributes of any
+        /// <c>op:Translation</c> element found.  This is safe to call even when
+        /// <see cref="ProcessChannel"/> has already visited the subtree because
+        /// the replacement functions are idempotent on already-resolved values.
+        /// </summary>
+        static void ProcessTranslationChildren(DefineContent iDefine, int iChannel, XmlNode iTargetNode, ProcessInclude iInclude)
+        {
+            foreach (XmlNode lChild in iTargetNode.ChildNodes)
+            {
+                if (lChild.NamespaceURI == cOwnNamespace && lChild.LocalName == "Translation")
+                {
+                    if (lChild.Attributes != null)
+                        ProcessAttributes(iDefine, iChannel, lChild, iInclude);
+                }
+                else if (lChild.HasChildNodes)
+                {
+                    ProcessTranslationChildren(iDefine, iChannel, lChild, iInclude);
                 }
             }
         }
@@ -1554,7 +1756,12 @@ namespace OpenKNXproducer
                     lMemoryNode = lNode;
                 }
                 XmlNode lMemory = lMemoryNode.FirstChild;
-                while (lMemory != null && lMemory.NodeType == XmlNodeType.Comment) lMemory = lMemory.NextSibling;
+                while (lMemory != null && (lMemory.NodeType == XmlNodeType.Comment || (lMemory.Name == "Translation" && lMemory.NamespaceURI == ProcessInclude.cOwnNamespace)))
+                    lMemory = lMemory.NextSibling;
+                if (lMemory == null || lMemory.Attributes == null)
+                    continue;
+                if (lMemory.Attributes.GetNamedItem("Offset") == null || lMemory.Attributes.GetNamedItem("BitOffset") == null)
+                    continue;
                 if (lMemory != null && sParameterTypes.Count > 0)
                 {
                     // parse parameter type to fill additional information
