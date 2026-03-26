@@ -77,11 +77,7 @@ namespace OpenKNXproducer
         {
             DefineContent lResult = new();
             string lPrefix = iDefineNode.NodeAttr("prefix", "LOG");
-            if (sDefines.ContainsKey(lPrefix))
-            {
-                lResult = sDefines[lPrefix];
-            }
-            else
+            if (!sDefines.TryGetValue(lPrefix, out lResult))
             {
                 lResult.prefix = lPrefix;
                 lResult.prefixDoc = iDefineNode.NodeAttr("prefixDoc", lPrefix);
@@ -89,6 +85,11 @@ namespace OpenKNXproducer
                 lResult.header = iDefineNode.NodeAttr("header");
 
                 if (!int.TryParse(iDefineNode.NodeAttr("NumChannels"), out lResult.NumChannels)) lResult.NumChannels = 0;
+                if (lResult.NumChannels > 0)
+                {
+                    // we add a config which replaces the old %N% macro
+                    ProcessInclude.AddConfig($"{lPrefix}_N", lResult.NumChannels.ToString());
+                }
                 if (!int.TryParse(iDefineNode.NodeAttr("KoOffset"), out lResult.KoOffset)) lResult.KoOffset = 1;
                 if (!int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lResult.KoSingleOffset)) lResult.KoSingleOffset = 0;
                 string lReplaceKeys = iDefineNode.NodeAttr("ReplaceKeys");

@@ -1032,7 +1032,41 @@ namespace OpenKNXproducer
                     lNode.Value = lValue;
                 }
             }
+            // Handle messages
+            var lScripts = iTargetNode.SelectNodes("//ApplicationPrograms/ApplicationProgram/Static/Script");
+            if (lScripts.Count == 1)
+            {
+                XmlNode lMessages = iTargetNode.SelectSingleNode("//ApplicationPrograms/ApplicationProgram/Static/Messages");
+                if (lMessages != null)
+                {
+                    string lScript = lScripts[0].InnerText;
+                    var lMatches = FastRegex.JavaScriptCalcMessageId().Matches(lScript);
+                    if (lMatches.Count > 0)
+                    {
+                        foreach (Match lMatch in lMatches)
+                        {
+                            string lMessageId = FindMessageId(lMessages, lMatch.Groups[1].Value);
+                            lScript = lScript.Replace(lMatch.Groups[0].Value, lMessageId);
+                        }
+                        lScripts[0].InnerText = lScript;
+                    }
+                }
+            }
             return lWithVersions;
+        }
+
+        private static string FindMessageId(XmlNode iMessages, string iName)
+        {
+            string lId = "1";
+            XmlNode lMessage = iMessages.SelectSingleNode($"Message[@Name='{iName}']");
+            if (lMessage != null)
+            {
+                lId = lMessage.NodeAttr("Id");
+                lId = lId[(lId.IndexOf("_M-")+3)..];
+            }
+            else
+                Program.Message(true, $"JavaScript: calcMessage(\"{iName}\") does not refer an existing message");
+            return lId;
         }
 
         static readonly Dictionary<string, string> sNormalizeChars = new() { { "Ä", "Ae" }, { "ä", "ae" }, { "Ö", "Oe" }, { "ö", "oe" }, { "Ü", "Ue" }, { "ü", "ue" }, { "ß", "ss" } };
@@ -2090,7 +2124,6 @@ namespace OpenKNXproducer
             XmlNodeList lNodes = mDocument.SelectNodes("//oknxp:include|//oknxp:part|//oknxp:usePart", nsmgr); // get all <include> nodes
             // part preprocessing: we add instance nodes
             List<XmlNode> lIncludeNodes = ProcessPart.Preprocess(lNodes, mDocument);
-
             foreach (XmlNode lIncludeNode in lIncludeNodes)
             // try
             {

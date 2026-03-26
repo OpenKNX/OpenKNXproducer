@@ -84,6 +84,9 @@ namespace OpenKNXproducer
 
         [GeneratedRegex(@"""version""\s*:\s*""[^""]*""")]
         public static partial Regex LibraryJsonVersion();
+
+        [GeneratedRegex(@"calcMessage\s*\(\s*""([^""]*)""\s*\)")]
+        public static partial Regex JavaScriptCalcMessageId();
     }
 }
 // // No longer partial!
