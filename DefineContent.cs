@@ -77,7 +77,11 @@ namespace OpenKNXproducer
         {
             DefineContent lResult = new();
             string lPrefix = iDefineNode.NodeAttr("prefix", "LOG");
-            if (!sDefines.TryGetValue(lPrefix, out lResult))
+            if (sDefines.TryGetValue(lPrefix, out DefineContent lDefine))
+            {
+                lResult = lDefine;
+            }
+            else
             {
                 lResult.prefix = lPrefix;
                 lResult.prefixDoc = iDefineNode.NodeAttr("prefixDoc", lPrefix);
