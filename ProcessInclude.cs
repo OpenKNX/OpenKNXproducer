@@ -1959,14 +1959,14 @@ namespace OpenKNXproducer
                 ParseNoWarn(lNodes);
         }
 
-        public static bool AddConfig(string iName, string iValue)
+        public static bool AddConfig(string iName, string iValue, bool iWasReplaced = false)
         {
             bool lResult = false;
             if (!iName.StartsWith('%')) iName = '%' + iName;
             if (!iName.EndsWith('%')) iName += '%';
             if (iName != "%%" && !Config.ContainsKey(iName))
             {
-                Config[iName] = new() { ConfigValue = iValue };
+                Config[iName] = new() { ConfigValue = iValue, WasReplaced = iWasReplaced };
                 lResult = true;
             }
             return lResult;

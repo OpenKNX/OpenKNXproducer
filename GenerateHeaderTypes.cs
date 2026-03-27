@@ -1,5 +1,7 @@
 
+using System.Collections;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml;
 
@@ -38,6 +40,7 @@ namespace OpenKNXproducer
             if (sEnumerationTypes.Count == 0) return ""; 
 
             StringBuilder lHeader = new();
+            HashSet<string> lGeneratedTypeNames = [];
             foreach (XmlNode lEnumType in sEnumerationTypes)
             {
                 string lTypeName = "PT_" + GetNormalizedName(lEnumType, "Name", true);
@@ -55,7 +58,10 @@ namespace OpenKNXproducer
                         Program.Message("3.13.0", "ParameterType {0} contains non-numeric value {1} for Text {2}", lTypeName, lEnumValue.NodeAttr("Value"), lKey);
                         continue;
                     }
-                    lValues.Add(lKey, lValue);
+                    if (!lValues.TryAdd(lKey, lValue))
+                    {
+                        Program.Message("3.13.0", $"Enumeration value '{lKey}' is used twice in ParameterType '{lEnumType.NodeAttr("Name")}'");                    
+                    }
                     if (lEnumValue.Name == sEnumberationElementName)
                     {
                         // remove the Enumeration element to avoid confusion with the Enumeration elements that are used for other purposes (e.g. in DatapointType definitions)
@@ -67,6 +73,8 @@ namespace OpenKNXproducer
                 else if (lExportType == "enum")
                     OutputEnum(lHeader, lTypeName, lValues);
                 lHeader.AppendLine();
+                if (!lGeneratedTypeNames.Add(lTypeName))
+                    Program.Message("3.13.0", $"Type {lTypeName} was generated twice in header File, second occurence is in ParameterType {lEnumType.NodeAttr("Name")}");
             }
             return lHeader.ToString();
         }

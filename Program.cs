@@ -250,6 +250,13 @@ namespace OpenKNXproducer
             if (lCurrentVersion < lCheck.MinProducerVersion) 
                 lCheck.WriteFail("This document requires at least OpenKNXproducer version {0}.{1}.{2}, but you are using version {3}.{4}.{5}. Please update OpenKNXproducer to process this document!", lCheck.MinProducerVersion.Major, lCheck.MinProducerVersion.Minor, lCheck.MinProducerVersion.Build, lCurrentVersion.Major, lCurrentVersion.Minor, lCurrentVersion.Build);
             lCheck.Finish();
+            if (lCheck.IsFail)
+            {
+                Console.WriteLine();
+                Console.WriteLine("No further check due to outdated OpenKNXproducer version!");
+                Console.WriteLine();
+                return false;
+            }
 
             lCheck.Start("- Id-Homogeneity...");
             XmlNodeList lNodes = lXml.SelectNodes("//*[@Id]");

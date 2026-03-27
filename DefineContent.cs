@@ -92,7 +92,7 @@ namespace OpenKNXproducer
                 if (lResult.NumChannels > 0)
                 {
                     // we add a config which replaces the old %N% macro
-                    ProcessInclude.AddConfig($"{lPrefix}_N", lResult.NumChannels.ToString());
+                    ProcessInclude.AddConfig($"{lPrefix}_N", lResult.NumChannels.ToString(), true);
                 }
                 if (!int.TryParse(iDefineNode.NodeAttr("KoOffset"), out lResult.KoOffset)) lResult.KoOffset = 1;
                 if (!int.TryParse(iDefineNode.NodeAttr("KoSingleOffset"), out lResult.KoSingleOffset)) lResult.KoSingleOffset = 0;
