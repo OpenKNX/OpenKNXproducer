@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "module": "LanguageTest",
+    "source_language": "de",
+    "target_language": "en",
+    "version": "1.0"
+  },
+  "translations": {
+    "1 Sekunde": "1 second",
+    "2 Sekunden": "2 seconds",
+    "5 Sekunden": "5 seconds",
+    "10 Sekunden": "10 seconds",
+    "30 Sekunden": "30 seconds",
+    "1 Minute": "1 minute",
+    "2 Minuten": "2 minutes",
+    "5 Minuten": "5 minutes",
+    "10 Minuten": "10 minutes",
+    "30 Minuten": "30 minutes",
+    "manuelle Eingabe (Sekundengenau)": "manual input (second precision)",
+    "Nein": "No",
+    "Ja": "Yes",
+    "DPT 5.001 (1 Byte, Prozentwert)": "DPT 5.001 (1 Byte, percentage)",
+    "DPT 9.007 (2 Byte, Fließkommawert)": "DPT 9.007 (2 Byte, float value)",
+    "        Zeit (Sekundengenau)": "        Time (second precision)",
+    "Zeit bis das Gerät nach einem Neustart aktiv wird": "Time until the device becomes active after restart",
+    "Wert senden als": "Send value as",
+    "Geräte": "Devices",
+    "TempSensor": "TempSensor",
+    "Temperaturmesswert": "Temperature measurement",
+    "Luftfeuchtemesswert": "Humidity measurement",
+    "Alle Messwerte anfordern": "Request all measurements",
+    "Sekunden": "Seconds"
+  }
+}

@@ -1339,64 +1339,237 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        // private static void ExportXsd(string iXsdFileName) {
-        //     using (var fileStream = new FileStream("knx.xsd", FileMode.Create))
-        //     using (var stream = DocumentSet.GetXmlSchemaDocumentAsStream(KnxXmlSchemaVersion.Version14)) {
-        //         while (true) {
-        //             var buffer = new byte[4096];
-        //             var count = stream.Read(buffer, 0, 4096);
-        //             if (count == 0)
-        //                 break;
+        #region Translation Support
 
-        //             fileStream.Write(buffer, 0, count);
-        //         }
-        //     }
-        // }
-
-        private enum DocumentCategory
+        private static readonly HashSet<string> sTranslatableElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            None,
-            Catalog,
-            Hardware,
-            Application
-        }
+            "Enumeration", "Parameter", "ParameterRef", "ComObject", "ComObjectRef",
+            "Channel", "ChannelIndependentBlock", "CatalogSection", "CatalogItem",
+            "Product", "Message"
+        };
 
-        private static DocumentCategory GetDocumentCategory(XElement iTranslationUnit)
+        private static readonly HashSet<string> sTranslatableAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            DocumentCategory lCategory = DocumentCategory.None;
-            string lId = iTranslationUnit.Attribute("RefId").Value;
+            "Text", "Name", "SuffixText", "FunctionText"
+        };
 
-            lId = lId.Substring(6);
-            if (lId.StartsWith("_A-"))
-                lCategory = DocumentCategory.Application;
-            else if (lId.StartsWith("_CS-"))
-                lCategory = DocumentCategory.Catalog;
-            else if (lId.StartsWith("_H-") && lId.Contains("_CI-"))
-                lCategory = DocumentCategory.Catalog;
-            else if (lId.StartsWith("_H-") && lId.Contains("_P-"))
-                lCategory = DocumentCategory.Hardware;
-            else if (lId.StartsWith("_H-"))
-                lCategory = DocumentCategory.Hardware;
-
-            return lCategory;
-        }
-
-        private static void AddTranslationUnit(XElement iTranslationUnit, List<XElement> iLanguageList, string iNamespaceName)
+        private static Dictionary<string, string> LoadTranslations(string iTranslationsPath)
         {
-            // we assume, that here are adding just few TranslationUnits
-            // get parent element (Language)
-            XElement lSourceLanguage = iTranslationUnit.Parent;
-            string lSourceLanguageId = lSourceLanguage.Attribute("Identifier").Value;
-            XElement lTargetLanguage = iLanguageList.Elements("Child").FirstOrDefault(child => child.Attribute("Name").Value == lSourceLanguageId);
-            if (lTargetLanguage == null)
+            var lMerged = new Dictionary<string, string>();
+            var lFiles = new List<string>();
+
+            if (File.Exists(iTranslationsPath))
             {
-                // we create language element
-                lTargetLanguage = new XElement(XName.Get("Language", iNamespaceName), new XAttribute("Identifier", lSourceLanguageId));
-                iLanguageList.Add(lTargetLanguage);
+                lFiles.Add(iTranslationsPath);
             }
-            iTranslationUnit.Remove();
-            lTargetLanguage.Add(iTranslationUnit);
+            else if (Directory.Exists(iTranslationsPath))
+            {
+                lFiles.AddRange(Directory.GetFiles(iTranslationsPath, "*.json", SearchOption.AllDirectories));
+            }
+            else
+            {
+                // treat as glob pattern
+                string lDir = Path.GetDirectoryName(iTranslationsPath) ?? ".";
+                string lPattern = Path.GetFileName(iTranslationsPath);
+                if (Directory.Exists(lDir))
+                    lFiles.AddRange(Directory.GetFiles(lDir, lPattern, SearchOption.AllDirectories));
+            }
+
+            foreach (string lFile in lFiles)
+            {
+                try
+                {
+                    string lJson = File.ReadAllText(lFile);
+                    var lDoc = System.Text.Json.JsonDocument.Parse(lJson);
+                    System.Text.Json.JsonElement lTranslations;
+                    if (lDoc.RootElement.TryGetProperty("translations", out lTranslations))
+                    {
+                        foreach (var lProp in lTranslations.EnumerateObject())
+                        {
+                            string lValue = lProp.Value.GetString() ?? "";
+                            if (!string.IsNullOrEmpty(lValue))
+                                lMerged[lProp.Name] = lValue;
+                        }
+                    }
+                    Console.WriteLine("  Loaded {0} translations from {1}", lTranslations.EnumerateObject().Count(), lFile);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("  Warning: Failed to load translations from {0}: {1}", lFile, ex.Message);
+                }
+            }
+            return lMerged;
         }
+
+        private static void InjectTranslations(XmlDocument iXml, Dictionary<string, string> iTranslations, string iLanguageIdentifier = "en-US")
+        {
+            string lNs = iXml.DocumentElement.NamespaceURI;
+            XmlNamespaceManager lNsm = new XmlNamespaceManager(iXml.NameTable);
+            lNsm.AddNamespace("k", lNs);
+
+            XmlNode lManufacturer = iXml.SelectSingleNode("//k:Manufacturer", lNsm);
+            if (lManufacturer == null)
+            {
+                Console.WriteLine("  Warning: No Manufacturer element found, skipping translation injection.");
+                return;
+            }
+
+            // Collect all translatable elements with their translations
+            var lTranslationUnits = new Dictionary<string, List<(string refId, string attrName, string text)>>();
+            int lCount = 0;
+
+            CollectTranslatableNodes(iXml.DocumentElement, lNs, iTranslations, lTranslationUnits, ref lCount);
+
+            if (lCount == 0)
+            {
+                Console.WriteLine("  No matching translations found.");
+                return;
+            }
+
+            // Find or create the <Languages> block
+            XmlNode lLanguages = lManufacturer.SelectSingleNode("k:Languages", lNsm);
+            if (lLanguages == null)
+            {
+                lLanguages = iXml.CreateElement("Languages", lNs);
+                lManufacturer.AppendChild(lLanguages);
+            }
+
+            // Find or create the <Language> element for the target language
+            XmlNode lLanguage = null;
+            foreach (XmlNode lChild in lLanguages.ChildNodes)
+            {
+                if (lChild.NodeType == XmlNodeType.Element && lChild.LocalName == "Language"
+                    && lChild.Attributes?["Identifier"]?.Value == iLanguageIdentifier)
+                {
+                    lLanguage = lChild;
+                    break;
+                }
+            }
+            if (lLanguage == null)
+            {
+                lLanguage = iXml.CreateElement("Language", lNs);
+                ((XmlElement)lLanguage).SetAttribute("Identifier", iLanguageIdentifier);
+                lLanguages.AppendChild(lLanguage);
+            }
+
+            // Add TranslationUnits, merging with existing ones
+            foreach (var lUnit in lTranslationUnits)
+            {
+                // Find existing TranslationUnit with same RefId
+                XmlNode lExistingUnit = null;
+                foreach (XmlNode lChild in lLanguage.ChildNodes)
+                {
+                    if (lChild.NodeType == XmlNodeType.Element && lChild.LocalName == "TranslationUnit"
+                        && lChild.Attributes?["RefId"]?.Value == lUnit.Key)
+                    {
+                        lExistingUnit = lChild;
+                        break;
+                    }
+                }
+
+                XmlNode lTransUnit = lExistingUnit;
+                if (lTransUnit == null)
+                {
+                    lTransUnit = iXml.CreateElement("TranslationUnit", lNs);
+                    ((XmlElement)lTransUnit).SetAttribute("RefId", lUnit.Key);
+                    lLanguage.AppendChild(lTransUnit);
+                }
+
+                // Collect existing TranslationElement RefIds to avoid duplicates
+                var lExistingRefIds = new HashSet<string>();
+                foreach (XmlNode lChild in lTransUnit.ChildNodes)
+                {
+                    if (lChild.LocalName == "TranslationElement")
+                        lExistingRefIds.Add(lChild.Attributes?["RefId"]?.Value ?? "");
+                }
+
+                foreach (var (refId, attrName, text) in lUnit.Value)
+                {
+                    if (lExistingRefIds.Contains(refId)) continue;
+
+                    XmlElement lTransElem = iXml.CreateElement("TranslationElement", lNs);
+                    lTransElem.SetAttribute("RefId", refId);
+                    XmlElement lTranslation = iXml.CreateElement("Translation", lNs);
+                    lTranslation.SetAttribute("AttributeName", attrName);
+                    lTranslation.SetAttribute("Text", text);
+                    lTransElem.AppendChild(lTranslation);
+                    lTransUnit.AppendChild(lTransElem);
+                    lExistingRefIds.Add(refId);
+                }
+            }
+
+            Console.WriteLine("  Injected {0} translations for language '{1}' ({2} translation units).", lCount, iLanguageIdentifier, lTranslationUnits.Count);
+        }
+
+        private static void CollectTranslatableNodes(XmlNode iNode, string iNs, Dictionary<string, string> iTranslations,
+            Dictionary<string, List<(string refId, string attrName, string text)>> iTranslationUnits, ref int iCount)
+        {
+            if (iNode.NodeType != XmlNodeType.Element) return;
+
+            string lLocalName = iNode.LocalName;
+            if (sTranslatableElements.Contains(lLocalName))
+            {
+                string lId = iNode.Attributes?["Id"]?.Value ?? iNode.Attributes?["RefId"]?.Value;
+                if (!string.IsNullOrEmpty(lId))
+                {
+                    foreach (XmlAttribute lAttr in iNode.Attributes)
+                    {
+                        if (sTranslatableAttributes.Contains(lAttr.LocalName) && !string.IsNullOrEmpty(lAttr.Value))
+                        {
+                            if (iTranslations.TryGetValue(lAttr.Value, out string lTranslatedText))
+                            {
+                                // Determine the TranslationUnit RefId (parent category element)
+                                string lUnitRefId = GetTranslationUnitRefId(iNode, iNs);
+                                if (!string.IsNullOrEmpty(lUnitRefId))
+                                {
+                                    if (!iTranslationUnits.ContainsKey(lUnitRefId))
+                                        iTranslationUnits[lUnitRefId] = new List<(string, string, string)>();
+                                    iTranslationUnits[lUnitRefId].Add((lId, lAttr.LocalName, lTranslatedText));
+                                    iCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (XmlNode lChild in iNode.ChildNodes)
+                CollectTranslatableNodes(lChild, iNs, iTranslations, iTranslationUnits, ref iCount);
+        }
+
+        private static string GetTranslationUnitRefId(XmlNode iNode, string iNs)
+        {
+            // Walk up to find the appropriate TranslationUnit container:
+            // - For Catalog elements: the CatalogSection Id
+            // - For Hardware elements: the Hardware Id
+            // - For Application elements: the ApplicationProgram Id
+            XmlNode lCurrent = iNode;
+            while (lCurrent != null)
+            {
+                string lName = lCurrent.LocalName;
+                if (lName == "ApplicationProgram" || lName == "Hardware" || lName == "CatalogSection")
+                {
+                    return lCurrent.Attributes?["Id"]?.Value;
+                }
+                if (lName == "Catalog")
+                {
+                    // For CatalogItem directly under Catalog, use parent CatalogSection
+                    var lFirstSection = lCurrent.SelectSingleNode($"*[local-name()='CatalogSection']");
+                    return lFirstSection?.Attributes?["Id"]?.Value;
+                }
+                if (lName == "Product")
+                {
+                    // Products are under Hardware, find the parent Hardware element
+                    var lHw = lCurrent.ParentNode;
+                    while (lHw != null && lHw.LocalName != "Hardware") lHw = lHw.ParentNode;
+                    return lHw?.Attributes?["Id"]?.Value;
+                }
+                lCurrent = lCurrent.ParentNode;
+            }
+            return null;
+        }
+
+        #endregion
 
         private static bool ValidateXsd(string iWorkingDir, string iTempFileName, string iXmlFileName, string iXsdFileName, bool iAutoXsd)
         {
@@ -1516,199 +1689,6 @@ namespace OpenKNXproducer
             return lResult;
         }
 
-        // private static int ExportKnxprod(string iPathETS, string iWorkingDir, string iKnxprodFileName, string lTempXmlFileName, string iBaggageName, string iXsdFileName, bool iIsDebug, bool iAutoXsd)
-        // {
-            
-        //     if (iPathETS == "")
-        //     {
-        //         Console.WriteLine("No ETS found, skipped knxprod creation!");
-        //         return 0;
-        //     }
-        //     try
-        //     {
-        //         if (ValidateXsd(iWorkingDir, lTempXmlFileName, lTempXmlFileName, iXsdFileName, iAutoXsd)) return 1;
-
-        //         Console.WriteLine("Generating knxprod file...");
-
-        //         XDocument xdoc = null;
-        //         string xmlContent = File.ReadAllText(lTempXmlFileName);
-        //         xdoc = XDocument.Parse(xmlContent, LoadOptions.SetLineInfo);
-
-        //         XNode lXmlModel = xdoc.FirstNode;
-        //         if (lXmlModel.NodeType == XmlNodeType.ProcessingInstruction)
-        //             lXmlModel.Remove();
-
-        //         string ns = xdoc.Root.Name.NamespaceName;
-        //         XElement xmanu = xdoc.Root.Element(XName.Get("ManufacturerData", ns)).Element(XName.Get("Manufacturer", ns));
-
-        //         string manuId = xmanu.Attribute("RefId").Value;
-        //         string localPath = AppDomain.CurrentDomain.BaseDirectory;
-        //         if (Directory.Exists(Path.Combine(localPath, "Temp")))
-        //             Directory.Delete(Path.Combine(localPath, "Temp"), true);
-
-        //         Directory.CreateDirectory(Path.Combine(localPath, "Temp"));
-        //         Directory.CreateDirectory(Path.Combine(localPath, "Temp", manuId)); //Get real Manu
-
-
-        //         XElement xcata = xmanu.Element(XName.Get("Catalog", ns));
-        //         XElement xhard = xmanu.Element(XName.Get("Hardware", ns));
-        //         XElement xappl = xmanu.Element(XName.Get("ApplicationPrograms", ns));
-        //         XElement xbagg = xmanu.Element(XName.Get("Baggages", ns));
-
-        //         List<XElement> xcataL = new List<XElement>();
-        //         List<XElement> xhardL = new List<XElement>();
-        //         List<XElement> xapplL = new List<XElement>();
-        //         List<XElement> xbaggL = new List<XElement>();
-        //         XElement xlangs = xmanu.Element(XName.Get("Languages", ns));
-
-        //         if (xlangs != null)
-        //         {
-        //             xlangs.Remove();
-        //             foreach (XElement xTrans in xlangs.Descendants(XName.Get("TranslationUnit", ns)).ToList())
-        //             {
-        //                 DocumentCategory lCategory = GetDocumentCategory(xTrans);
-        //                 switch (lCategory)
-        //                 {
-        //                     case DocumentCategory.Catalog:
-        //                         AddTranslationUnit(xTrans, xcataL, ns);
-        //                         break;
-        //                     case DocumentCategory.Hardware:
-        //                         AddTranslationUnit(xTrans, xhardL, ns);
-        //                         break;
-        //                     case DocumentCategory.Application:
-        //                         AddTranslationUnit(xTrans, xapplL, ns);
-        //                         break;
-        //                     default:
-        //                         throw new Exception("Unknown Translation Type: " + lCategory.ToString());
-        //                 }
-
-        //             }
-        //         }
-        //         xhard.Remove();
-        //         if (xbagg != null) xbagg.Remove();
-
-        //         //Save Catalog
-        //         xappl.Remove();
-        //         if (xcataL.Count > 0)
-        //         {
-        //             xlangs.Elements().Remove();
-        //             foreach (XElement xlang in xcataL)
-        //                 xlangs.Add(xlang);
-        //             xmanu.Add(xlangs);
-        //         }
-        //         xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
-        //         if (xcataL.Count > 0) xlangs.Remove();
-        //         xcata.Remove();
-
-        //         // Save Hardware
-        //         xmanu.Add(xhard);
-        //         if (xhardL.Count > 0)
-        //         {
-        //             xlangs.Elements().Remove();
-        //             foreach (XElement xlang in xhardL)
-        //                 xlangs.Add(xlang);
-        //             xmanu.Add(xlangs);
-        //         }
-        //         xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
-        //         if (xhardL.Count > 0) xlangs.Remove();
-        //         xhard.Remove();
-
-        //         if (xbagg != null)
-        //         {
-        //             // Save Baggages
-        //             xmanu.Add(xbagg);
-        //             if (xbaggL.Count > 0)
-        //             {
-        //                 xlangs.Elements().Remove();
-        //                 foreach (XElement xlang in xbaggL)
-        //                     xlangs.Add(xlang);
-        //                 xmanu.Add(xlangs);
-        //             }
-        //             xdoc.Save(Path.Combine(localPath, "Temp", manuId, "Baggages.xml"));
-        //             if (xbaggL.Count > 0) xlangs.Remove();
-        //             xbagg.Remove();
-        //         }
-
-        //         xmanu.Add(xappl);
-        //         if (xapplL.Count > 0)
-        //         {
-        //             xlangs.Elements().Remove();
-        //             foreach (XElement xlang in xapplL)
-        //                 xlangs.Add(xlang);
-        //             xmanu.Add(xlangs);
-        //         }
-        //         string appId = xappl.Elements(XName.Get("ApplicationProgram", ns)).First().Attribute("Id").Value;
-        //         xdoc.Save(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
-        //         if (xapplL.Count > 0) xlangs.Remove();
-
-        //         // Copy baggages to output dir
-        //         string lSourceBaggageName = Path.Combine(iWorkingDir, iBaggageName);
-        //         var lSourceBaggageDir = new DirectoryInfo(lSourceBaggageName);
-        //         if (lSourceBaggageDir.Exists)
-        //             lSourceBaggageDir.DeepCopy(Path.Combine(localPath, "Temp", manuId, "Baggages"));
-
-        //         IDictionary<string, string> applProgIdMappings = new Dictionary<string, string>();
-        //         IDictionary<string, string> applProgHashes = new Dictionary<string, string>();
-        //         IDictionary<string, string> mapBaggageIdToFileIntegrity = new Dictionary<string, string>(50);
-
-        //         FileInfo hwFileInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, "Hardware.xml"));
-        //         FileInfo catalogFileInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, "Catalog.xml"));
-        //         FileInfo appInfo = new FileInfo(Path.Combine(localPath, "Temp", manuId, $"{appId}.xml"));
-
-        //         int nsVersion = int.Parse(ns.Substring(ns.LastIndexOf('/') + 1));
-        //         ApplicationProgramHasher aph = new ApplicationProgramHasher(appInfo, mapBaggageIdToFileIntegrity, iPathETS, nsVersion, true);
-        //         aph.Hash();
-
-        //         applProgIdMappings.Add(aph.OldApplProgId, aph.NewApplProgId);
-        //         if (!applProgHashes.ContainsKey(aph.NewApplProgId))
-        //             applProgHashes.Add(aph.NewApplProgId, aph.GeneratedHashString);
-
-        //         HardwareSigner hws = new HardwareSigner(hwFileInfo, applProgIdMappings, applProgHashes, iPathETS, nsVersion, true);
-        //         hws.SignFile();
-        //         IDictionary<string, string> hardware2ProgramIdMapping = hws.OldNewIdMappings;
-
-        //         CatalogIdPatcher cip = new CatalogIdPatcher(catalogFileInfo, hardware2ProgramIdMapping, iPathETS, nsVersion);
-        //         cip.Patch();
-
-        //         XmlSigning.SignDirectory(Path.Combine(localPath, "Temp", manuId), iPathETS);
-
-        //         Directory.CreateDirectory(Path.Combine(localPath, "Masters"));
-        //         ns = ns.Substring(ns.LastIndexOf("/") + 1);
-        //         // Console.WriteLine("localPath is {0}", localPath);
-        //         if (!File.Exists(Path.Combine(localPath, "Masters", $"project-{ns}.xml")))
-        //         {
-        //             // var client = new System.Net.WebClient();
-        //             // client.DownloadFile($"https://update.knx.org/data/XML/project-{ns}/knx_master.xml", Path.Combine(localPath, "Masters", $"project-{ns}.xml"));
-        //             HttpClient client = new HttpClient();
-        //             var task = client.GetStringAsync($"https://update.knx.org/data/XML/project-{ns}/knx_master.xml");
-        //             while (!task.IsCompleted) { }
-        //             File.WriteAllText(Path.Combine(localPath, "Masters", $"project-{ns}.xml"), task.Result.ToString());
-        //         }
-
-        //         File.Copy(Path.Combine(localPath, "Masters", $"project-{ns}.xml"), Path.Combine(localPath, "Temp", $"knx_master.xml"));
-        //         if (File.Exists(iKnxprodFileName)) File.Delete(iKnxprodFileName);
-        //         System.IO.Compression.ZipFile.CreateFromDirectory(Path.Combine(localPath, "Temp"), iKnxprodFileName);
-
-
-        //         if (!iIsDebug)
-        //             System.IO.Directory.Delete(Path.Combine(localPath, "Temp"), true);
-
-        //         Console.ForegroundColor = ConsoleColor.Green;
-        //         // derive version from appId
-        //         int lVersion = int.Parse(appId.Substring(14, 1), System.Globalization.NumberStyles.HexNumber);
-        //         int lRevision = int.Parse(appId.Substring(15, 1), System.Globalization.NumberStyles.HexNumber);
-        //         Console.WriteLine("Output of {0} (version {1}.{2}) successful", iKnxprodFileName, lVersion, lRevision);
-        //         Console.ResetColor();
-        //         return 0;
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Console.WriteLine("ETS-Error during knxprod creation:");
-        //         Console.WriteLine(ex.ToString());
-        //         return 1;
-        //     }
-        // }
-
         class EtsOptions
         {
             private string mXmlFileName;
@@ -1780,6 +1760,8 @@ namespace OpenKNXproducer
             public string OutputFile { get; set; } = "";
             [Option('x', "ExchangeKoTexts", Required = false, HelpText = "Exchange KO Text and FunctionText")]
             public bool ExchangeKoTexts { get; set; } = false;
+            [Option('T', "Translations", Required = false, HelpText = "Path to translation JSON file or directory containing translation JSON files (e.g., lib/*/translations/)", MetaValue = "PATH")]
+            public string TranslationsPath { get; set; } = "";
         }
 
         [Verb("baggages", HelpText = "Create baggages files from given documentation file")]
@@ -1930,6 +1912,21 @@ namespace OpenKNXproducer
             if (lSuccess) lSuccess = EnsureEtsNamingConventionForKO(lInclude);
             if (lSuccess) lSuccess = PushUpdateChannelToFirstPosition(lXml);
             if (lSuccess && opts.ExchangeKoTexts) ExchangeKoTextAndFunctionText(lXml);
+            // Inject translations if specified
+            if (lSuccess && !string.IsNullOrEmpty(opts.TranslationsPath))
+            {
+                Console.WriteLine("Loading translations from {0}", opts.TranslationsPath);
+                var lTranslations = LoadTranslations(opts.TranslationsPath);
+                if (lTranslations.Count > 0)
+                {
+                    Console.WriteLine("  Total unique translations loaded: {0}", lTranslations.Count);
+                    InjectTranslations(lXml, lTranslations);
+                }
+                else
+                {
+                    Console.WriteLine("  Warning: No translations found.");
+                }
+            }
             string lTempXmlFileName = Path.GetTempFileName();
             File.Delete(lTempXmlFileName);
             if (opts.Debug) lTempXmlFileName = opts.XmlFileName;
@@ -2043,13 +2040,26 @@ namespace OpenKNXproducer
             Console.WriteLine("Reading xml file {0} writing to {1}", opts.XmlFileName, lOutputFileName);
 
             string lWorkingDir = GetAbsWorkingDir(opts.XmlFileName);
-            if (opts.ExchangeKoTexts) {
+            string lInputFile = opts.XmlFileName;
+            if (opts.ExchangeKoTexts || !string.IsNullOrEmpty(opts.TranslationsPath)) {
                 XmlDocument lXml = new XmlDocument();
                 lXml.Load(opts.XmlFileName);
-                ExchangeKoTextAndFunctionText(lXml);
-                lXml.Save(opts.XmlFileName);
+                if (opts.ExchangeKoTexts) ExchangeKoTextAndFunctionText(lXml);
+                if (!string.IsNullOrEmpty(opts.TranslationsPath))
+                {
+                    Console.WriteLine("Loading translations from {0}", opts.TranslationsPath);
+                    var lTranslations = LoadTranslations(opts.TranslationsPath);
+                    if (lTranslations.Count > 0)
+                    {
+                        Console.WriteLine("  Total unique translations loaded: {0}", lTranslations.Count);
+                        InjectTranslations(lXml, lTranslations);
+                    }
+                }
+                // Save to temp file to avoid modifying the source
+                lInputFile = Path.ChangeExtension(Path.GetTempFileName(), "xml");
+                lXml.Save(lInputFile);
             }
-            return ExportKnxprod(lWorkingDir, lOutputFileName, opts.XmlFileName, opts.XsdFileName, false, !opts.NoXsd);
+            return ExportKnxprod(lWorkingDir, lOutputFileName, lInputFile, opts.XsdFileName, false, !opts.NoXsd);
         }
 
         static private int VerbBaggages(BaggagesOptions opts)
