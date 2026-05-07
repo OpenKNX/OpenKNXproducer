@@ -1001,9 +1001,9 @@ namespace OpenKNXproducer
             { "1 Byte", "DPT-4, DPT-5, DPT-6, DPT-17, DPT-18, DPT-20, DPT-21, DPT-25, DPT-26, DPT-236, DPT-238," },
             { "2 Bytes", "DPT-7, DPT-8, DPT-9, DPT-22, DPT-207, DPT-217, DPT-234, DPT-237, DPT-244, DPT-246," },
             { "3 Bytes", "DPT-10, DPT-11, DPT-30, DPT-206, DPT-225, DPT-232, DPT-240, DPT-250, DPT-254," },
-            { "4 Bytes", "DPT-12, DPT-13, DPT-14, DPT-15, DPT-27, DPT-241, DPT-251," },
+            { "4 Bytes", "DPT-12, DPT-13, DPT-14, DPT-15, DPT-27, DPT-241," },
             { "5 Bytes", "DPT-252," },
-            { "6 Bytes", "DPT-219, DPT-222, DPT-229, DPT-235, DPT-242, DPT-245, DPT-249," },
+            { "6 Bytes", "DPT-219, DPT-222, DPT-229, DPT-235, DPT-242, DPT-245, DPT-249, DPT-251," },
             { "8 Bytes", "DPT-19, DPT-29, DPT-230, DPT-255, DPT-275," },
             { "14 Bytes", "DPT-16," },
             { "16 Bytes", "DPT-285," }
