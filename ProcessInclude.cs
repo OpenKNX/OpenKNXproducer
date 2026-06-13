@@ -1264,29 +1264,33 @@ namespace OpenKNXproducer
             // the same PB number in all subblocks.
             // we assume, that the iterator first provides the PB and later on the subPB, 
             // before the next PB is offered.
-            int lPos = lAttr.Value.IndexOf("_PB-");
-            string lValue = "";
+            string lValue = lAttr.Value;
+            int lPos = lValue.IndexOf("_PB-");
             // if (lAttr.Value.Substring(lPos + 4).Contains('_'))
-            if (lAttr.Value[(lPos + 4)..].Contains('_'))
+            if (lValue[(lPos + 4)..].Contains('_'))
             {
                 // this is a subblock, we assume, that its main block was already renumbered
                 // lValue = lAttr.Value.Substring(0, lAttr.Value.LastIndexOf("_"));
-                lValue = lAttr.Value[..lAttr.Value.LastIndexOf("_")];
+                lValue = lValue[..lValue.LastIndexOf("_")];
                 // lAttr.Value = lAttr.Value.Replace(lValue, mParameterBlockMap[lValue]);
                 lAttr.Value = lAttr.Value.Replace(lValue, mLastParameterBlockId);
             }
             else
             {
-                // it is a main block, renumber it and store the result
-                lValue = string.Format("{0}-{1}", lAttr.Value.Substring(0, lAttr.Value.LastIndexOf('-')), lParameterBlockCount);
-                // if (mParameterBlockMap.ContainsKey(lAttr.Value)) {
-                //     // number collision? Further checks should find this out
-                // } else {
-                //     mParameterBlockMap.Add(lAttr.Value, lValue);
-                // }
-                mLastParameterBlockId = lValue;
-                lAttr.Value = lValue;
-                lParameterBlockCount += 1;
+                lValue = lValue[(lValue.LastIndexOf('-') + 1)..];
+                _ = int.TryParse(lValue, out int lNumber);
+                if (lNumber < 1000000) {
+                    // it is a main block, renumber it and store the result
+                    lValue = string.Format("{0}-{1}", lAttr.Value.Substring(0, lAttr.Value.LastIndexOf('-')), lParameterBlockCount);
+                    mLastParameterBlockId = lValue;
+                    lAttr.Value = lValue;
+                    lParameterBlockCount += 1;
+                }
+                else
+                {
+                    // it is a main block, but with a very high number, we do not renumber it, but store the number for subblocks
+                    mLastParameterBlockId = lAttr.Value;
+                }
             }
             return lParameterBlockCount;
         }
