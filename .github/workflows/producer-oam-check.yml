@@ -52,7 +52,7 @@ jobs:
       #     echo "Selected branch: $BRANCH"
 
       - name: Checkout OAM
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: openknx/${{ inputs.oam }}
           # ref: ${{ steps.oam_branch.outputs.ref_name }}
@@ -75,7 +75,7 @@ jobs:
           }
 
       # - name: Restore Current OFM Commit
-      #   uses: actions/checkout@v4
+      #   uses: actions/checkout@v6
       #   with:
       #     # ref: ${{ github.ref_name }}
       #     path: OFM-DFA
@@ -84,7 +84,7 @@ jobs:
         run: |
           mkdir -p OpenKNXproducer/tools/Linux/
       - name: Download Build for Linux
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bin-linux-x64
           # file to: OpenKNXproducer/tools/Linux/OpenKNXproducer
@@ -136,7 +136,7 @@ jobs:
           fi
 
       # - name: Install Python
-      #   uses: actions/setup-python@v5
+      #   uses: actions/setup-python@v6
       #   with:
       #     python-version: '3.8'
       #
