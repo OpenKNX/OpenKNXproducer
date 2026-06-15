@@ -65,7 +65,7 @@ This release is compatible with **Linux**, **macOS**, and **Windows 10/11** (x86
 
 ### 1. Download and Extract the ZIP file
 
-Download the latest release and extract the entire contents of the ZIP file into a directory.
+[Download the latest release](https://github.com/OpenKNX/OpenKNXproducer/releases) and extract the entire contents of the ZIP file into a directory.
 
 ### 2. Run the installation script
 
