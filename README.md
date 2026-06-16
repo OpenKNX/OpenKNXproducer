@@ -46,6 +46,71 @@ This project uses **.NET 6.0**.
 
   Reads Sensor.xml, do sanity checks
 
+- ``OpenKNXproducer create --Translations lib/*/translations/ --Debug Sensor``
+
+  Reads Sensor.xml, loads English translations from module translation files, produces bilingual Sensor.knxprod
+
+##
+
+## Multi-Language Support
+
+OpenKNXproducer supports generating bilingual knxprod files using the `--Translations` option. This follows the KNX standard practice of embedding `<Languages>` blocks with `<TranslationUnit>` and `<TranslationElement>` entries, so ETS displays text in the user's preferred language.
+
+### Translation File Format
+
+Translation files are JSON files with the following structure:
+
+```json
+{
+  "_meta": {
+    "module": "OFM-LogicModule",
+    "source_language": "de",
+    "target_language": "en",
+    "version": "1.0"
+  },
+  "translations": {
+    "Nein": "No",
+    "Ja": "Yes",
+    "Sekunde(n)": "Second(s)",
+    "Zeit bis das Gerät nach einem Neustart aktiv wird": "Time until the device becomes active after restart"
+  }
+}
+```
+
+- The `_meta` section is optional and for documentation purposes
+- The `translations` object maps German source text (as it appears in XML attributes) to the target language text
+- Empty values are ignored
+
+### Usage
+
+The `--Translations` (or `-T`) option accepts:
+- A path to a single JSON file: `--Translations translations/en.json`
+- A path to a directory (recursively scans for `*.json`): `--Translations translations/`
+- Available on both `create` and `knxprod` verbs
+
+### How It Works
+
+1. After XML expansion (all includes resolved, IDs generated), the tool loads translation dictionaries
+2. It walks all translatable elements (Parameters, Enumerations, ComObjects, etc.) in the expanded XML
+3. For each element whose `Text`, `Name`, `SuffixText`, or `FunctionText` attribute matches a dictionary entry, a `<TranslationElement>` is created
+4. All translation elements are grouped into `<TranslationUnit>` blocks by parent category (Catalog, Hardware, Application)
+5. The complete `<Languages><Language Identifier="en-US">` block is inserted into the XML
+6. During knxprod generation, translations are automatically split across the output files (Catalog.xml, Hardware.xml, ApplicationProgram.xml)
+
+### Translatable Elements
+
+The following element types and attributes are supported:
+
+| Element | Attributes |
+|---------|-----------|
+| Enumeration | Text |
+| Parameter, ParameterRef | Text, SuffixText |
+| ComObject, ComObjectRef | Text, FunctionText |
+| Channel, ChannelIndependentBlock | Name |
+| CatalogSection, CatalogItem | Name |
+| Product | Text |
+| Message | Text |
+
 ##
 
 ## Tipps:
