@@ -124,6 +124,17 @@ partial class TemplateApplication
                     lVersions[lPos] = ParseNumberValue("ReplacesVersions", lVersions[lPos]).ToString();
                 lValue = string.Join(' ', lVersions);
             }
+            else if (lAttribute.Name == "ReplacesVersionsDownTo")
+            {
+                int lFrom = ParseNumberValue("ReplacesVersionsDownTo", lResult["%ApplicationVersion%"]);
+                int lTo = ParseNumberValue("ReplacesVersionsDownTo", lValue);
+                // generate replaces versions list
+                string lReplacesVersions = "";
+                for (int lVersion = lFrom - 1; lVersion >= lTo; lVersion--)
+                    lReplacesVersions += $" {lVersion}";
+                lValue = lReplacesVersions.Trim();
+                lConfigName = "%ReplacesVersions%";
+            }
             // TODO: we have to check, if these values should also go to config (additional replacement option)?
             lResult[lConfigName] = lValue;
         }

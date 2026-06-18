@@ -1277,8 +1277,12 @@ namespace OpenKNXproducer
             }
             else
             {
-                lValue = lValue[(lValue.LastIndexOf('-') + 1)..];
-                _ = int.TryParse(lValue, out int lNumber);
+                int lNumber = 0;
+                if (lValue.Length - lPos - 4 > 6)
+                {
+                    lValue = lValue[(lValue.LastIndexOf('-') + 1)..];
+                    _ = int.TryParse(lValue, out lNumber);
+                }
                 if (lNumber < 1000000) {
                     // it is a main block, renumber it and store the result
                     lValue = string.Format("{0}-{1}", lAttr.Value.Substring(0, lAttr.Value.LastIndexOf('-')), lParameterBlockCount);
