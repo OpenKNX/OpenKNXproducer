@@ -8,7 +8,19 @@ It is the successor of [multiply-channels](https://github.com/mumpf/multiply-cha
 For [OpenKNX_Projects](https://github.com/OpenKNX) or for knxprod-creation with ETS 6 you should use OpenKNXproducer.
 
 
-## Features and Arguments
+## Contents
+
+* [Usage](#usage)
+  * [Features and Arguments](#features-and-arguments)
+  * [Examples](#examples)
+  * [Tipps](#tipps)
+* [Installation](#installation)
+  * [Requirements](#requirements)
+
+
+## Usage
+
+### Features and Arguments
 
 The current version provides the following verbs: 
 - **create**     Check given xml file and create knxprod
@@ -21,14 +33,7 @@ The current version provides the following verbs:
 This tool also creates a header file with defines for all parameter and communication object definitions in the XML.
 
 
-## Requirements:
-
-ETS must be installed. Supported versions are: ETS 4, ETS 5.5, ETS 5.6, ETS 5.7, ETS 6.0 and ETS 6.3. The correct ETS converter version is automatically found dependent on xmlns of provided xml document. 
-This project uses **.NET 6.0**.
-
-##
-
-## Examples:
+### Examples
 
 - ``OpenKNXproducer new --ProductName=TempSensor --AppNumber=567 Sensor``
 
@@ -46,9 +51,8 @@ This project uses **.NET 6.0**.
 
   Reads Sensor.xml, do sanity checks
 
-##
 
-## Tipps:
+### Tipps
 
 If all sanity checks were OK and the knxprod file was created, there might be still problems using this file in ETS. Because the user is editing an xml file, there might be many other problems there, which are not checked by this tool yet.
 
@@ -60,8 +64,15 @@ If you find a situation, which is not yet checked but leads to errors in ETS, re
 
 ##
 
+
 ## Installation
-This release is compatible with **Linux**, **macOS**, and **Windows 10/11** (x86, x64, Arm).
+
+### Requirements:
+
+* This release is compatible with **Linux**, **macOS**, and **Windows 10/11** (x86, x64, Arm).
+
+* ETS must be installed. Supported versions are: ETS 4, ETS 5.5, ETS 5.6, ETS 5.7, ETS 6.0 and ETS 6.3. The correct ETS converter version is automatically found dependent on xmlns of provided xml document. 
+This project uses **.NET 6.0**.
 
 ### 1. Download and Extract the ZIP file
 
