@@ -10,7 +10,8 @@
 # This script builds the OpenKNXproducer release package for Windows, MacOS and Linux
 
 param(
-  [switch]$Verbose = $false # To show more information during the build process. Default is $false. Please use -Verbose to enable it.
+  [switch]$Verbose = $false, # To show more information during the build process. Default is $false. Please use -Verbose to enable it.
+  [string]$VersionSuffix = "" # Optional pre-release suffix, e.g. -VersionSuffix beta -> 4.3.11-beta. Empty = normal release.
 )
 # To Show OpenKNX Logo in the console output
 function OpenKNX_ShowLogo($AddCustomText = $null) {
@@ -149,7 +150,7 @@ function Get-ApplicationVersion {
   # the patern for OPenKNXproducer is: OpenKNXproducer 'OpenKNXproducer (\d+(\.\d+)*)'
   # the patern for bossac and others is: 'Version (\d+(\.\d+)*)'
   $pattern = switch ($application) {
-    "OpenKNXproducer" { 'OpenKNXproducer (\d+(\.\d+)*)' }
+    "OpenKNXproducer" { 'OpenKNXproducer (\d+(\.\d+)*(-[\w.]+)?)' }
     default { 'Version (\d+(\.\d+)*)' }
   }
   if ($Verbose) { Write-Host "Pattern: $pattern" -ForegroundColor Yellow }
@@ -262,12 +263,16 @@ New-Item -Path release/tools/Linux -ItemType Directory | Out-Null
 New-Item -Path release/tools/bossac -ItemType Directory | Out-Null
 New-Item -Path release/tools/esptools -ItemType Directory | Out-Null
 
+# Optional pre-release version suffix (e.g. -VersionSuffix beta -> 4.3.11-beta)
+$versionArg = if ([string]::IsNullOrEmpty($VersionSuffix)) { "" } else { " /p:VersionSuffix=$VersionSuffix" }
+if ($versionArg) { Write-Host "$infoChar Building with version suffix '-$VersionSuffix'" -ForegroundColor Cyan }
+
 # Build OpenKNXproducer
-Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj"
-Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x64 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x64   --self-contained true /p:PublishSingleFile=true"
-Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x86 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x86   --self-contained true /p:PublishSingleFile=true"
-Invoke-DotnetExecute -message "- Publish OpenKNXproducer for MacOS       ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r osx-x64   --self-contained true /p:PublishSingleFile=true"
-Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Linux       ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r linux-x64 --self-contained true /p:PublishSingleFile=true"
+Invoke-DotnetExecute -message "- Building OpenKNXproducer                ..." -arguments "build OpenKNXproducer.csproj$versionArg"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x64 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x64   --self-contained true /p:PublishSingleFile=true$versionArg"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Windows x86 ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r win-x86   --self-contained true /p:PublishSingleFile=true$versionArg"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for MacOS       ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r osx-x64   --self-contained true /p:PublishSingleFile=true$versionArg"
+Invoke-DotnetExecute -message "- Publish OpenKNXproducer for Linux       ..." -arguments "publish OpenKNXproducer.csproj -c Debug -r linux-x64 --self-contained true /p:PublishSingleFile=true$versionArg"
 
 # Copy publish version to release folder structure
 Write-Host "- Copy publish openKNXproducer binaries to release folder structure ..." -ForegroundColor Green -NoNewline
@@ -307,6 +312,12 @@ Write-Host "`t$checkmarkChar Done" -ForegroundColor Green
 Write-Host "- Checking and getting versions directly from builded executables ..." -ForegroundColor Green -NoNewline
 # Get version from OpenKNXproducer and remove spaces from release name
 $OpenKNXproducerVersion = (Get-ApplicationVersion)
+# Ensure the pre-release suffix is part of the release version (zip name + version.txt),
+# independent of what the binary reports via --version (FileVersion stays numeric).
+if (-not [string]::IsNullOrEmpty($VersionSuffix)) {
+  $baseVersion = $OpenKNXproducerVersion -replace '-.*$', ''   # strip any existing suffix
+  $OpenKNXproducerVersion = "$baseVersion-$VersionSuffix"
+}
 $bossacVersion = (Get-ApplicationVersion -application "bossac")
 
 if ( [string]::IsNullOrEmpty($OpenKNXproducerVersion) -or [string]::IsNullOrEmpty($bossacVersion) ) {

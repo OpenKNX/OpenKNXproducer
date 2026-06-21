@@ -1836,7 +1836,13 @@ namespace OpenKNXproducer
 
         static private void WriteVersion()
         {
-            Console.WriteLine("{0} {1}", typeof(Program).Assembly.GetName().Name, typeof(Program).Assembly.GetName().Version);
+            // Prefer the InformationalVersion (can carry a suffix like "4.3.10-beta",
+            // set via -p:Version=4.3.10-beta); fall back to the numeric AssemblyVersion.
+            string lVersion = typeof(Program).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (string.IsNullOrEmpty(lVersion))
+                lVersion = typeof(Program).Assembly.GetName().Version.ToString();
+            Console.WriteLine("{0} {1}", typeof(Program).Assembly.GetName().Name, lVersion);
         }
 
         static public string GetEncoded(string iInput)
